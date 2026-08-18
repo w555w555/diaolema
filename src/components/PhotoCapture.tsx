@@ -109,12 +109,14 @@ export function PhotoCapture({
       {stream && host
         ? createPortal(
             <div className="camera-overlay" role="dialog" aria-label="拍照">
+              <button type="button" className="camera-back" onClick={closeLive}>
+                <span aria-hidden>‹</span>
+                返回
+              </button>
               <video ref={bindVideo} className="camera-video" playsInline muted autoPlay />
               {liveError ? <p className="camera-overlay-error">{liveError}</p> : null}
               <div className="camera-bar">
-                <button type="button" className="ghost" onClick={closeLive}>
-                  取消
-                </button>
+                <span />
                 <button type="button" className="camera-shutter" aria-label="快门" onClick={() => void shutter()} />
                 <button type="button" className="ghost" onClick={() => cameraRef.current?.click()}>
                   系统相机

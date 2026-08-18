@@ -320,10 +320,7 @@ button.splash::before {
 }
 
 .home-main {
-  flex: 0 1 auto;
-  max-height: 58%;
-  min-height: 0;
-  overflow: auto;
+  flex: 0 0 auto;
   display: grid;
   gap: 10px;
 }
@@ -473,6 +470,7 @@ button.splash::before {
 .plan-card {
   position: relative;
   overflow: hidden;
+  flex: none;
   padding: 14px 16px 14px;
   border-radius: 22px;
   background: linear-gradient(135deg, #1f2c27 0%, #172421 56%, #2b2315 100%);
@@ -516,11 +514,13 @@ button.splash::before {
   justify-content: space-between;
   align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 .gold-pill {
   display: inline-flex;
   align-items: center;
+  flex: none;
   height: 27px;
   padding: 0 12px;
   border-radius: 13.5px;
@@ -533,6 +533,7 @@ button.splash::before {
 
 .style-switch {
   display: flex;
+  flex: none;
   background: rgba(11, 20, 19, 0.48);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 15.5px;
@@ -555,8 +556,9 @@ button.splash::before {
 .plan-card h2,
 .plan-title {
   margin: 12px 0 0;
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 900;
+  line-height: 1.3;
 }
 
 .plan-title {
@@ -564,6 +566,14 @@ button.splash::before {
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
+  min-width: 0;
+}
+
+.plan-title span {
+  min-width: 0;
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--brand-dim);
 }
 
 .fish-pick {
@@ -605,6 +615,7 @@ button.splash::before {
 }
 
 .plan-grid article {
+  min-width: 0;
   background: rgba(11, 20, 19, 0.48);
   border: 1px solid rgba(255, 255, 255, 0.07);
   border-radius: 14px;
@@ -622,6 +633,9 @@ button.splash::before {
   margin-top: 4px;
   font-size: 15px;
   font-weight: 900;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .plan-grid strong.lure-pick {
@@ -755,8 +769,8 @@ button.splash::before {
 }
 
 .share-feed {
-  flex: 1 1 42%;
-  min-height: 0;
+  flex: 1 1 auto;
+  min-height: 140px;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -1383,6 +1397,30 @@ dd span {
   background: #050a09;
 }
 
+.camera-back {
+  position: absolute;
+  z-index: 2;
+  top: calc(14px + env(safe-area-inset-top, 0px));
+  left: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  height: 36px;
+  padding: 0 14px 0 10px;
+  border-radius: 999px;
+  background: rgba(11, 20, 19, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  color: #eaf5ef;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.camera-back span {
+  font-size: 22px;
+  line-height: 1;
+  margin-top: -2px;
+}
+
 .camera-video {
   width: 100%;
   height: 100%;
@@ -1394,7 +1432,7 @@ dd span {
   position: absolute;
   left: 16px;
   right: 16px;
-  top: 24px;
+  top: calc(56px + env(safe-area-inset-top, 0px));
   margin: 0;
   color: #fff;
   text-align: center;
