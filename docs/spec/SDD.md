@@ -209,7 +209,7 @@ Query：`latitude, longitude, timezone=Asia/Shanghai, current=temperature_2m,rel
 
 ## 6. 地图（FR-3）
 
-- 环境变量：`VITE_AMAP_KEY`，可选 `VITE_AMAP_SECURITY_CODE`。
+- 环境变量：`VITE_AMAP_KEY` / `AMAP_KEY`，可选安全码。构建期可打进前端；运行期 `GET /api/map-config` 再读一遍，方便 Zeabur 只配运行变量。`CatchMap` 在钓点 Tab 显示时 `resize`，避免隐藏容器空白。无 Key 或 SDK 失败时 Leaflet 用高德栅格底图（国内可显示），不用 OSM。
 - 高德加载成功：`AMap.Map` 中心上海，插件 `AMap.Scale` / `AMap.ToolBar` / `AMap.Geolocation` / `AMap.Driving` / `AMap.Walking`。附文含导航按钮。
 - 失败或无 Key：Leaflet 地图 + 同样数据；仍提供 `uri.amap.com` 导航。
 - 运行时向 UI 回报 `engine: 'amap' | 'leaflet'`，禁止仅凭 env 有 Key 就显示「高德已开启」。

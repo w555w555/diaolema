@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import AMapLoader from '@amap/amap-jsapi-loader';
 import 'leaflet/dist/leaflet.css';
+import { AMAP_RASTER_SUBDOMAINS, AMAP_RASTER_URL, readAmapConfig } from '../lib/mapConfig';
 import { buildAmapNavUrl, type NavMode } from '../lib/navigation';
 import {
   NEARBY_MAP_ZOOM,
@@ -26,6 +27,7 @@ type Props = {
   lon: number;
   locateVisit?: number;
   locating?: boolean;
+  visible?: boolean;
   picking?: boolean;
   onPick?: (lat: number, lon: number) => void;
   navigateTo?: NavPlace | null;
@@ -52,6 +54,7 @@ export function CatchMap({
   lon,
   locateVisit = 0,
   locating,
+  visible = true,
   picking,
   onPick,
   navigateTo,
@@ -93,12 +96,27 @@ export function CatchMap({
 
     const start = async () => {
       const origin = originRef.current;
-      const key = import.meta.env.VITE_AMAP_KEY;
+      const baked = readAmapConfig({
+        VITE_AMAP_KEY: import.meta.env.VITE_AMAP_KEY,
+        VITE_AMAP_SECURITY_CODE: import.meta.env.VITE_AMAP_SECURITY_CODE,
+      });
+      let key = baked.key;
+      let security = baked.security;
+      if (!key) {
+        try {
+          const res = await fetch('/api/map-config');
+          const remote = res.ok ? ((await res.json()) as { key?: string; security?: string }) : null;
+          key = remote?.key?.trim() || '';
+          security = remote?.security?.trim() || security;
+        } catch {
+          /* 仍走降级底图 */
+        }
+      }
       if (key) {
         try {
-          if (import.meta.env.VITE_AMAP_SECURITY_CODE) {
+          if (security) {
             window._AMapSecurityConfig = {
-              securityJsCode: import.meta.env.VITE_AMAP_SECURITY_CODE,
+              securityJsCode: security,
             };
           }
           const AMap = await AMapLoader.load({
@@ -122,10 +140,13 @@ export function CatchMap({
           map.addControl(
             new AMap.Geolocation({
               enableHighAccuracy: true,
-              timeout: 8000,
+              timeout: 10000,
               buttonPosition: 'RB',
+              showButton: true,
               showMarker: true,
               showCircle: true,
+              panToLocation: true,
+              zoomToAccuracy: true,
             }),
           );
           let driving: {
@@ -246,8 +267,10 @@ export function CatchMap({
       }
 
       const map = L.map(el, { zoomControl: true }).setView([origin.lat, origin.lon], NEARBY_MAP_ZOOM);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap · 演示底图',
+      L.tileLayer(AMAP_RASTER_URL, {
+        subdomains: AMAP_RASTER_SUBDOMAINS,
+        maxZoom: 18,
+        attribution: '高德 · 演示底图',
       }).addTo(map);
       const api: NavApi = {
         preview(place, mode) {
@@ -344,6 +367,12 @@ export function CatchMap({
     focusApi.current(focusVenue);
     onFocusDone?.();
   }, [focusVenue, engine, onFocusDone]);
+
+  useEffect(() => {
+    if (!visible || engine === 'loading' || !viewApi.current) return;
+    const id = window.setTimeout(() => viewApi.current?.setNearby(lat, lon), 120);
+    return () => window.clearTimeout(id);
+  }, [visible, engine, lat, lon]);
 
   useEffect(() => {
     if (!locateVisit || engine === 'loading' || !viewApi.current) return;

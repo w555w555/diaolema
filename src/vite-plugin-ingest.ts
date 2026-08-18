@@ -9,6 +9,7 @@ import type { PostStore } from './lib/ingest/types';
 import { loadScoutConfig, saveExtraManualLink, scoutPaths, toIngestConfig } from './lib/scout/loadConfig';
 import { readTodayReport, runDailyScout } from './lib/scout/runDaily';
 import { fishIdAgentUrl, fishIdConfigured, identifyFishFromImage } from './lib/fishId/server';
+import { readAmapConfig } from './lib/mapConfig';
 import type { CatchReport } from './types';
 
 const root = () => process.cwd();
@@ -119,6 +120,10 @@ async function handle(req: IncomingMessage, res: ServerResponse, next: () => voi
     } catch (error) {
       sendJson(res, 500, { error: error instanceof Error ? error.message : String(error) });
     }
+    return;
+  }
+  if (req.method === 'GET' && url === '/api/map-config') {
+    sendJson(res, 200, readAmapConfig(appEnv()));
     return;
   }
   if (req.method === 'GET' && url === '/api/fish-id') {

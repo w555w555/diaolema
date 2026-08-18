@@ -53,8 +53,8 @@ npx zeabur@latest deploy
 
 | 变量 | 何时生效 | 说明 |
 |------|----------|------|
-| `VITE_AMAP_KEY` | 构建 | 高德 JS Key，缺了用地图降级 |
-| `VITE_AMAP_SECURITY_CODE` | 构建 | 可选安全密钥 |
+| `VITE_AMAP_KEY` 或 `AMAP_KEY` | 构建或运行 | 高德 JS Key。也要在高德控制台把 `*.zeabur.app` 加到域名白名单 |
+| `VITE_AMAP_SECURITY_CODE` 或 `AMAP_SECURITY_CODE` | 构建或运行 | 可选安全密钥 |
 | `FISH_ID_API_KEY` | 运行 | 豆包识鱼；不配仍可手选鱼种 |
 
 不要设置静态托管 `ZBPACK_OUTPUT_DIR=dist`，否则 `/api/fish-id` 不可用。绑定域名后用手机打开 HTTPS 地址，即可定位与拍照。

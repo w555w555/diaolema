@@ -154,6 +154,7 @@ export function App() {
               lon={coords.lon}
               locateVisit={spotVisit}
               locating={tab === 'spots' && locating}
+              visible={tab === 'spots'}
               picking={picking}
               navigateTo={navTarget}
               onNavigateDone={() => setNavTarget(null)}

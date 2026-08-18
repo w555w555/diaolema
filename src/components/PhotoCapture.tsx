@@ -117,7 +117,9 @@ export function PhotoCapture({
               {liveError ? <p className="camera-overlay-error">{liveError}</p> : null}
               <div className="camera-bar">
                 <span />
-                <button type="button" className="camera-shutter" aria-label="快门" onClick={() => void shutter()} />
+                <button type="button" className="camera-shutter" onClick={() => void shutter()}>
+                  拍摄
+                </button>
                 <button type="button" className="ghost" onClick={() => cameraRef.current?.click()}>
                   系统相机
                 </button>
