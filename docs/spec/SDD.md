@@ -346,8 +346,8 @@ src/App.tsx
 | 上游 | 豆包识图 `https://ark.cn-beijing.volces.com/api/v3`；`thinking.type=disabled`；图最长边 1280、高质量 JPEG；提示含易混种外形核对 |
 | 解析 | `parseFishReply`：JSON 或从中文回复里抽词表鱼名 |
 | 归一化 | `src/lib/fishId/catalog.ts` 的 `normalizeFishName` |
-| UI | `PhotoCapture`（底栏「+」识鱼与同页报渔获共用）+ `FishIdPanel` |
-| 未配置 Key | 503 `not_configured`，UI 改手动词表点选 |
+| UI | `PhotoCapture` + `FishIdPanel`。已配置时无豆包文案；识别中 `.fish-id-scan` 用渔见 Logo 旋转扫描，右上角 X 取消；成功打钩约 0.8s |
+| 未配置 Key | 503 `not_configured`，UI 改手动词表点选；提示不出现「打开豆包」 |
 
 拍照：点「拍照」先尝试 `getUserMedia` 后置取景；失败或不在安全上下文则触发 `<input type=file accept=image/* capture=environment>`。相册输入不加 `capture`。压缩图可作本机 `CatchReport.imageUrl`；`stripInlineImage` 后才 `persistReportToServer`。不把原图写入飞书。
 

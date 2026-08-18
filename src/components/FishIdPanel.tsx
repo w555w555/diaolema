@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import logoUrl from '../assets/logo.svg?url';
 import { PhotoCapture } from './PhotoCapture';
 import { FISH_CATALOG, LOW_CONFIDENCE, UNCERTAIN } from '../lib/fishId/catalog';
 import { compressImageFile, fetchFishIdStatus, identifyFish } from '../lib/fishId/client';
@@ -29,7 +30,7 @@ export function FishIdPanel({
   const [preview, setPreview] = useState<string | null>(null);
   const [photoUrl, setPhotoUrl] = useState<string | undefined>();
   const [configured, setConfigured] = useState<boolean | null>(null);
-  const [agentUrl, setAgentUrl] = useState('https://www.doubao.com');
+  const [scanPhase, setScanPhase] = useState<'off' | 'scan' | 'done'>('off');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<FishIdResult | null>(null);
@@ -39,7 +40,6 @@ export function FishIdPanel({
   useEffect(() => {
     void fetchFishIdStatus().then((s) => {
       setConfigured(s.configured);
-      if (s.agentUrl) setAgentUrl(s.agentUrl);
     });
   }, []);
 
@@ -48,6 +48,7 @@ export function FishIdPanel({
     const controller = new AbortController();
     abortRef.current = controller;
     setBusy(true);
+    setScanPhase('scan');
     setError(null);
     setResult(null);
     setPicked('');
@@ -60,19 +61,22 @@ export function FishIdPanel({
       onIdentified?.(next);
       if (next.inCatalog && next.confidence >= LOW_CONFIDENCE) setPicked(next.species);
       else if (next.alternatives[0]) setPicked(next.alternatives[0].species);
+      setScanPhase('done');
+      await new Promise((resolve) => window.setTimeout(resolve, 800));
     } catch (e) {
       if (controller.signal.aborted) return;
       const message = e instanceof Error ? e.message : String(e);
       if (message === 'not_configured' || (e instanceof Error && e.name === 'FishIdNotConfigured')) {
         setConfigured(false);
-        setError('还没配豆包 API Key，可先手选鱼种。');
+        setError('还没配置识鱼密钥，可先手选鱼种。');
       } else if (/aborted due to timeout/i.test(message) || (e instanceof Error && e.name === 'TimeoutError')) {
-        setError('豆包识图超时，请换一张更小的鱼照再试。');
+        setError('识图超时，请换一张更小的鱼照再试。');
       } else {
-        setError(message);
+        setError(message.replace(/豆包/g, '识鱼'));
       }
     } finally {
       setBusy(false);
+      setScanPhase('off');
     }
   };
 
@@ -85,36 +89,21 @@ export function FishIdPanel({
 
   const fishName = picked || (result?.inCatalog ? result.species : '');
   const uncertain = !fishName || fishName === UNCERTAIN || (result != null && result.confidence < LOW_CONFIDENCE && picked === result.species);
+  const cancelScan = () => {
+    abortRef.current?.abort();
+    setBusy(false);
+    setScanPhase('off');
+  };
 
   return (
     <section className="panel report-form fish-id-panel">
       <h2>AI 识鱼</h2>
-      <p className="muted legal">
-        手机点拍照用后置相机，再把图发给豆包识图。不能自动登录网页版填表。
-        <a href={agentUrl} target="_blank" rel="noreferrer">
-          打开豆包
-        </a>
-      </p>
-      {configured === false && (
-        <p className="muted">还没配豆包 API Key。可先手选鱼种，或到火山方舟控制台申请密钥后发给我。</p>
-      )}
+      <p className="muted legal">拍照或从相册选图，识别词表内鱼种。</p>
+      {configured === false && <p className="muted">还没配置识鱼密钥，可先手选鱼种。</p>}
       <div className="fish-id-actions">
         <PhotoCapture onPick={(file) => void runIdentify(file)} />
-        {busy && (
-          <button
-            type="button"
-            className="ghost"
-            onClick={() => {
-              abortRef.current?.abort();
-              setBusy(false);
-            }}
-          >
-            取消
-          </button>
-        )}
       </div>
       {preview && <img className="fish-id-preview" src={preview} alt="渔获预览" />}
-      {busy && <p className="muted">正在识别…</p>}
       {error && <p className="error">{error}</p>}
       {result && (
         <div className="fish-id-result">
@@ -179,6 +168,26 @@ export function FishIdPanel({
         用这个鱼名上报
       </button>
       {uncertain && fishName && fishName !== UNCERTAIN && <p className="muted">置信度偏低，请核对后再上报。</p>}
+      {scanPhase !== 'off' ? (
+        <div className="fish-id-scan" role="status" aria-live="polite">
+          <div className="fish-id-scan-card" data-phase={scanPhase}>
+            {scanPhase === 'scan' ? (
+              <button type="button" className="fish-id-scan-close" aria-label="取消识别" onClick={cancelScan}>
+                ×
+              </button>
+            ) : null}
+            <div className="fish-id-scan-mark">
+              <img src={logoUrl} alt="" width={96} height={96} />
+              {scanPhase === 'done' ? (
+                <span className="fish-id-scan-check" aria-hidden>
+                  ✓
+                </span>
+              ) : null}
+            </div>
+            <p>{scanPhase === 'done' ? '识别完成' : '扫描中'}</p>
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }
