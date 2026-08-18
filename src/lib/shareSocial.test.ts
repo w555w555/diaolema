@@ -21,6 +21,6 @@ describe('shareSocial', () => {
     const ratios = ids.map(coverRatio);
     expect(new Set(ratios).size).toBeGreaterThan(1);
     expect(ratios.every((ratio) => (COVER_RATIOS as readonly string[]).includes(ratio))).toBe(true);
-    expect(ratios.some((ratio) => ratio !== '1/1')).toBe(true);
+    expect(COVER_RATIOS.every((ratio) => !ratio.startsWith('3/'))).toBe(true);
   });
 });

@@ -124,6 +124,7 @@ export function HomeScreen({
             </article>
           </div>
         </section>
+      </div>
 
         <div className="id-card">
           <button type="button" className="id-card-hit" onClick={() => onOpen('fishid')}>
@@ -138,7 +139,6 @@ export function HomeScreen({
           </button>
           <PhotoCapture showAlbum={false} cameraLabel="拍照" cameraClassName="id-shot" onPick={onFishPhoto} />
         </div>
-      </div>
 
       <CatchShareFeed reports={reports} onOpenAll={onOpenInbox} onOpenDetail={onOpenShare} />
     </div>

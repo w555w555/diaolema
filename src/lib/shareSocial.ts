@@ -1,7 +1,7 @@
 const LIKE_KEY = 'diaolema.share.likes.v1';
 const FOLLOW_KEY = 'diaolema.share.follows.v1';
 
-export const COVER_RATIOS = ['3/4', '4/5', '1/1', '5/6', '3/5'] as const;
+export const COVER_RATIOS = ['1/1', '5/4', '4/5'] as const;
 export type CoverRatio = (typeof COVER_RATIOS)[number];
 
 function hashId(value: string): number {

@@ -321,7 +321,7 @@ button.splash::before {
 
 .home-main {
   flex: 0 1 auto;
-  max-height: calc(100% - 220px);
+  min-height: 0;
   overflow-x: hidden;
   overflow-y: auto;
   display: grid;
@@ -706,6 +706,8 @@ button.splash::before {
   gap: 10px;
   padding: 10px 12px;
   position: relative;
+  z-index: 4;
+  flex: none;
   width: 100%;
   color: var(--ink);
 }
@@ -871,11 +873,11 @@ button.share-hit:active {
 }
 
 button.share-hit strong {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
-  line-height: 1.35;
+  line-height: 1.3;
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 1;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -902,8 +904,7 @@ button.share-hit strong {
 .share-cover img {
   display: block;
   width: 100%;
-  aspect-ratio: var(--share-ratio, 3 / 4);
-  height: auto;
+  height: 108px;
   object-fit: cover;
   background: #10201d;
 }
@@ -940,7 +941,8 @@ button.share-hit strong {
   padding: 0 1px;
 }
 
-.share-author {
+.share-author,
+.share-spot {
   min-width: 0;
   flex: 1;
   color: var(--muted);

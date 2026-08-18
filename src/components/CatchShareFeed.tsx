@@ -59,7 +59,7 @@ export function CatchShareFeed({ reports, onOpenAll, onOpenDetail }: Props) {
                   <strong>{report.title || `${report.fish} · ${report.spotName}`}</strong>
                 </button>
                 <div className="share-foot">
-                  <span className="share-author">{report.author}</span>
+                  <span className="share-spot">{report.spotName}</span>
                   <button
                     type="button"
                     className="share-follow"
