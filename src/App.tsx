@@ -23,11 +23,10 @@ import { DIANPING_VENUES } from './lib/venues';
 import { loadSpotReviews } from './lib/spotReviews';
 import { coerceFishForStyle } from './lib/fishId/catalog';
 import { fetchWeather } from './lib/weather';
-import { SHANGHAI_CENTER, type CatchReport, type FishIdResult, type FishStyle, type FishingVenue, type SpotReview, type WeatherSnapshot } from './types';
+import { SHANGHAI_CENTER, type CatchReport, type FishStyle, type FishingVenue, type SpotReview, type WeatherSnapshot } from './types';
 import './index.css';
 
 const SHEET_TITLE: Record<HomeSheet, string> = {
-  fishid: '识鱼入护',
   advice: '今日怎么钓',
   venues: '钓场排行',
   daily: '鱼情日报',
@@ -51,7 +50,6 @@ export function App() {
   const [pick, setPick] = useState(SHANGHAI_CENTER);
   const [navTarget, setNavTarget] = useState<{ lon: number; lat: number; name: string } | null>(null);
   const [focusVenue, setFocusVenue] = useState<FishingVenue | null>(null);
-  const [lastId, setLastId] = useState<FishIdResult | null>(null);
   const [targetFish, setTargetFish] = useState('');
   const [style, setStyle] = useState<FishStyle>('台钓');
   const [share, setShare] = useState<CatchReport | null>(null);
@@ -62,7 +60,6 @@ export function App() {
   const [spotVenue, setSpotVenue] = useState<FishingVenue | null>(null);
   const [meStart, setMeStart] = useState<'home' | 'catches'>('home');
   const [spotBack, setSpotBack] = useState<HomeSheet | null>(null);
-  const [fishPhoto, setFishPhoto] = useState<File | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -184,7 +181,6 @@ export function App() {
               error={error}
               index={index}
               advice={advice}
-              lastId={lastId}
               locating={locating}
               targetFish={coerceFishForStyle(targetFish || advice?.targetFish[0] || '', style)}
               style={style}
@@ -204,10 +200,6 @@ export function App() {
                 setShare(report);
                 setSheet('catch');
               }}
-              onFishPhoto={(file) => {
-                setFishPhoto(file);
-                setSheet('fishid');
-              }}
             />
           )}
 
@@ -218,7 +210,6 @@ export function App() {
                 lon={pick.lon}
                 locating={locating}
                 onReport={saveReport}
-                onIdentified={setLastId}
               />
               <ReportForm
                 lat={pick.lat}
@@ -278,17 +269,6 @@ export function App() {
               setSpotBack(null);
             }}
           >
-            {sheet === 'fishid' && (
-              <FishIdPanel
-                lat={pick.lat}
-                lon={pick.lon}
-                locating={locating}
-                initialFile={fishPhoto}
-                onInitialConsumed={() => setFishPhoto(null)}
-                onReport={saveReport}
-                onIdentified={setLastId}
-              />
-            )}
             {sheet === 'advice' && <AdvicePanel advice={advice} />}
             {sheet === 'venues' && (
               <VenueList

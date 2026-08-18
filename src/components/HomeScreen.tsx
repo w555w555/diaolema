@@ -1,15 +1,14 @@
 import { useEffect, useState } from 'react';
 import { CatchShareFeed } from './CatchShareFeed';
-import { PhotoCapture } from './PhotoCapture';
 import { catalogForStyle, coerceFishForStyle } from '../lib/fishId/catalog';
 import { outingLabel } from '../lib/fishingIndex';
 import { weatherLabel, windDirLabel, windScaleLabel } from '../lib/weather';
 import { fishGuide } from '../lib/fishGuide';
 import { windowCountdown } from '../lib/windowCountdown';
 import logoUrl from '../assets/logo.svg?url';
-import type { CatchReport, FishIdResult, FishStyle, FishingAdvice, FishingIndex, WeatherSnapshot } from '../types';
+import type { CatchReport, FishStyle, FishingAdvice, FishingIndex, WeatherSnapshot } from '../types';
 
-export type HomeSheet = 'fishid' | 'advice' | 'venues' | 'daily' | 'share' | 'weather' | 'target' | 'catch' | 'spot' | 'guide';
+export type HomeSheet = 'advice' | 'venues' | 'daily' | 'share' | 'weather' | 'target' | 'catch' | 'spot' | 'guide';
 
 type Props = {
   weather: WeatherSnapshot | null;
@@ -17,7 +16,6 @@ type Props = {
   error: string | null;
   index: FishingIndex | null;
   advice: FishingAdvice | null;
-  lastId: FishIdResult | null;
   onRefresh: () => void;
   onOpen: (sheet: HomeSheet) => void;
   targetFish: string;
@@ -26,7 +24,6 @@ type Props = {
   reports: CatchReport[];
   onOpenInbox: () => void;
   onOpenShare: (report: CatchReport) => void;
-  onFishPhoto: (file: File) => void;
   locating?: boolean;
 };
 
@@ -36,7 +33,6 @@ export function HomeScreen({
   error,
   index,
   advice,
-  lastId,
   onRefresh,
   onOpen,
   targetFish,
@@ -45,7 +41,6 @@ export function HomeScreen({
   reports,
   onOpenInbox,
   onOpenShare,
-  onFishPhoto,
   locating,
 }: Props) {
   const fish = coerceFishForStyle(targetFish || advice?.targetFish[0] || '', style);
@@ -61,8 +56,6 @@ export function HomeScreen({
       ].join(' · ')
     : error || '正在读取上海气象';
   const line = locating ? `${meta} · 定位中` : meta;
-
-  const idName = lastId?.species && lastId.species !== '不确定' ? lastId.species : null;
 
   return (
     <div className="home">
@@ -125,20 +118,6 @@ export function HomeScreen({
           </div>
         </section>
       </div>
-
-        <div className="id-card">
-          <button type="button" className="id-card-hit" onClick={() => onOpen('fishid')}>
-            <span className="id-art" aria-hidden>
-              <FishMark />
-            </span>
-            <span className="id-copy">
-              <span>AI 识鱼</span>
-              <strong>{idName ?? '拍一张渔获'}</strong>
-            </span>
-            {lastId && idName ? <b className="id-pct">{Math.round(lastId.confidence * 100)}%</b> : null}
-          </button>
-          <PhotoCapture showAlbum={false} cameraLabel="拍照" cameraClassName="id-shot" onPick={onFishPhoto} />
-        </div>
 
       <CatchShareFeed reports={reports} onOpenAll={onOpenInbox} onOpenDetail={onOpenShare} />
     </div>
@@ -207,27 +186,5 @@ function WindowCountdownBar() {
       <strong>{c.title}</strong>
       <em>{c.remainText}</em>
     </p>
-  );
-}
-
-function FishMark() {
-  return (
-    <svg viewBox="0 0 104 104" aria-hidden>
-      <line x1="0" y1="52" x2="104" y2="52" stroke="#E8B24A" strokeWidth="2" opacity="0.7" />
-      <g transform="translate(12 26)">
-        <polygon points="65,23 88,8 88,42" fill="#8B7957" />
-        <ellipse cx="39" cy="27" rx="42" ry="25" fill="url(#fishBodyHome)" />
-        <polygon points="27,2 47,12 18,12" fill="#A9956D" />
-        <circle cx="21" cy="24" r="4" fill="#211B13" />
-        <circle cx="22.2" cy="22.8" r="1.3" fill="#FFFFFF" />
-      </g>
-      <defs>
-        <linearGradient id="fishBodyHome" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#E2D0A6" />
-          <stop offset="0.52" stopColor="#BCA982" />
-          <stop offset="1" stopColor="#7C6C4E" />
-        </linearGradient>
-      </defs>
-    </svg>
   );
 }

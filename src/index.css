@@ -393,7 +393,6 @@ button.splash::before {
 }
 
 .wx-card,
-.id-card,
 .tool-tile {
   background: #14211f;
   border: 1px solid var(--line);
@@ -698,81 +697,6 @@ button.splash::before {
 
 .plan-grid .teal {
   color: var(--teal);
-}
-
-.id-card {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  position: relative;
-  z-index: 4;
-  flex: none;
-  width: 100%;
-  color: var(--ink);
-}
-
-.id-card-hit {
-  flex: 1;
-  min-width: 0;
-  display: grid;
-  grid-template-columns: 52px 1fr auto;
-  align-items: center;
-  gap: 12px;
-  margin: 0;
-  padding: 0;
-  background: none;
-  border: 0;
-  border-radius: 0;
-  color: inherit;
-  text-align: left;
-  font-weight: inherit;
-}
-
-.id-shot {
-  flex: none;
-  padding: 8px 14px;
-}
-
-.id-art {
-  width: 52px;
-  height: 52px;
-  border-radius: 14px;
-  background: #10201d;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  padding: 0;
-  display: grid;
-  place-items: center;
-}
-
-.id-art svg {
-  width: 100%;
-  height: 100%;
-}
-
-.id-copy {
-  min-width: 0;
-}
-
-.id-copy span {
-  color: var(--muted);
-  font-size: 11px;
-}
-
-.id-copy strong {
-  display: block;
-  margin-top: 2px;
-  font-size: 16px;
-  font-weight: 900;
-}
-
-.id-pct {
-  background: rgba(47, 199, 160, 0.12);
-  color: var(--teal);
-  border-radius: 12px;
-  padding: 4px 10px;
-  font-size: 12px;
-  font-weight: 900;
 }
 
 .share-feed {
@@ -1109,43 +1033,39 @@ button.share-go {
 }
 
 .nav-fab {
-  width: 52px;
-  height: 52px;
-  margin: -22px auto 0;
+  width: 56px;
+  height: 56px;
+  margin: -18px auto 2px;
   border-radius: 18px;
   background: linear-gradient(135deg, #e8b24a, #f5c96b);
   color: #3a2b0a;
   padding: 0;
   display: grid;
   place-items: center;
+  box-shadow: 0 0 0 3px rgba(11, 20, 19, 0.96);
 }
 
-.nav-plus {
-  position: relative;
-  width: 26px;
-  height: 26px;
+.nav-fab[data-active='true'] {
+  box-shadow: 0 0 0 3px rgba(11, 20, 19, 0.96), 0 0 0 5px rgba(232, 178, 74, 0.55);
 }
 
-.nav-plus::before,
-.nav-plus::after {
-  content: '';
-  position: absolute;
-  background: #3a2b0a;
-  border-radius: 2px;
+.nav-fab-text {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  line-height: 1;
 }
 
-.nav-plus::before {
-  left: 11px;
-  top: 0;
-  width: 3px;
-  height: 26px;
+.nav-fab-text b {
+  font-size: 16px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
 }
 
-.nav-plus::after {
-  left: 0;
-  top: 11px;
-  width: 26px;
-  height: 3px;
+.nav-fab-text small {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
 }
 
 .sheet-root {

@@ -3,7 +3,7 @@ export type TabId = 'home' | 'spots' | 'publish' | 'hub' | 'me';
 const TABS: { id: TabId; label: string }[] = [
   { id: 'home', label: '策略' },
   { id: 'spots', label: '钓点' },
-  { id: 'publish', label: '发布' },
+  { id: 'publish', label: 'AI 识鱼' },
   { id: 'hub', label: '渔圈' },
   { id: 'me', label: '我的' },
 ];
@@ -18,10 +18,13 @@ export function BottomNav({ tab, onChange }: { tab: TabId; onChange: (tab: TabId
             type="button"
             className="nav-fab"
             data-active={tab === item.id ? 'true' : 'false'}
-            aria-label="发布"
+            aria-label="AI 识鱼"
             onClick={() => onChange(item.id)}
           >
-            <span className="nav-plus" aria-hidden />
+            <span className="nav-fab-text">
+              <b>AI</b>
+              <small>识鱼</small>
+            </span>
           </button>
         ) : (
           <button

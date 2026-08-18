@@ -88,7 +88,7 @@ export function FishIdPanel({
 
   return (
     <section className="panel report-form fish-id-panel">
-      <h2>识鱼</h2>
+      <h2>AI 识鱼</h2>
       <p className="muted legal">
         手机点拍照用后置相机，再把图发给豆包识图。不能自动登录网页版填表。
         <a href={agentUrl} target="_blank" rel="noreferrer">

@@ -29,6 +29,7 @@
 | 20. 我的个人中心 | complete | 常规资料卡 + 分组菜单 |
 | 21. 手机定位与拍照 | complete | 开屏/+ 定位；识鱼与报渔获拍照 |
 | 22. Zeabur 打包 | complete | GitHub 或 CLI 部署；zbpack + start |
+| 23. 识鱼改到底栏 + | complete | 首页去掉识鱼卡；+ 文案「识鱼」 |
 
 ## Decisions
 

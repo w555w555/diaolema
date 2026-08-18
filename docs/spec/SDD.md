@@ -336,7 +336,7 @@ src/App.tsx
                     ↓ 豆包 ARK POST /api/v3/chat/completions
               解析回复 → normalizeFishName
                     ↓ FishIdResult
-              FishIdPanel（首页可带 initialFile）
+              FishIdPanel（底栏「+」识鱼页；可选 initialFile）
               ReportForm 同样用 PhotoCapture，封面走 packedToDataUrl
 ```
 
@@ -346,7 +346,7 @@ src/App.tsx
 | 上游 | 豆包识图 `https://ark.cn-beijing.volces.com/api/v3`；`thinking.type=disabled`；图最长边 1280、高质量 JPEG；提示含易混种外形核对 |
 | 解析 | `parseFishReply`：JSON 或从中文回复里抽词表鱼名 |
 | 归一化 | `src/lib/fishId/catalog.ts` 的 `normalizeFishName` |
-| UI | `PhotoCapture`（识鱼与「+」报渔获共用）+ `FishIdPanel` |
+| UI | `PhotoCapture`（底栏「+」识鱼与同页报渔获共用）+ `FishIdPanel` |
 | 未配置 Key | 503 `not_configured`，UI 改手动词表点选 |
 
 拍照：点「拍照」先尝试 `getUserMedia` 后置取景；失败或不在安全上下文则触发 `<input type=file accept=image/* capture=environment>`。相册输入不加 `capture`。压缩图可作本机 `CatchReport.imageUrl`；`stripInlineImage` 后才 `persistReportToServer`。不把原图写入飞书。
@@ -356,16 +356,16 @@ src/App.tsx
 ```
 [天气] → buildAdvice + buildFishingIndex
               ↓
-        HomeScreen（策略：天气条 / 最佳方案 / 识鱼入口 / 钓友分享）
+        HomeScreen（策略：天气条 / 最佳方案 / 钓友分享）
               ↓ 底栏
         钓点：CatchMap 常驻 visibility
-        发布：FishIdPanel + ReportForm（均可拍照；进入时定位）
+        识鱼（底栏金色「AI 识鱼」）：FishIdPanel + ReportForm（均可拍照；进入时定位）
         渔圈：HubScreen（商城 / 赛事 / 技巧 / 评测 / 群聊）
         我的：MeScreen 个人中心（资料 / 菜单 / 渔获记录）
-        抽屉：VenueList / AdvicePanel / DailyReport / ShareImport / 词表换鱼 / 识鱼
+        抽屉：VenueList / AdvicePanel / DailyReport / ShareImport / 词表换鱼
 ```
 
-桌面端 `.phone` 列宽 430px、圆角 44px、深底金青绿。产品名「渔见」。首页品牌行用 `public/logo.svg` + `.brand-name`（MiSans/苹方/Noto 栈、字色 `#EAF5EF–#B9CAC3`、辅文 `#69BBA7`）。启动时 `Splash` 盖住手机壳：深底金青绿光晕与水纹，Logo 淡入上浮，点按或 2.4s 后淡出，随后请求定位。切到钓点时 `CatchMap` 不卸载。首页 AI 识鱼卡带拍照，选图后打开识鱼抽屉并识别。地图选点时强制切到钓点 Tab。风力用 `windScaleLabel` 转成几级；出钓文案用 `outingLabel` 映射指数档位。天气条用 `windowCountdown` 显示晨昏窗口倒计时。方案格只放味形/拟饵与标点；点鱼名换目标鱼（列表按当前钓法筛选）；点天气条开天气抽屉。首页 `.home-main` 只放天气与今日方案，可内部滚动；**AI 识鱼卡固定在方案和今日渔获之间**，不被分享区挡住。下半 `CatchShareFeed` 独立滑动。拍照取景左上角「‹ 返回」。区头「今日渔获 · N / 全部 ›」带细金线。双列卡片封面限高 108px，图下露出钓点名与点赞，不必滑完一张图。`coverRatio` 仍按 id 变化（1/1、5/4、4/5）。图上鱼种胶囊、示例黑底白字；图下标题、钓点、点赞。`shareSocial`：点赞/关注存 localStorage，种子赞数由 id 哈希，点赞 +1 / 取消还原；关注按作者名切换。`CatchShareDetail` 同步同一状态，顶图叠作者/时间，「去钓点」全宽青绿。不把策略顶出屏幕。`shareCover`：有 `imageUrl` 用图，否则 `catchThumb` 深色底 + 鱼名。点卡片打开全文，再去地图。不展示未测的溶氧与水温。首页不堆常用工具与目标鱼说明卡。不写飞书粉丝关系、无私信。
+桌面端 `.phone` 列宽 430px、圆角 44px、深底金青绿。产品名「渔见」。首页品牌行用 `public/logo.svg` + `.brand-name`（MiSans/苹方/Noto 栈、字色 `#EAF5EF–#B9CAC3`、辅文 `#69BBA7`）。启动时 `Splash` 盖住手机壳：深底金青绿光晕与水纹，Logo 淡入上浮，点按或 2.4s 后淡出，随后请求定位。切到钓点时 `CatchMap` 不卸载。AI 识鱼在底栏中间金色按钮（文案「AI 识鱼」，无 + 号、无下方小字），不占首页。地图选点时强制切到钓点 Tab。风力用 `windScaleLabel` 转成几级；出钓文案用 `outingLabel` 映射指数档位。天气条用 `windowCountdown` 显示晨昏窗口倒计时。方案格只放味形/拟饵与标点；点鱼名换目标鱼（列表按当前钓法筛选）；点天气条开天气抽屉。首页 `.home-main` 只放天气与今日方案，可内部滚动。下半 `CatchShareFeed` 独立滑动。拍照取景左上角「‹ 返回」。区头「今日渔获 · N / 全部 ›」带细金线。双列卡片封面限高 108px，图下露出钓点名与点赞，不必滑完一张图。`coverRatio` 仍按 id 变化（1/1、5/4、4/5）。图上鱼种胶囊、示例黑底白字；图下标题、钓点、点赞。`shareSocial`：点赞/关注存 localStorage，种子赞数由 id 哈希，点赞 +1 / 取消还原；关注按作者名切换。`CatchShareDetail` 同步同一状态，顶图叠作者/时间，「去钓点」全宽青绿。不把策略顶出屏幕。`shareCover`：有 `imageUrl` 用图，否则 `catchThumb` 深色底 + 鱼名。点卡片打开全文，再去地图。不展示未测的溶氧与水温。首页不堆常用工具与目标鱼说明卡。不写飞书粉丝关系、无私信。
 
 ## 13. Zeabur 部署
 
