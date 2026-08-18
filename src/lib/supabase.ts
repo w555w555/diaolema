@@ -16,12 +16,16 @@ export function getSupabase(): SupabaseClient | null {
     client = null;
     return client;
   }
-  client = createClient(url, publishableKey, {
-    auth: {
-      persistSession: true,
-      autoRefreshToken: true,
-      detectSessionInUrl: true,
-    },
-  });
+  try {
+    client = createClient(url, publishableKey, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+      },
+    });
+  } catch {
+    client = null;
+  }
   return client;
 }
