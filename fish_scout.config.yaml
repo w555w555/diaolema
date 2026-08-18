@@ -1,0 +1,110 @@
+# 钓了嘛鱼情侦察配置。小红书/抖音/公众号只收公开摘要或手动链接，不登录抓站。
+storage:
+  output_dir: "./fish_scout_data"
+  db_name: "fish_scout.db"
+  report_dir: "reports"
+  post_archive_dir: "posts"
+
+selected_locations:
+  - "上海"
+  - "北京"
+
+locations:
+  - "上海"
+  - "北京"
+  - "苏州"
+  - "杭州"
+  - "嘉兴"
+  - "湖州"
+  - "天津"
+  - "南京"
+  - "广州"
+  - "深圳"
+  - "成都"
+  - "武汉"
+  - "淀山湖"
+  - "阳澄湖"
+  - "太湖"
+  - "钱塘江"
+  - "密云水库"
+  - "十三陵水库"
+
+platforms:
+  xiaohongshu:
+    enabled: true
+    name: "小红书"
+    site: "xiaohongshu.com"
+  douyin:
+    enabled: true
+    name: "抖音"
+    site: "douyin.com"
+  bilibili:
+    enabled: true
+    name: "B站"
+    site: "bilibili.com"
+  wechat:
+    enabled: true
+    name: "微信公众号"
+    site: "mp.weixin.qq.com"
+  tieba:
+    enabled: true
+    name: "贴吧"
+    site: "tieba.baidu.com"
+  zhihu:
+    enabled: true
+    name: "知乎"
+    site: "zhihu.com"
+
+base_keywords:
+  - "钓鱼"
+  - "野钓"
+  - "路亚"
+  - "鱼口"
+  - "爆护"
+  - "上鱼"
+  - "渔获"
+  - "钓点"
+  - "钓况"
+
+fish_species:
+  - "鲫鱼"
+  - "鲤鱼"
+  - "草鱼"
+  - "青鱼"
+  - "翘嘴"
+  - "鳜鱼"
+  - "鲈鱼"
+  - "黑鱼"
+  - "马口"
+  - "白条"
+  - "鲢鳙"
+
+methods:
+  - "台钓"
+  - "路亚"
+  - "海竿"
+  - "筏钓"
+  - "矶钓"
+  - "野钓"
+  - "海钓"
+
+baits:
+  - "蚯蚓"
+  - "玉米"
+  - "蓝鲫"
+  - "红虫"
+  - "亮片"
+  - "米诺"
+  - "软虫"
+  - "铅头钩"
+  - "虾皮钩"
+  - "瓜子亮片"
+
+ai:
+  enabled: true
+  base_url: "https://ark.cn-beijing.volces.com/api/v3"
+  model: "doubao-seed-2-1-turbo-260628"
+  api_key_env: "FISH_SCOUT_AI_API_KEY"
+  max_input_chars: 3000
+
+manual_links: []

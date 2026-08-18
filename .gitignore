@@ -1,0 +1,13 @@
+node_modules
+dist
+dist-server
+dist-zeabur
+/data
+fish_scout_data
+*.db
+.env
+.env.local
+*.local
+*.zip
+.cursor/skills/baidu-search/scripts/config.json
+.DS_Store

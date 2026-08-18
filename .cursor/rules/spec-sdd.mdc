@@ -1,0 +1,13 @@
+---
+description: Spec-first and Subagent-Driven Development (SDD) for 钓了嘛
+alwaysApply: true
+---
+
+# Spec + SDD
+
+1. Read `docs/spec/PRD.md` and `docs/spec/SDD.md` before writing code.
+2. Behavior changes: update the spec first, then the SDD, then code.
+3. Implement from `docs/superpowers/plans/*.md` task-by-task. Check off steps as you go.
+4. SDD: one focused task at a time; prefer a fresh subagent per plan task; review before the next task.
+5. After each phase, update `task_plan.md` and `progress.md`. Log errors; do not silently retry the same failure.
+6. Do not skip tests named in the plan. Do not expand scope beyond the current spec slice.

@@ -1,0 +1,37 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "useDefineForClassFields": true,
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "isolatedModules": true,
+    "moduleDetection": "force",
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "resolveJsonModule": true,
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedSideEffectImports": true
+  },
+  "include": ["src"],
+  "exclude": [
+    "src/vite-plugin-ingest.ts",
+    "src/lib/ingest/db.ts",
+    "src/lib/ingest/savePost.ts",
+    "src/lib/ingest/savePost.test.ts",
+    "src/lib/ingest/archive.ts",
+    "src/lib/ingest/feishuCli.ts",
+    "src/lib/ingest/feishuCli.test.ts",
+    "src/lib/ingest/provisionFeishu.ts",
+    "src/lib/scout/loadConfig.ts",
+    "src/lib/scout/runDaily.ts",
+    "src/lib/scout/cli.ts",
+    "src/lib/scout/extractPublic.ts",
+    "src/lib/scout/extractPublic.test.ts"
+  ]
+}

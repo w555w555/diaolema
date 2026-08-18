@@ -1,0 +1,4 @@
+{
+  "build_command": "npx vite build",
+  "start_command": "node server/preview.mjs"
+}

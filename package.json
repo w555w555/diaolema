@@ -1,0 +1,37 @@
+{
+  "name": "diaolema",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --host 0.0.0.0",
+    "start": "node server/preview.mjs",
+    "test": "vitest run",
+    "desktop": "node desktop/start.mjs",
+    "scout:daily": "vite-node src/lib/scout/cli.ts",
+    "feishu:login": "lark-cli config init --new",
+    "feishu:provision": "vite-node src/lib/ingest/provisionFeishu.ts",
+    "pack:zeabur": "node scripts/pack-zeabur.mjs"
+  },
+  "dependencies": {
+    "@amap/amap-jsapi-loader": "^1.0.1",
+    "@larksuite/cli": "^1.0.87",
+    "@vitejs/plugin-react": "^4.7.0",
+    "leaflet": "^1.9.4",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "vite": "^6.3.5"
+  },
+  "devDependencies": {
+    "@types/leaflet": "^1.9.20",
+    "@types/react": "^19.1.9",
+    "@types/react-dom": "^19.1.7",
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
+  }
+}

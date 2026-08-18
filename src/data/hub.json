@@ -1,0 +1,255 @@
+{
+  "disclaimer": "渔圈内容均为界面演示，须标明示例。商城不能下单支付。群聊只存在本机，不是公网即时通讯。",
+  "products": [
+    {
+      "id": "gear-rod-ml",
+      "name": "岸抛 ML 路亚竿 2.1m",
+      "kind": "竿",
+      "priceYuan": 268,
+      "tag": "路亚",
+      "blurb": "7–21g 饵重，适合上海公园湖软虫与亮片。示例商品，不可购买。"
+    },
+    {
+      "id": "gear-reel-3000",
+      "name": "纺车轮 3000 浅线杯",
+      "kind": "轮",
+      "priceYuan": 189,
+      "tag": "路亚",
+      "blurb": "8磅 PE 约 100 米。示例商品，不可购买。"
+    },
+    {
+      "id": "gear-worm",
+      "name": "3 寸钉尾软虫 12 只",
+      "kind": "饵",
+      "priceYuan": 36,
+      "tag": "路亚",
+      "blurb": "黑绿 / 机油色，障碍区贴底。示例商品，不可购买。"
+    },
+    {
+      "id": "gear-frog",
+      "name": "雷蛙 13g 双钩",
+      "kind": "饵",
+      "priceYuan": 28,
+      "tag": "路亚",
+      "blurb": "草区走停逗黑鱼。示例商品，不可购买。"
+    },
+    {
+      "id": "gear-bait-ji",
+      "name": "鲫鱼香腥搓饵 300g",
+      "kind": "饵",
+      "priceYuan": 22,
+      "tag": "台钓",
+      "blurb": "低温用香腥，状态偏软。示例商品，不可购买。"
+    },
+    {
+      "id": "gear-line-pe",
+      "name": "PE 0.8 号 100 米",
+      "kind": "线",
+      "priceYuan": 45,
+      "tag": "通用",
+      "blurb": "岸抛翘嘴与鲈鱼常用。示例商品，不可购买。"
+    }
+  ],
+  "events": [
+    {
+      "id": "ev-dishui",
+      "title": "滴水湖岸抛交流赛",
+      "when": "9 月 6 日 06:00",
+      "place": "浦东滴水湖东岸",
+      "kind": "路亚",
+      "blurb": "示例赛事。不接官方报名，现场规则以主办方为准。"
+    },
+    {
+      "id": "ev-dianshan",
+      "title": "淀山湖休闲路亚日",
+      "when": "9 月 13 日 07:30",
+      "place": "青浦淀山湖",
+      "kind": "路亚",
+      "blurb": "示例赛事。以亮片与米诺为主，不统计溶氧水温。"
+    },
+    {
+      "id": "ev-chongming",
+      "title": "崇明河口海钓体验",
+      "when": "9 月 20 日 05:30",
+      "place": "崇明南沿",
+      "kind": "海钓",
+      "blurb": "示例活动。潮汐请自行查公开潮汐表。"
+    },
+    {
+      "id": "ev-qingpu",
+      "title": "青浦坑冠友谊赛",
+      "when": "9 月 27 日 08:00",
+      "place": "青浦收费塘",
+      "kind": "台钓",
+      "blurb": "示例赛事。鲫鲤混养塘，不提供真实报名通道。"
+    }
+  ],
+  "tips": [
+    {
+      "id": "tip-ji-cold",
+      "title": "低温鲫鱼把饵开软一点",
+      "method": "台钓",
+      "summary": "气温偏低时香腥搓饵，抛频放慢。",
+      "body": "上海早春和深秋早晨，鲫鱼开口慢。搓饵偏软、雾化不要太快，子线可以略放长。标点优先向阳缓坡，不要在运行时去编造溶氧或水温数字。窗口仍看气压和晨昏。"
+    },
+    {
+      "id": "tip-lure-qiang",
+      "title": "公园湖翘嘴先搜亮水",
+      "method": "路亚",
+      "summary": "晨昏用 5–7g 亮片平行收。",
+      "body": "上海公园湖翘嘴常在亮水区追小鱼。先用小克数亮片或瓜子搜泳层，口轻就放慢。障碍区再换软虫。操法来自公开路亚经验整理，不是实时大数据。"
+    },
+    {
+      "id": "tip-heiyu",
+      "title": "草区黑鱼雷蛙走停",
+      "method": "路亚",
+      "summary": "蛙落水停两秒，再短抽。",
+      "body": "夏季草洞和荷叶边，雷蛙落点要准。落水先停，再短抽停顿。打到鱼要压竿，避免硬拔。示例短文，现场仍看草情和风。"
+    },
+    {
+      "id": "tip-carp",
+      "title": "雨后进水口碰鲤鱼",
+      "method": "台钓",
+      "summary": "轻降水后进水口缓流更值得守。",
+      "body": "小雨过后进水口溶氧量体感更好，但应用不展示编造的溶氧值。用谷物香或螺鲤型，钩距略拉开。风力大就换背风坎。"
+    }
+  ],
+  "reviews": [
+    {
+      "id": "gr-rod-1",
+      "gearName": "岸抛 ML 路亚竿 2.1m",
+      "author": "路亚阿周",
+      "rating": 5,
+      "body": "公园湖软虫手感清楚，抛 7g 亮片不肉。示例评测。",
+      "hoursAgo": 8,
+      "source": "seed"
+    },
+    {
+      "id": "gr-reel-1",
+      "gearName": "纺车轮 3000 浅线杯",
+      "author": "沪上老张",
+      "rating": 4,
+      "body": "出线顺，刹车偏肉一点，练抛够用。示例评测。",
+      "hoursAgo": 20,
+      "source": "seed"
+    },
+    {
+      "id": "gr-frog-1",
+      "gearName": "雷蛙 13g 双钩",
+      "author": "青浦老周",
+      "rating": 5,
+      "body": "草区走停有炸水，钩门还行。示例评测。",
+      "hoursAgo": 30,
+      "source": "seed"
+    },
+    {
+      "id": "gr-bait-1",
+      "gearName": "鲫鱼香腥搓饵 300g",
+      "author": "周浦夜钓",
+      "rating": 3,
+      "body": "冷天尚可，夏天偏腥。示例评测。",
+      "hoursAgo": 48,
+      "source": "seed"
+    }
+  ],
+  "rooms": [
+    {
+      "id": "room-lure",
+      "name": "上海路亚夜聊",
+      "topic": "公园湖 / 滴水湖口讯",
+      "members": 128
+    },
+    {
+      "id": "room-ji",
+      "name": "台钓鲫鱼交流",
+      "topic": "饵料状态与标点",
+      "members": 86
+    },
+    {
+      "id": "room-gear",
+      "name": "装备选购互助",
+      "topic": "竿轮线饵怎么配",
+      "members": 64
+    },
+    {
+      "id": "room-match",
+      "name": "赛事报名群",
+      "topic": "交流赛集合与规则",
+      "members": 41
+    }
+  ],
+  "messages": [
+    {
+      "id": "cm-lure-1",
+      "roomId": "room-lure",
+      "author": "路亚阿周",
+      "body": "昨晚世纪公园亮水有追鱼，7g 亮片平行收有口。示例。",
+      "hoursAgo": 3,
+      "source": "seed"
+    },
+    {
+      "id": "cm-lure-2",
+      "roomId": "room-lure",
+      "author": "沪上老张",
+      "body": "滴水湖东岸风有点大，软虫贴底更稳。示例。",
+      "hoursAgo": 2,
+      "source": "seed"
+    },
+    {
+      "id": "cm-lure-3",
+      "roomId": "room-lure",
+      "author": "青浦老周",
+      "body": "有人明天早上淀山湖吗？示例群聊。",
+      "hoursAgo": 1,
+      "source": "seed"
+    },
+    {
+      "id": "cm-ji-1",
+      "roomId": "room-ji",
+      "author": "周浦夜钓",
+      "body": "今早香腥搓饵，向阳缓坡有几口鲫。示例。",
+      "hoursAgo": 5,
+      "source": "seed"
+    },
+    {
+      "id": "cm-ji-2",
+      "roomId": "room-ji",
+      "author": "塘钓阿陈",
+      "body": "气压掉的时候我改拉饵，抛频放慢。示例。",
+      "hoursAgo": 4,
+      "source": "seed"
+    },
+    {
+      "id": "cm-gear-1",
+      "roomId": "room-gear",
+      "author": "装备控小吴",
+      "body": "ML 竿配 3000 浅杯，公园湖够用。示例。",
+      "hoursAgo": 10,
+      "source": "seed"
+    },
+    {
+      "id": "cm-gear-2",
+      "roomId": "room-gear",
+      "author": "路亚阿周",
+      "body": "软虫先买钉尾，雷蛙等夏天草起来再上。示例。",
+      "hoursAgo": 9,
+      "source": "seed"
+    },
+    {
+      "id": "cm-match-1",
+      "roomId": "room-match",
+      "author": "赛事助理",
+      "body": "滴水湖交流赛集合东岸停车场，示例通知，非官方报名。",
+      "hoursAgo": 12,
+      "source": "seed"
+    },
+    {
+      "id": "cm-match-2",
+      "roomId": "room-match",
+      "author": "沪上老张",
+      "body": "收到。我带岸抛一套。示例。",
+      "hoursAgo": 11,
+      "source": "seed"
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+---
+description: 每日鱼情公开发现、搜索引擎、公开网页正文抽取
+globs:
+  - src/lib/scout/**
+  - src/lib/ingest/**
+  - fish_scout.config.yaml
+alwaysApply: false
+---
+
+# 鱼情发现 skill
+
+公开发现只使用项目 skill：
+
+1. `baidu-search` — 千帆网页搜索，按平台 `sites` 过滤
+2. `multi-search-engine` — Bing 中国 / 百度 HTML / 搜狗微信 / DuckDuckGo
+3. `defuddle` — 仅非登录墙公开页抽正文
+
+禁止：`xiaohongshu-skills`、`xhs-auth`、`xhs-explore`、用浏览器登录抓取、绕验证码。
+
+命中 URL 必须匹配当前查询的 `site`（含别名），不能把其他平台结果算进该查询。
