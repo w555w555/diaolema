@@ -126,7 +126,7 @@
 ## 5. 非功能
 
 - 中文 UI；移动端优先（首页卡片 + 底部导航；地图在「钓点」）。手机需定位与相机权限；非 HTTPS 时系统相机选图仍可用，浏览器定位与实时取景不可用。
-- 可部署到 **Zeabur**：源码 zip 或 Git 上传；`npm run build` 后 `npm start` 监听 `PORT`。云端为 HTTPS，手机定位与实时取景可用。密钥只配在 Zeabur 变量，不进 zip。
+- 可部署到 **Zeabur**：控制台用 GitHub 仓库，或本机 `npx zeabur@latest deploy`。构建 `vite build`，启动 `npm start` 监听 `PORT`。云端 HTTPS，手机定位与实时取景可用。密钥只配 Zeabur 变量，不提交 `.env`。
 - 天气请求失败时展示错误与重试，不编造气压。
 - 建议计算 < 5ms；天气请求超时 8s。
 - 不把高德 Key 提交进 git。

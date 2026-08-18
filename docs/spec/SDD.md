@@ -52,7 +52,7 @@ IntelStore (seed JSON + localStorage)
 | 鱼情配置 | `fish_scout.config.yaml` | 地点、平台、关键词、AI |
 | 公开发现 skill | baidu-search / multi-search-engine / defuddle | 合规公开检索与正文抽取 |
 | 桌面窗口 | Edge/Chrome `--app=` 或系统浏览器 | 双击 bat，不要求手开终端 |
-| 云端 | Zeabur Node：`zbpack.json` + `npm start` | 源码 zip/Git 上传；HTTPS |
+| 云端 | Zeabur Node：`zbpack.json` + `npm start` | GitHub 或 CLI 部署；HTTPS |
 
 ## 3. 核心类型
 
@@ -369,14 +369,14 @@ src/App.tsx
 
 ## 13. Zeabur 部署
 
-源码包根目录必须有 `package.json`（zip 内不要套一层文件夹）。不要设 `output_dir`，否则只会静态托管、识鱼 API 失效。
+控制台**没有**上传 ZIP 入口。用 GitHub 仓库，或本机 CLI 把当前目录推上去。不要设 `output_dir`，否则只会静态托管、识鱼 API 失效。
 
 | 项 | 约定 |
 |----|------|
-| 构建 | `npm run build` → `dist/` |
+| 控制台 | 项目里 **Add Service → GitHub**，选本仓库 |
+| 本机 CLI | `npx zeabur@latest auth login` 后 `npx zeabur@latest deploy`，或双击 `部署到Zeabur.bat` |
+| 构建 | `zbpack.json`：`npx vite build` → `dist/` |
 | 启动 | `node server/preview.mjs`，监听 `process.env.PORT`、`0.0.0.0` |
-| 配置 | `zbpack.json` 的 `build_command` / `start_command` |
 | 构建期变量 | `VITE_AMAP_KEY`、`VITE_AMAP_SECURITY_CODE`（打进前端） |
-| 运行期变量 | `FISH_ID_API_KEY` 等，与 `.env.example` 相同；不要把 `.env` 打进 zip |
-| 打包 | `npm run pack:zeabur` → `dist-zeabur/yujian-zeabur.zip`（`git archive`，不含 node_modules / .env） |
+| 运行期变量 | `FISH_ID_API_KEY` 等，与 `.env.example` 相同；不要提交 `.env` |
 

@@ -47,6 +47,6 @@
 - 今日方案点「介绍」可看鱼类习性与技巧；窗口倒计时改为距晨间窗口 / 距黄昏窗口。
 - 手机定位：开屏结束后、钓点、+ 页请求浏览器定位；失败说明原因并回落人民广场。
 - 首页 AI 识鱼与 + 报渔获均可拍照（系统相机 / 安全上下文实时取景）；识鱼上报可带压缩封面。
-- 增加 Zeabur 部署：`zbpack.json`、`server/preview.mjs` 监听 `PORT`、`npm run pack:zeabur` 打源码 zip。
+- 增加 Zeabur 部署：控制台用 GitHub；本机用 `部署到Zeabur.bat` / `npx zeabur@latest deploy`。
 
 - 写入 FR-7 AI 识鱼 Spec / SDD，暂未实现代码。
