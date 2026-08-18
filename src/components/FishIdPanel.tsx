@@ -31,7 +31,6 @@ export function FishIdPanel({
   const [photoUrl, setPhotoUrl] = useState<string | undefined>();
   const [configured, setConfigured] = useState<boolean | null>(null);
   const [scanPhase, setScanPhase] = useState<'off' | 'scan' | 'done'>('off');
-  const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<FishIdResult | null>(null);
   const [picked, setPicked] = useState<string>('');
@@ -47,7 +46,6 @@ export function FishIdPanel({
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
-    setBusy(true);
     setScanPhase('scan');
     setError(null);
     setResult(null);
@@ -75,7 +73,6 @@ export function FishIdPanel({
         setError(message.replace(/豆包/g, '识鱼'));
       }
     } finally {
-      setBusy(false);
       setScanPhase('off');
     }
   };
@@ -91,7 +88,6 @@ export function FishIdPanel({
   const uncertain = !fishName || fishName === UNCERTAIN || (result != null && result.confidence < LOW_CONFIDENCE && picked === result.species);
   const cancelScan = () => {
     abortRef.current?.abort();
-    setBusy(false);
     setScanPhase('off');
   };
 
@@ -167,6 +163,9 @@ export function FishIdPanel({
       >
         用这个鱼名上报
       </button>
+      {!fishName || fishName === UNCERTAIN ? (
+        <p className="muted">先拍照识鱼，或点上面词表选一个鱼种，按钮才能点。</p>
+      ) : null}
       {uncertain && fishName && fishName !== UNCERTAIN && <p className="muted">置信度偏低，请核对后再上报。</p>}
       {scanPhase !== 'off' ? (
         <div className="fish-id-scan" role="status" aria-live="polite">

@@ -21,6 +21,7 @@
   "dependencies": {
     "@amap/amap-jsapi-loader": "^1.0.1",
     "@larksuite/cli": "^1.0.87",
+    "@supabase/supabase-js": "^2.112.3",
     "@vitejs/plugin-react": "^4.7.0",
     "leaflet": "^1.9.4",
     "react": "^19.1.1",

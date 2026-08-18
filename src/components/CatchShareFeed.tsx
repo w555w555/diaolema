@@ -9,6 +9,7 @@ import {
   toggleFollow,
   toggleLike,
 } from '../lib/shareSocial';
+import { cloudWrite, pushFollow, pushLike } from '../lib/userCloud';
 import type { CatchReport } from '../types';
 
 type Props = {
@@ -64,7 +65,10 @@ export function CatchShareFeed({ reports, onOpenAll, onOpenDetail }: Props) {
                     type="button"
                     className="share-follow"
                     data-on={following ? 'true' : 'false'}
-                    onClick={() => toggleFollow(report.author)}
+                    onClick={() => {
+                      const next = toggleFollow(report.author);
+                      cloudWrite(pushFollow(report.author, next.follows.includes(report.author)));
+                    }}
                   >
                     {following ? '已关注' : '关注'}
                   </button>
@@ -72,7 +76,10 @@ export function CatchShareFeed({ reports, onOpenAll, onOpenDetail }: Props) {
                     type="button"
                     className="share-like"
                     data-on={liked ? 'true' : 'false'}
-                    onClick={() => toggleLike(report.id)}
+                    onClick={() => {
+                      const next = toggleLike(report.id);
+                      cloudWrite(pushLike(report.id, next.likes.includes(report.id)));
+                    }}
                   >
                     ♥ {likeCount(report.id, social.likes)}
                   </button>
@@ -118,7 +125,10 @@ export function CatchShareDetail({
           type="button"
           className="share-follow"
           data-on={following ? 'true' : 'false'}
-          onClick={() => toggleFollow(report.author)}
+          onClick={() => {
+            const next = toggleFollow(report.author);
+            cloudWrite(pushFollow(report.author, next.follows.includes(report.author)));
+          }}
         >
           {following ? '已关注' : '关注'}
         </button>
@@ -130,7 +140,10 @@ export function CatchShareDetail({
           type="button"
           className="share-like"
           data-on={liked ? 'true' : 'false'}
-          onClick={() => toggleLike(report.id)}
+          onClick={() => {
+            const next = toggleLike(report.id);
+            cloudWrite(pushLike(report.id, next.likes.includes(report.id)));
+          }}
         >
           ♥ {likeCount(report.id, social.likes)}
         </button>

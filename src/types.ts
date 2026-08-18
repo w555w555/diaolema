@@ -157,6 +157,7 @@ export type HubChatMessage = {
   body: string;
   createdAt: string;
   source: 'seed' | 'user';
+  userId?: string;
 };
 
 export type SeedHubChatMessage = Omit<HubChatMessage, 'createdAt'> & { hoursAgo: number };

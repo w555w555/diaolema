@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { formatRelativeTime } from '../lib/caption';
 import { buildAmapNavUrl } from '../lib/navigation';
 import { createSpotReview, persistSpotReview } from '../lib/spotReviews';
+import { cloudWrite, pushSpotReview } from '../lib/userCloud';
 import { coverPhotoForVenue, reviewCountLabel, reviewsForVenue, scoreForVenue } from '../lib/spotScore';
 import { venueAvatar, venueSourceLabel } from '../lib/venues';
 import { SpotStars } from './SpotStars';
@@ -127,6 +128,7 @@ export function VenueDetail({
             body: body.trim() || '到场打卡。',
           });
           onReviewsChange(persistSpotReview(review));
+          cloudWrite(pushSpotReview(review));
           setBody('');
         }}
       >
@@ -139,7 +141,7 @@ export function VenueDetail({
           ))}
         </div>
         <textarea value={body} onChange={(ev) => setBody(ev.target.value)} placeholder="路况、鱼情、设施……" rows={3} />
-        <button type="submit">提交到本机</button>
+        <button type="submit">提交反馈</button>
       </form>
     </article>
   );

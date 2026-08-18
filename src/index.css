@@ -307,6 +307,7 @@ button.splash::before {
   display: grid;
   gap: 12px;
   align-content: start;
+  padding-bottom: calc(128px + env(safe-area-inset-bottom, 0px));
 }
 
 .home {
@@ -2954,6 +2955,17 @@ dd span {
   flex: none;
 }
 
+.hub-chat-form input:disabled,
+.hub-chat-form button:disabled {
+  opacity: 0.55;
+}
+
+.hub-chat-error {
+  margin: 0;
+  font-size: 12px;
+  color: #f0b4a8;
+}
+
 .me-page {
   gap: 14px;
   padding: 16px 16px calc(128px + env(safe-area-inset-bottom, 0px));
@@ -3046,6 +3058,7 @@ dd span {
   width: 64px;
   height: 64px;
   border-radius: 50%;
+  object-fit: cover;
   background: #10211e;
   box-shadow: 0 0 0 2px rgba(232, 178, 74, 0.55), 0 8px 18px rgba(0, 0, 0, 0.28);
 }
@@ -3186,6 +3199,10 @@ dd span {
   content: '见';
 }
 
+.me-group i[data-kind='auth']::after {
+  content: '账';
+}
+
 .me-group i[data-kind='fans'],
 .me-group i[data-kind='weather'],
 .me-group i[data-kind='daily'] {
@@ -3256,6 +3273,32 @@ dd span {
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
+.me-fan-row {
+  grid-template-columns: 40px 1fr auto auto !important;
+}
+
+.me-dm-switch {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  font-size: 10px;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.me-dm-switch input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--gold);
+}
+
+.me-dm-wait {
+  font-style: normal;
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
 .me-people i {
   display: grid;
   place-items: center;
@@ -3291,6 +3334,42 @@ dd span {
   gap: 6px;
   font-size: 12px;
   color: var(--muted);
+}
+
+.me-avatar-pick {
+  justify-items: start;
+}
+
+.me-avatar-face {
+  position: relative;
+  display: block;
+  width: 72px;
+  height: 72px;
+}
+
+.me-avatar-pick img {
+  display: block;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #10211e;
+  box-shadow: 0 0 0 2px rgba(232, 178, 74, 0.45);
+}
+
+.me-avatar-pick input[type='file'] {
+  position: absolute;
+  inset: 0;
+  width: 72px;
+  height: 72px;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.me-avatar-pick > span:last-child {
+  color: var(--gold-2);
+  font-size: 12px;
 }
 
 .me-edit input {
@@ -3339,6 +3418,104 @@ dd span {
 .me-about .muted {
   letter-spacing: 0;
   max-width: 16em;
+}
+
+.sign-in {
+  display: grid;
+  gap: 12px;
+  padding: 22px 18px 24px;
+  border-radius: 22px;
+  background:
+    radial-gradient(180px 80px at 50% 0%, rgba(232, 178, 74, 0.16), transparent 70%),
+    linear-gradient(180deg, #1a2926, #101917);
+  border: 1px solid rgba(245, 201, 107, 0.2);
+}
+
+.sign-in img {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: #10211e;
+  justify-self: center;
+}
+
+.sign-in-kicker {
+  margin: 0;
+  text-align: center;
+  font-family: var(--font-brand-en);
+  font-size: 11px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--brand-sub);
+}
+
+.sign-in h3 {
+  margin: 0 0 6px;
+  text-align: center;
+  font-family: var(--font-brand);
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--gold-2);
+}
+
+.auth-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  padding: 4px;
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.22);
+}
+
+.auth-tabs button {
+  margin: 0;
+  border: 0;
+  border-radius: 11px;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.auth-tabs button[data-on='true'] {
+  background: linear-gradient(180deg, var(--gold-2), var(--gold));
+  color: #04211a;
+}
+
+.sign-in label {
+  display: grid;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.sign-in input {
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: #14211f;
+  color: var(--ink);
+  padding: 12px 12px;
+}
+
+.sign-in button[type='submit'] {
+  margin-top: 4px;
+}
+
+.sign-in strong {
+  display: block;
+  text-align: center;
+  color: var(--gold);
+  word-break: break-all;
+}
+
+.me-auth {
+  display: grid;
+  gap: 10px;
+}
+
+.me-auth-error {
+  margin: 0;
+  color: #f0a3a3;
+  font-size: 13px;
 }
 
 @media (max-width: 480px) {

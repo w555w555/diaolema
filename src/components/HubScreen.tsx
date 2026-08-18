@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import type { Session } from '@supabase/supabase-js';
 import { formatRelativeTime } from '../lib/caption';
 import {
   appendChatMessage,
@@ -16,6 +17,18 @@ import {
   roomById,
   toggleWish,
 } from '../lib/hub';
+import {
+  CHAT_BODY_MAX,
+  chatLoadErrorMessage,
+  draftChatBody,
+  fetchRoomMessages,
+  mergeChatMessage,
+  sendRoomMessage,
+  subscribeRoomMessages,
+} from '../lib/hubChat';
+import { cloudWrite, pushGearReview, pushWish } from '../lib/userCloud';
+import { loadProfile } from '../lib/meProfile';
+import { getSupabase, isSupabaseConfigured } from '../lib/supabase';
 import { reviewCountLabel } from '../lib/spotScore';
 import type { GearReview, HubChatMessage, HubTip, HubView } from '../types';
 import { SpotStars } from './SpotStars';
@@ -37,13 +50,26 @@ function eventDate(when: string) {
   };
 }
 
-export function HubScreen() {
+export function HubScreen({ onNeedLogin }: { onNeedLogin?: () => void }) {
+  const cloud = isSupabaseConfigured();
   const [view, setView] = useState<HubView>('home');
   const [roomId, setRoomId] = useState<string | null>(null);
   const [wish, setWish] = useState(loadWishIds);
   const [messages, setMessages] = useState(loadChatMessages);
   const [reviews, setReviews] = useState(loadGearReviews);
   const [tipId, setTipId] = useState<string | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
+
+  useEffect(() => {
+    const supabase = getSupabase();
+    if (!supabase) {
+      setSession(null);
+      return;
+    }
+    void supabase.auth.getSession().then(({ data }) => setSession(data.session));
+    const { data } = supabase.auth.onAuthStateChange((_event, next) => setSession(next));
+    return () => data.subscription.unsubscribe();
+  }, []);
 
   const back = () => {
     if (view === 'chat') {
@@ -102,17 +128,30 @@ export function HubScreen() {
           }}
         />
       ) : null}
-      {view === 'mall' ? <Mall wish={wish} onWish={(id) => setWish(toggleWish(id, wish))} /> : null}
+      {view === 'mall' ? (
+        <Mall
+          wish={wish}
+          onWish={(id) => {
+            const next = toggleWish(id, wish);
+            setWish(next);
+            cloudWrite(pushWish(id, next.includes(id)));
+          }}
+        />
+      ) : null}
       {view === 'events' ? <Events /> : null}
       {view === 'tips' ? <Tips tipId={tipId} onOpen={setTipId} /> : null}
       {view === 'reviews' ? (
         <Reviews
           reviews={reviews}
-          onSave={(next) => setReviews(next)}
+          onSave={(next) => {
+            setReviews(next);
+            if (next[0]) cloudWrite(pushGearReview(next[0]));
+          }}
         />
       ) : null}
       {view === 'community' ? (
         <Community
+          cloud={cloud}
           onOpen={(id) => {
             setRoomId(id);
             setView('chat');
@@ -121,9 +160,14 @@ export function HubScreen() {
       ) : null}
       {view === 'chat' && roomId ? (
         <Chat
+          key={roomId}
           roomId={roomId}
-          messages={messages}
-          onSend={(body) => setMessages(appendChatMessage(roomId, body))}
+          cloud={cloud}
+          signedIn={Boolean(session?.user)}
+          localMessages={messages}
+          myUserId={session?.user?.id ?? null}
+          onLocalSend={(body) => setMessages(appendChatMessage(roomId, body))}
+          onNeedLogin={onNeedLogin}
         />
       ) : null}
     </div>
@@ -457,19 +501,19 @@ function Reviews({
           ))}
         </div>
         <textarea value={body} onChange={(ev) => setBody(ev.target.value)} placeholder="手感、抛投、做工……" rows={3} />
-        <button type="submit">提交到本机</button>
+        <button type="submit">提交评测</button>
       </form>
     </>
   );
 }
 
-function Community({ onOpen }: { onOpen: (roomId: string) => void }) {
+function Community({ cloud, onOpen }: { cloud: boolean; onOpen: (roomId: string) => void }) {
   return (
     <ul className="hub-cards">
       {HUB_ROOMS.map((room) => (
         <li key={room.id}>
           <button type="button" className="hub-card hub-open" onClick={() => onOpen(room.id)}>
-            <p className="share-kicker">{room.members} 人 · 本机群聊</p>
+            <p className="share-kicker">{room.members} 人 · {cloud ? '公网群聊' : '本机群聊'}</p>
             <strong>{room.name}</strong>
             <span>{room.topic}</span>
           </button>
@@ -481,43 +525,127 @@ function Community({ onOpen }: { onOpen: (roomId: string) => void }) {
 
 function Chat({
   roomId,
-  messages,
-  onSend,
+  cloud,
+  signedIn,
+  localMessages,
+  myUserId,
+  onLocalSend,
+  onNeedLogin,
 }: {
   roomId: string;
-  messages: HubChatMessage[];
-  onSend: (body: string) => void;
+  cloud: boolean;
+  signedIn: boolean;
+  localMessages: HubChatMessage[];
+  myUserId: string | null;
+  onLocalSend: (body: string) => void;
+  onNeedLogin?: () => void;
 }) {
   const [draft, setDraft] = useState('');
-  const rows = useMemo(() => messagesForRoom(roomId, messages), [roomId, messages]);
+  const [cloudMessages, setCloudMessages] = useState<HubChatMessage[]>([]);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [sendError, setSendError] = useState<string | null>(null);
+  const [sending, setSending] = useState(false);
   const room = roomById(roomId);
+  const nickname = loadProfile().name;
+  const messages = cloud ? cloudMessages : localMessages;
+  const rows = useMemo(() => messagesForRoom(roomId, messages), [roomId, messages]);
+  const canSend = cloud ? signedIn : true;
+
+  useEffect(() => {
+    if (!cloud) return undefined;
+    let cancelled = false;
+    setLoadError(null);
+    setCloudMessages([]);
+    void fetchRoomMessages(roomId)
+      .then((next) => {
+        if (!cancelled) setCloudMessages(next);
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) setLoadError(chatLoadErrorMessage(err));
+      });
+    const stop = subscribeRoomMessages(roomId, (row) => {
+      setCloudMessages((current) => mergeChatMessage(current, row));
+    });
+    return () => {
+      cancelled = true;
+      stop();
+    };
+  }, [cloud, roomId]);
+
+  const submit = async () => {
+    const body = draftChatBody(draft);
+    if (!body) return;
+    setSendError(null);
+    if (!cloud) {
+      onLocalSend(draft);
+      setDraft('');
+      return;
+    }
+    if (!signedIn) {
+      onNeedLogin?.();
+      return;
+    }
+    setSending(true);
+    try {
+      const row = await sendRoomMessage(roomId, draft);
+      if (row) setCloudMessages((current) => mergeChatMessage(current, row));
+      setDraft('');
+    } catch {
+      setSendError('发送失败');
+    } finally {
+      setSending(false);
+    }
+  };
 
   return (
     <div className="hub-chat">
-      <p className="muted">{room?.topic} · 消息只留在本机</p>
+      <p className="muted">
+        {room?.topic}
+        {cloud ? ` · 以「${nickname}」发送 · 公网群聊` : ` · 以「${nickname}」发送 · 消息只留在本机`}
+      </p>
+      {loadError ? <p className="hub-chat-error">{loadError}</p> : null}
       <ul className="hub-chat-log">
-        {rows.map((row) => (
-          <li key={row.id} data-mine={row.source === 'user' ? 'true' : 'false'}>
-            <strong>
-              {row.author}
-              {row.source !== 'user' ? ' · 示例' : ''}
-            </strong>
-            <p>{row.body}</p>
-            <em>{formatRelativeTime(row.createdAt)}</em>
-          </li>
-        ))}
+        {rows.map((row) => {
+          const mine = cloud ? Boolean(row.userId && myUserId && row.userId === myUserId) : row.source === 'user';
+          return (
+            <li key={row.id} data-mine={mine ? 'true' : 'false'}>
+              <strong>
+                {row.author}
+                {row.source !== 'user' ? ' · 示例' : ''}
+              </strong>
+              <p>{row.body}</p>
+              <em>{formatRelativeTime(row.createdAt)}</em>
+            </li>
+          );
+        })}
       </ul>
+      {cloud && !loadError && rows.length === 0 ? <p className="muted">还没有口讯。</p> : null}
       <form
         className="hub-chat-form"
         onSubmit={(ev) => {
           ev.preventDefault();
-          onSend(draft);
-          setDraft('');
+          void submit();
         }}
       >
-        <input value={draft} onChange={(ev) => setDraft(ev.target.value)} placeholder="说一句口讯…" />
-        <button type="submit">发送</button>
+        <input
+          value={draft}
+          maxLength={CHAT_BODY_MAX}
+          disabled={cloud && !signedIn}
+          onChange={(ev) => setDraft(ev.target.value)}
+          placeholder={cloud && !signedIn ? '登录后才能发言' : '说一句口讯…'}
+        />
+        {cloud && !signedIn ? (
+          <button type="button" onClick={() => onNeedLogin?.()}>
+            去登录
+          </button>
+        ) : (
+          <button type="submit" disabled={sending}>
+            发送
+          </button>
+        )}
       </form>
+      {sendError ? <p className="hub-chat-error">{sendError}</p> : null}
+      {canSend ? null : <p className="muted">去「我的」登录后再发言。</p>}
     </div>
   );
 }
