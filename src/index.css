@@ -1422,10 +1422,259 @@ dd span {
 
 .fish-id-preview {
   width: 100%;
-  max-height: 160px;
-  object-fit: cover;
   border-radius: 12px;
-  border: 1px solid var(--line);
+  object-fit: cover;
+  max-height: 220px;
+}
+
+.fish-id-scan {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  background: rgba(6, 11, 10, 0.62);
+  backdrop-filter: blur(14px);
+}
+
+.fish-id-scan-card {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  width: 268px;
+  padding: 36px 16px 22px;
+  border-radius: 32px;
+  border: 1px solid rgba(245, 201, 107, 0.18);
+  background: linear-gradient(180deg, rgba(24, 36, 33, 0.94), rgba(8, 14, 13, 0.96));
+  color: var(--foam);
+  box-shadow: 0 28px 64px rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+}
+
+.fish-id-scan-card p {
+  margin: 0;
+  font-family: var(--font-brand);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.42em;
+  color: #dce9e3;
+}
+
+.fish-id-scan-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 2;
+  width: 30px;
+  height: 30px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: rgba(245, 201, 107, 0.72);
+  font-size: 22px;
+  font-weight: 300;
+  line-height: 1;
+}
+
+.fish-id-cast {
+  width: 236px;
+  height: 180px;
+  display: block;
+  overflow: visible;
+}
+
+.fish-id-cast .cast-water {
+  fill: url(#castWater);
+}
+
+.fish-id-cast .cast-wave {
+  fill: none;
+  stroke: rgba(126, 224, 198, 0.35);
+  stroke-width: 1.2;
+}
+
+.fish-id-cast .cast-angler {
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.fish-id-cast .cast-rock {
+  fill: rgba(126, 224, 198, 0.14);
+}
+
+.fish-id-cast .cast-head,
+.fish-id-cast .cast-hand,
+.fish-id-cast .cast-ear {
+  fill: url(#castSkin);
+}
+
+.fish-id-cast .cast-blush {
+  fill: #e8897a;
+  opacity: 0.4;
+}
+
+.fish-id-cast .cast-brow,
+.fish-id-cast .cast-eye,
+.fish-id-cast .cast-mouth {
+  fill: none;
+  stroke: #2a1a16;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.fish-id-cast .cast-brow {
+  stroke-width: 2.1;
+}
+
+.fish-id-cast .cast-burst {
+  fill: #f5c96b;
+  stroke: #2a1a16;
+  stroke-width: 1.1;
+}
+
+.fish-id-cast .cast-shout text {
+  fill: #1a1410;
+  font-size: 14px;
+  font-weight: 800;
+  font-family: 'MiSans', 'PingFang SC', 'Noto Sans SC', sans-serif;
+  letter-spacing: 1px;
+}
+
+.fish-id-cast .cast-jacket,
+.fish-id-cast .cast-arm {
+  fill: url(#castCloth);
+}
+
+.fish-id-cast .cast-pant {
+  fill: #243330;
+}
+
+.fish-id-cast .cast-hat {
+  fill: url(#castHat);
+}
+
+.fish-id-cast .cast-hat-band {
+  fill: #2a3f3a;
+}
+
+.fish-id-cast .cast-boot {
+  fill: #101918;
+}
+
+.fish-id-cast .cast-reel {
+  fill: none;
+  stroke: #f5c96b;
+  stroke-width: 1.4;
+}
+
+.fish-id-cast .cast-rod {
+  fill: none;
+  stroke: #e8b24a;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+}
+
+.fish-id-cast .cast-line {
+  fill: none;
+  stroke: rgba(245, 201, 107, 0.7);
+  stroke-width: 1.1;
+  stroke-linecap: round;
+}
+
+.fish-id-cast .cast-catch {
+  transform-origin: 174px 140px;
+  transition: transform 0.85s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.fish-id-cast[data-phase='scan'] .cast-catch {
+  animation: cast-bob 2.2s ease-in-out infinite;
+}
+
+.fish-id-cast[data-phase='scan'] .cast-line {
+  stroke-dasharray: 3 5;
+  animation: cast-line 1.4s linear infinite;
+}
+
+.fish-id-cast[data-phase='scan'] .cast-wave {
+  animation: cast-wave 3s ease-in-out infinite;
+}
+
+.fish-id-cast[data-phase='scan'] .cast-shout {
+  transform-origin: 126px 50px;
+  animation: cast-shout 0.9s ease-in-out infinite;
+}
+
+.fish-id-cast[data-phase='scan'] .cast-gear {
+  transform-origin: 82px 76px;
+  animation: cast-rod 2.8s ease-in-out infinite;
+}
+
+.fish-id-cast[data-phase='done'] .cast-catch {
+  transform: translate(-10px, -82px);
+}
+
+.fish-id-cast[data-phase='done'] .cast-gear {
+  transform-origin: 82px 76px;
+  transform: rotate(-8deg);
+}
+
+.fish-id-cast .cast-ok circle {
+  fill: #2fc7a0;
+  stroke: none;
+}
+
+.fish-id-cast .cast-ok path {
+  fill: none;
+  stroke: #04211a;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+@keyframes cast-bob {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(0, 6px);
+  }
+}
+
+@keyframes cast-line {
+  to {
+    stroke-dashoffset: -24;
+  }
+}
+
+@keyframes cast-wave {
+  50% {
+    transform: translate(4px, 0);
+  }
+}
+
+@keyframes cast-rod {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(3deg);
+  }
+}
+
+@keyframes cast-shout {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.06);
+  }
 }
 
 .target-catalog {
