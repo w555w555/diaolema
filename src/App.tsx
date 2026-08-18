@@ -18,6 +18,8 @@ import { WeatherPanel } from './components/WeatherPanel';
 import { buildAdvice } from './lib/advice';
 import { buildFishingIndex } from './lib/fishingIndex';
 import { createUserReport, loadReports, loadServerReports, mergeReports, persistReport, persistReportToServer } from './lib/intel';
+import { cloudWrite, pullCatches, pushCatch } from './lib/userCloud';
+import { getSupabase } from './lib/supabase';
 import { requestCurrentPosition } from './lib/geo';
 import { DIANPING_VENUES } from './lib/venues';
 import { loadSpotReviews } from './lib/spotReviews';
@@ -58,7 +60,7 @@ export function App() {
   const [spotVisit, setSpotVisit] = useState(0);
   const [locating, setLocating] = useState(false);
   const [spotVenue, setSpotVenue] = useState<FishingVenue | null>(null);
-  const [meStart, setMeStart] = useState<'home' | 'catches'>('home');
+  const [meStart, setMeStart] = useState<'home' | 'catches' | 'auth'>('home');
   const [spotBack, setSpotBack] = useState<HomeSheet | null>(null);
 
   const load = useCallback(async () => {
@@ -116,10 +118,29 @@ export function App() {
     locate('weather');
   }, [splash, locate]);
 
+  useEffect(() => {
+    const supabase = getSupabase();
+    if (!supabase) return;
+    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!session) return;
+      void pullCatches()
+        .then((rows) => {
+          if (!rows.length) return;
+          rows.forEach((row) => persistReport(row));
+          setReports(loadReports());
+        })
+        .catch(() => undefined);
+    });
+    return () => data.subscription.unsubscribe();
+  }, []);
+
   const saveReport = (input: Omit<CatchReport, 'id' | 'caughtAt' | 'source'> & { source?: CatchReport['source'] }) => {
     const report = createUserReport(input);
     setReports(persistReport(report));
     void persistReportToServer(report);
+    cloudWrite(pushCatch(report));
+    setMeStart('catches');
+    setTab('me');
   };
 
   const changeTab = (next: TabId) => {
@@ -220,7 +241,14 @@ export function App() {
             </div>
           )}
 
-          {tab === 'hub' && <HubScreen />}
+          {tab === 'hub' && (
+            <HubScreen
+              onNeedLogin={() => {
+                setMeStart('auth');
+                setTab('me');
+              }}
+            />
+          )}
 
           {tab === 'me' && (
             <MeScreen
@@ -232,6 +260,7 @@ export function App() {
               onImport={(report) => {
                 setReports(persistReport(report));
                 void persistReportToServer(report);
+                cloudWrite(pushCatch(report));
               }}
               onNavigateCatch={(report) => {
                 setNavTarget({ lon: report.lon, lat: report.lat, name: report.spotName });
@@ -301,6 +330,7 @@ export function App() {
                 onImport={(report) => {
                   setReports(persistReport(report));
                   void persistReportToServer(report);
+                  cloudWrite(pushCatch(report));
                 }}
               />
             )}

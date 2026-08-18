@@ -26,7 +26,9 @@
 | 16. 目标鱼按钓法筛选 | complete | 台钓/路亚/兼钓；公开文编译 |
 | 17. 钓友分享 | complete | 瀑布流 + 本机点赞/关注 |
 | 18. 钓点评分与反馈 | complete | 稀疏评分钉 + VenueDetail |
-| 20. 我的个人中心 | complete | 常规资料卡 + 分组菜单 |
+| 20. 我的个人中心 | complete | 登录后改昵称/头像；群聊用昵称 |
+| 24. 公网群聊 | complete | Supabase chat_messages + Realtime；需在控制台跑 SQL |
+| 25. 粉丝互关私聊 | complete | 互关 + 双方允许开关；dm_allows / dm_messages |
 | 21. 手机定位与拍照 | complete | 开屏/+ 定位；识鱼与报渔获拍照 |
 | 22. Zeabur 打包 | complete | GitHub 或 CLI 部署；zbpack + start |
 | 23. 识鱼改到底栏 + | complete | 首页去掉识鱼卡；+ 文案「识鱼」 |

@@ -1,4 +1,5 @@
 import raw from '../data/hub.json';
+import { loadProfile } from './meProfile';
 import type {
   GearReview,
   HubChatMessage,
@@ -128,7 +129,7 @@ export function persistChatMessage(message: HubChatMessage): HubChatMessage[] {
 export function appendChatMessage(roomId: string, body: string): HubChatMessage[] {
   const text = body.trim();
   if (!text) return loadChatMessages();
-  return persistChatMessage(createChatMessage({ roomId, body: text }));
+  return persistChatMessage(createChatMessage({ roomId, body: text, author: loadProfile().name }));
 }
 
 export function loadGearReviews(): GearReview[] {

@@ -8,6 +8,7 @@ import {
   messagesForRoom,
   toggleWish,
 } from './hub';
+import { saveProfile } from './meProfile';
 
 const mem = new Map<string, string>();
 const memoryStorage = {
@@ -62,9 +63,12 @@ describe('appendChatMessage', () => {
     const roomId = HUB_ROOMS[0].id;
     const before = loadChatMessages().length;
     expect(appendChatMessage(roomId, '   ').length).toBe(before);
+    saveProfile({ name: '阿周' });
     const next = appendChatMessage(roomId, '明天滴水湖见');
-    expect(messagesForRoom(roomId, next).some((row) => row.body === '明天滴水湖见' && row.source === 'user')).toBe(
-      true,
-    );
+    expect(
+      messagesForRoom(roomId, next).some(
+        (row) => row.body === '明天滴水湖见' && row.source === 'user' && row.author === '阿周',
+      ),
+    ).toBe(true);
   });
 });

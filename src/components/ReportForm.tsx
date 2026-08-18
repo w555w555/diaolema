@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { PhotoCapture } from './PhotoCapture';
 import { compressImageFile } from '../lib/fishId/client';
 import { packedToDataUrl } from '../lib/photo';
+import { reportSpotName } from '../lib/reportSpot';
 import type { CatchReport } from '../types';
 
 type Props = {
@@ -21,6 +22,7 @@ export function ReportForm({ lat, lon, locating, picking, onTogglePick, onSubmit
   const [preview, setPreview] = useState<string | null>(null);
   const [imageUrl, setImageUrl] = useState<string | undefined>();
   const [photoError, setPhotoError] = useState<string | null>(null);
+  const [spotError, setSpotError] = useState<string | null>(null);
 
   const takePhoto = async (file: File) => {
     setPhotoError(null);
@@ -38,11 +40,16 @@ export function ReportForm({ lat, lon, locating, picking, onTogglePick, onSubmit
       className="panel report-form"
       onSubmit={(e) => {
         e.preventDefault();
-        if (!spotName.trim()) return;
+        const spot = reportSpotName(spotName);
+        if (!spot) {
+          setSpotError('请填写钓点，例如滴水湖东岸');
+          return;
+        }
+        setSpotError(null);
         onSubmit({
           author: author.trim() || '我',
           fish: fish.trim() || '鲫鱼',
-          spotName: spotName.trim(),
+          spotName: spot,
           lon,
           lat,
           note: note.trim() || undefined,
@@ -68,8 +75,16 @@ export function ReportForm({ lat, lon, locating, picking, onTogglePick, onSubmit
       </label>
       <label>
         钓点
-        <input value={spotName} onChange={(e) => setSpotName(e.target.value)} placeholder="例如 滴水湖东岸" />
+        <input
+          value={spotName}
+          onChange={(e) => {
+            setSpotName(e.target.value);
+            if (spotError) setSpotError(null);
+          }}
+          placeholder="例如 滴水湖东岸"
+        />
       </label>
+      {spotError ? <p className="error">{spotError}</p> : null}
       <label>
         鱼种
         <input value={fish} onChange={(e) => setFish(e.target.value)} />
@@ -79,7 +94,7 @@ export function ReportForm({ lat, lon, locating, picking, onTogglePick, onSubmit
         <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="饵、钓法，可选" />
       </label>
       <p className="muted coords">{locating ? '正在定位…' : `${lat.toFixed(5)}, ${lon.toFixed(5)}`}</p>
-      <button type="submit">钉到地图上</button>
+      <button type="submit">上报渔获</button>
     </form>
   );
 }

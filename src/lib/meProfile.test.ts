@@ -33,6 +33,7 @@ describe('normalizeProfile', () => {
       name: '阿周',
       city: '浦东',
       bio: '路亚',
+      avatarUrl: '',
     });
   });
 });
@@ -44,8 +45,16 @@ describe('saveProfile', () => {
       name: '青浦老周',
       city: '上海',
       bio: '夜钓',
+      avatarUrl: '',
     });
     expect(loadProfile().name).toBe('青浦老周');
+  });
+
+  it('可保存并清空头像', () => {
+    saveProfile({ avatarUrl: 'data:image/jpeg;base64,abc' });
+    expect(loadProfile().avatarUrl.startsWith('data:image/')).toBe(true);
+    saveProfile({ avatarUrl: '' });
+    expect(loadProfile().avatarUrl).toBe('');
   });
 });
 

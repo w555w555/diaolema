@@ -2,13 +2,17 @@ export type MeProfile = {
   name: string;
   city: string;
   bio: string;
+  avatarUrl: string;
 };
 
 export const DEFAULT_PROFILE: MeProfile = {
   name: '沪上钓友',
   city: '上海',
   bio: '天气好就出门',
+  avatarUrl: '',
 };
+
+export const MAX_AVATAR_EDGE = 256;
 
 const PROFILE_KEY = 'diaolema.me.profile.v1';
 
@@ -24,7 +28,8 @@ export function normalizeProfile(input: Partial<MeProfile> | null | undefined): 
   const name = input?.name?.trim() || DEFAULT_PROFILE.name;
   const city = input?.city?.trim() || DEFAULT_PROFILE.city;
   const bio = input?.bio?.trim() || DEFAULT_PROFILE.bio;
-  return { name, city, bio };
+  const avatarUrl = input?.avatarUrl?.startsWith('data:image/') ? input.avatarUrl : '';
+  return { name, city, bio, avatarUrl };
 }
 
 export function loadProfile(): MeProfile {
@@ -63,4 +68,31 @@ export const DEMO_FANS: MeFan[] = [
 
 export function fanCount(fans = DEMO_FANS): number {
   return fans.length;
+}
+
+export function fileToAvatarUrl(file: File): Promise<string> {
+  if (!file.type.startsWith('image/')) return Promise.reject(new Error('请选一张图片。'));
+  return new Promise((resolve, reject) => {
+    const blobUrl = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(blobUrl);
+      const side = Math.min(img.width, img.height) || 1;
+      const canvas = document.createElement('canvas');
+      canvas.width = MAX_AVATAR_EDGE;
+      canvas.height = MAX_AVATAR_EDGE;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        reject(new Error('无法处理头像'));
+        return;
+      }
+      ctx.drawImage(img, (img.width - side) / 2, (img.height - side) / 2, side, side, 0, 0, MAX_AVATAR_EDGE, MAX_AVATAR_EDGE);
+      resolve(canvas.toDataURL('image/jpeg', 0.82));
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(blobUrl);
+      reject(new Error('图片读不出来。'));
+    };
+    img.src = blobUrl;
+  });
 }

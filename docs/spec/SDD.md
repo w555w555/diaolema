@@ -36,6 +36,11 @@ IntelStore (seed JSON + localStorage)
 [npm start] → server/preview.mjs 监听 PORT（Vite preview + 同一套 /api）
                     ↓ HTTPS
               手机定位 / 实时取景 / 识鱼
+
+群聊（已配 Supabase）：
+HubScreen → getSupabase() → chat_messages SELECT / INSERT
+                    ↓ Realtime INSERT
+              同房间其它客户端追加一条
 ```
 
 ## 2. 技术选型
@@ -53,6 +58,8 @@ IntelStore (seed JSON + localStorage)
 | 公开发现 skill | baidu-search / multi-search-engine / defuddle | 合规公开检索与正文抽取 |
 | 桌面窗口 | Edge/Chrome `--app=` 或系统浏览器 | 双击 bat，不要求手开终端 |
 | 云端 | Zeabur Node：`zbpack.json` + `npm start` | GitHub 或 CLI 部署；HTTPS |
+| 账号 | Supabase Auth（邮箱+密码） | 用户给的后台；前端只用 publishable key |
+| 公网群聊 | Supabase `chat_messages` + Realtime | 已有 Auth；RLS：匿名可读、登录可写自己的行 |
 
 ## 3. 核心类型
 
@@ -191,11 +198,13 @@ type HubChatMessage = { id: string; roomId: string; author: string; body: string
 
 ## 4d. 渔圈（FR-9）
 
-`HubScreen` 挂在底栏 `hub`（文案「渔圈」）。首页不是五块空磁贴：顶栏 + 五入口条，下接赛事、装备、群聊、技巧预览，点预览进入对应列表。`src/data/hub.json` 静态示例：商品、赛事、技巧、评测、群与种子消息。`src/lib/hub.ts`：`toggleWish`、`messagesForRoom`、`appendChatMessage`、`persistGearReview` 可单测。想买 / 群聊用户消息 / 装备评测写 localStorage，不写飞书。商城无结算。群聊不是 WebSocket。
+`HubScreen` 挂在底栏 `hub`（文案「渔圈」）。首页不是五块空磁贴：顶栏 + 五入口条，下接赛事、装备、群聊、技巧预览，点预览进入对应列表。`src/data/hub.json` 静态示例：商品、赛事、技巧、评测、群；种子消息仅无云端时演示。`src/lib/hub.ts`：`toggleWish`、`messagesForRoom`、`persistGearReview` 可单测。想买 / 装备评测仍写 localStorage。商城无结算。
+
+**公网群聊（已配 `getSupabase()`）**：表 `public.chat_messages`（`id, room_id, user_id, author, body, created_at`）。`room_id` 仅 `room-lure` / `room-ji` / `room-gear` / `room-match`。RLS：`SELECT` 匿名可读；`INSERT` 仅登录且 `user_id = auth.uid()`，`body` 1–200 字、`author` 1–12 字；无 UPDATE/DELETE。进入房间拉最近 200 条，Realtime 订该 `room_id` 的 INSERT。发送用资料昵称；未登录禁用输入并提示去「我的」。失败则提示并保留草稿。不写 `diaolema.hub.chat.v1`。未配 Supabase 时 `appendChatMessage` 仍走 localStorage。不做私信。详情见 `docs/superpowers/specs/2026-08-18-public-chat-design.md`。
 
 ## 4e. 我的（FR-10）
 
-`MeScreen` 挂在底栏 `me`。资料 `loadProfile` / `saveProfile` 存 localStorage。四列：渔获、`shareSocial.follows`、`DEMO_FANS`、`loadWishIds`。点粉丝打开示例名单。分组菜单进渔获 / 想买 / 入库 / 天气 / 日报 / 关于。不接登录与私信。视觉与渔圈同套金青绿层次，不是单色平铺。手机网页用 `100svh` 包住壳，避免浏览器底栏把「我的」菜单切掉。底部 `padding-bottom` 为 `calc(128px + 安全区)`，让「分享入库」等条目和入库表单滚出金色按钮、浏览器工具栏与系统键盘。菜单左侧色块用字标，不做成空图，避免像加载失败。
+`MeScreen` 挂在底栏 `me`。资料 `loadProfile` / `saveProfile` 存 localStorage，含 `avatarUrl`（data URL，可空则用 Logo）。登录后点头像打开编辑：改名字、换头像（相册，方形压缩 JPEG）。未登录点头像去登录页。四列：渔获、`shareSocial.follows`、`DEMO_FANS`、`loadWishIds`。点粉丝打开示例名单。分组菜单进渔获 / 想买 / 入库 / 天气 / 日报 / 关于 / **登录**。可选账号：`@supabase/supabase-js` + publishable key；Project URL 来自 `VITE_SUPABASE_URL` 或登录页粘贴（localStorage）。浏览器只走 publishable key；`SUPABASE_SECRET_KEY` 禁止 `VITE_` 前缀、禁止打进前端。登录页两个入口 **登录** / **注册**，邮箱+密码；`signInWithPassword` / `signUp` / `signOut`。注册须两次密码一致。会话 persist localStorage。已登录显示昵称与邮箱、**退出**。渔圈公网群聊发言必须登录，作者用当前资料昵称。未配 Key 时说明缺项，群聊回落本机演示，不崩溃。不强制登录即可看群。私聊仅互关且双方打开「允许私聊」（`directChat.canStartDirectMessage`）；消息表 `dm_messages`。后台在 Supabase Authentication → Users 管理账号。视觉与渔圈同套金青绿层次，不是单色平铺。手机网页用 `100svh` 包住壳，避免浏览器底栏把「我的」菜单切掉。底部 `padding-bottom` 为 `calc(128px + 安全区)`，让「分享入库」等条目和入库表单滚出金色按钮、浏览器工具栏与系统键盘。菜单左侧色块用字标，不做成空图，避免像加载失败。
 
 ## 5. 天气客户端（FR-1）
 
@@ -268,6 +277,9 @@ src/lib/hub.ts
 src/lib/meProfile.ts
 src/components/HubScreen.tsx
 src/components/MeScreen.tsx
+src/components/AuthPanel.tsx
+src/lib/supabase.ts
+src/lib/supabaseConfig.ts
 src/lib/venues.ts
 src/lib/venueIcons.ts
 src/components/FishIdPanel.tsx
@@ -284,7 +296,7 @@ src/App.tsx
 
 - Key 仅存在于本地 `.env`。
 - 不请求用户的小红书 Cookie。
-- 用户上报内容只留在本机。
+- 用户上报渔获仍以飞书/本机为主；公网群聊正文进 Supabase `chat_messages`（RLS：匿名可读、登录写自己的行）。secret 不进前端。
 - 飞书 Base token / 表 ID 只在本机 `.env`；渔获正文进用户自己的多维表。
 - 不抓取需要登录的小红书 / 抖音 / 微博 / 微信公众号正文。
 - 识鱼 API Key 只在本机 `.env`；渔获照片不默认落盘、不写入飞书。
@@ -303,7 +315,7 @@ src/App.tsx
 - `fetchPageTextWithDefuddle`：登录墙不抽正文。
 - `formatVenueFee` / `parseDianpingShopSnippet`：点评公开人均与状态。
 - `searchVenues` / `rankVenues` / `reviewCountLabel`：钓场列表整合为排行 + 搜索（均分高到低，无分最后；筛选保留原名次）；排行展示反馈条数。点条目打开本机 `VenueDetail`，不跳转钓鱼之家网页。`venuePinHtml` / `venueDotHtml` / `showSpotPlate`：进入先定位；拉远小钉、靠近铭牌。无照片用渔见 Logo。不展示数字分。点钉打开 `VenueDetail`。渔获气泡不叠在钓点地图上。
-- `toggleWish` / `messagesForRoom` / `appendChatMessage`：渔圈想买与本机群聊；不接支付与公网 IM。
+- `toggleWish` / `messagesForRoom`：渔圈想买与房间过滤排序；公网发送走 Supabase，单测不打真实库。不接支付与私信。
 - `loadProfile` / `saveProfile` / `DEMO_FANS`：我的页资料本机存储；粉丝为示例名单。
 - `normalizeFishName`：乌鳢→黑鱼，黄辣丁→黄颡鱼，花鲈→鲈鱼；未知→不确定。主名不确定时采用第一词表候选。
 - `createMemoryStore` / `savePost`：重复链接不插入；单测不调用真实飞书。
@@ -377,6 +389,7 @@ src/App.tsx
 | 本机 CLI | `npx zeabur@latest auth login` 后 `npx zeabur@latest deploy`，或双击 `部署到Zeabur.bat` |
 | 构建 | `zbpack.json`：`npx vite build` → `dist/` |
 | 启动 | `node server/preview.mjs`，监听 `process.env.PORT`、`0.0.0.0` |
-| 构建期变量 | `VITE_AMAP_KEY`、`VITE_AMAP_SECURITY_CODE`（打进前端） |
+| 构建期变量 | `VITE_AMAP_KEY`、`VITE_AMAP_SECURITY_CODE`、`VITE_SUPABASE_URL`、`VITE_SUPABASE_PUBLISHABLE_KEY`（打进前端） |
 | 运行期变量 | `FISH_ID_API_KEY` 等，与 `.env.example` 相同；不要提交 `.env` |
+| 禁止进前端 | `SUPABASE_SECRET_KEY`（secret 等同旧 service_role，只放服务器） |
 
