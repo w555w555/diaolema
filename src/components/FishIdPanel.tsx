@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import logoUrl from '../assets/logo.svg?url';
+import { FishIdCast } from './FishIdCast';
 import { PhotoCapture } from './PhotoCapture';
 import { FISH_CATALOG, LOW_CONFIDENCE, UNCERTAIN } from '../lib/fishId/catalog';
 import { compressImageFile, fetchFishIdStatus, identifyFish } from '../lib/fishId/client';
@@ -62,7 +62,7 @@ export function FishIdPanel({
       if (next.inCatalog && next.confidence >= LOW_CONFIDENCE) setPicked(next.species);
       else if (next.alternatives[0]) setPicked(next.alternatives[0].species);
       setScanPhase('done');
-      await new Promise((resolve) => window.setTimeout(resolve, 800));
+      await new Promise((resolve) => window.setTimeout(resolve, 1100));
     } catch (e) {
       if (controller.signal.aborted) return;
       const message = e instanceof Error ? e.message : String(e);
@@ -176,15 +176,8 @@ export function FishIdPanel({
                 ×
               </button>
             ) : null}
-            <div className="fish-id-scan-mark">
-              <img src={logoUrl} alt="" width={96} height={96} />
-              {scanPhase === 'done' ? (
-                <span className="fish-id-scan-check" aria-hidden>
-                  ✓
-                </span>
-              ) : null}
-            </div>
-            <p>{scanPhase === 'done' ? '识别完成' : '扫描中'}</p>
+            <FishIdCast phase={scanPhase} />
+            <p>{scanPhase === 'done' ? '识别完成' : '正在识别'}</p>
           </div>
         </div>
       ) : null}
