@@ -21,3 +21,22 @@ export function buildAmapNavUrl(params: {
     '&callnative=1',
   ].join('');
 }
+
+export function buildAmapOpenUrl(lon: number, lat: number, name = '附近钓场'): string {
+  return [
+    'https://uri.amap.com/marker',
+    `?position=${lon},${lat}`,
+    `&name=${encodeURIComponent(name)}`,
+    '&src=yujian',
+    '&coordinate=gaode',
+    '&callnative=1',
+  ].join('');
+}
+
+/** 手机上优先用真链接；程序里 window.open 常被拦截，失败再整页跳转。 */
+export function openAmapNav(params: Parameters<typeof buildAmapNavUrl>[0]): void {
+  const url = buildAmapNavUrl(params);
+  const opened = typeof window !== 'undefined' ? window.open(url, '_blank') : null;
+  if (opened) return;
+  if (typeof window !== 'undefined') window.location.assign(url);
+}

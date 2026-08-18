@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import AMapLoader from '@amap/amap-jsapi-loader';
 import 'leaflet/dist/leaflet.css';
-import { AMAP_RASTER_SUBDOMAINS, AMAP_RASTER_URL, readAmapConfig } from '../lib/mapConfig';
-import { buildAmapNavUrl, type NavMode } from '../lib/navigation';
+import { AMAP_RASTER_SUBDOMAINS, AMAP_RASTER_URL, AMAP_SDK_TIMEOUT_MS, MAP_CONFIG_TIMEOUT_MS, mergeAmapConfig, readAmapConfig, withTimeout } from '../lib/mapConfig';
+import { buildAmapNavUrl, buildAmapOpenUrl, openAmapNav, type NavMode } from '../lib/navigation';
 import {
   NEARBY_MAP_ZOOM,
   SPOT_DOT_SIZE,
@@ -80,6 +80,8 @@ export function CatchMap({
   const [mapError, setMapError] = useState<string | null>(null);
   const [navMsg, setNavMsg] = useState<string | null>(null);
   const [query, setQuery] = useState('');
+  const [navLink, setNavLink] = useState<string | null>(null);
+  const [mapBoot, setMapBoot] = useState(visible);
   const hits = query.trim() ? searchVenues(venues, query).slice(0, 8) : [];
 
   const markerHtml = (venue: FishingVenue, zoom: number) => {
@@ -89,6 +91,11 @@ export function CatchMap({
   };
 
   useEffect(() => {
+    if (visible) setMapBoot(true);
+  }, [visible]);
+
+  useEffect(() => {
+    if (!mapBoot) return;
     const el = rootRef.current;
     if (!el) return;
     let cancelled = false;
@@ -102,15 +109,14 @@ export function CatchMap({
       });
       let key = baked.key;
       let security = baked.security;
-      if (!key) {
-        try {
-          const res = await fetch('/api/map-config');
-          const remote = res.ok ? ((await res.json()) as { key?: string; security?: string }) : null;
-          key = remote?.key?.trim() || '';
-          security = remote?.security?.trim() || security;
-        } catch {
-          /* 仍走降级底图 */
-        }
+      try {
+        const res = await withTimeout(fetch('/api/map-config'), MAP_CONFIG_TIMEOUT_MS, '地图配置超时');
+        const remote = res.ok ? ((await res.json()) as { key?: string; security?: string }) : null;
+        const merged = mergeAmapConfig({ key, security }, remote);
+        key = merged.key;
+        security = merged.security;
+      } catch {
+        /* 仍用构建期 Key，或走降级底图 */
       }
       if (key) {
         try {
@@ -119,11 +125,15 @@ export function CatchMap({
               securityJsCode: security,
             };
           }
-          const AMap = await AMapLoader.load({
-            key,
-            version: '2.0',
-            plugins: ['AMap.Scale', 'AMap.ToolBar', 'AMap.Geolocation', 'AMap.Driving', 'AMap.Walking'],
-          });
+          const AMap = await withTimeout(
+            AMapLoader.load({
+              key,
+              version: '2.0',
+              plugins: ['AMap.Scale', 'AMap.ToolBar'],
+            }),
+            AMAP_SDK_TIMEOUT_MS,
+            '高德 SDK 超时',
+          );
           if (cancelled) return;
           const map = new AMap.Map(el, {
             viewMode: '2D',
@@ -137,18 +147,6 @@ export function CatchMap({
           map.setFeatures(['bg', 'road', 'building']);
           map.addControl(new AMap.Scale());
           map.addControl(new AMap.ToolBar({ position: 'RT' }));
-          map.addControl(
-            new AMap.Geolocation({
-              enableHighAccuracy: true,
-              timeout: 10000,
-              buttonPosition: 'RB',
-              showButton: true,
-              showMarker: true,
-              showCircle: true,
-              panToLocation: true,
-              zoomToAccuracy: true,
-            }),
-          );
           let driving: {
             search: (from: number[], to: number[], cb: (status: string, result: { info?: string }) => void) => void;
             clear: () => void;
@@ -157,33 +155,57 @@ export function CatchMap({
             search: (from: number[], to: number[], cb: (status: string, result: { info?: string }) => void) => void;
             clear: () => void;
           } | null = null;
-          try {
-            driving = new AMap.Driving({ map, hideMarkers: false, showTraffic: false });
-            walking = new AMap.Walking({ map, hideMarkers: false });
-          } catch (pluginErr) {
-            setMapError(pluginErr instanceof Error ? pluginErr.message : '路线规划插件未开通');
-          }
+          AMap.plugin?.(['AMap.Geolocation', 'AMap.Driving', 'AMap.Walking'], () => {
+            if (cancelled) return;
+            try {
+              map.addControl(
+                new AMap.Geolocation({
+                  enableHighAccuracy: true,
+                  timeout: 10000,
+                  buttonPosition: 'RB',
+                  showButton: true,
+                  showMarker: true,
+                  showCircle: true,
+                  panToLocation: true,
+                  zoomToAccuracy: true,
+                }),
+              );
+              driving = new AMap.Driving({ map, hideMarkers: false, showTraffic: false });
+              walking = new AMap.Walking({ map, hideMarkers: false });
+            } catch (pluginErr) {
+              setMapError(pluginErr instanceof Error ? pluginErr.message : '路线规划插件未开通');
+            }
+          });
 
           const api: NavApi = {
             preview(place, mode) {
               const startAt = originRef.current;
               const startLngLat = [startAt.lon, startAt.lat];
               const endLngLat = [place.lon, place.lat];
+              const url = buildAmapNavUrl({
+                fromLon: startAt.lon,
+                fromLat: startAt.lat,
+                fromName: '我的位置',
+                toLon: place.lon,
+                toLat: place.lat,
+                toName: place.name,
+                mode,
+              });
+              setNavLink(url);
               driving?.clear?.();
               walking?.clear?.();
               setNavMsg(`正在规划到${place.name}的${mode === 'walk' ? '步行' : '驾车'}路线…`);
               const planner = mode === 'walk' ? walking : driving;
               if (!planner) {
-                api.open(place, mode);
+                setNavMsg(`点下方「打开高德地图」前往${place.name}`);
                 return;
               }
               planner.search(startLngLat, endLngLat, (status: string, result: { info?: string }) => {
                 if (status === 'complete') {
-                  setNavMsg(`已画出到${place.name}的路线，可再点「打开高德导航」`);
+                  setNavMsg(`已画出到${place.name}的路线，可再打开高德地图`);
                   map.setFitView();
                 } else {
-                  setNavMsg(`地图内路线失败（${result?.info ?? status}），改为打开高德导航`);
-                  api.open(place, mode);
+                  setNavMsg(`地图内路线失败（${result?.info ?? status}），请打开高德地图`);
                 }
               });
             },
@@ -198,8 +220,17 @@ export function CatchMap({
                 toName: place.name,
                 mode,
               });
-              window.open(url, '_blank', 'noopener,noreferrer');
-              setNavMsg(`已打开高德导航：前往${place.name}`);
+              setNavLink(url);
+              openAmapNav({
+                fromLon: startAt.lon,
+                fromLat: startAt.lat,
+                fromName: '我的位置',
+                toLon: place.lon,
+                toLat: place.lat,
+                toName: place.name,
+                mode,
+              });
+              setNavMsg(`可打开高德地图前往${place.name}`);
             },
           };
           navApi.current = api;
@@ -274,24 +305,41 @@ export function CatchMap({
       }).addTo(map);
       const api: NavApi = {
         preview(place, mode) {
-          api.open(place, mode);
+          const startAt = originRef.current;
+          const url = buildAmapNavUrl({
+            fromLon: startAt.lon,
+            fromLat: startAt.lat,
+            fromName: '我的位置',
+            toLon: place.lon,
+            toLat: place.lat,
+            toName: place.name,
+            mode,
+          });
+          setNavLink(url);
+          setNavMsg(`点下方「打开高德地图」前往${place.name}`);
         },
         open(place, mode) {
           const startAt = originRef.current;
-          window.open(
-            buildAmapNavUrl({
-              fromLon: startAt.lon,
-              fromLat: startAt.lat,
-              fromName: '我的位置',
-              toLon: place.lon,
-              toLat: place.lat,
-              toName: place.name,
-              mode,
-            }),
-            '_blank',
-            'noopener,noreferrer',
-          );
-          setNavMsg(`已打开高德导航：前往${place.name}`);
+          const url = buildAmapNavUrl({
+            fromLon: startAt.lon,
+            fromLat: startAt.lat,
+            fromName: '我的位置',
+            toLon: place.lon,
+            toLat: place.lat,
+            toName: place.name,
+            mode,
+          });
+          setNavLink(url);
+          openAmapNav({
+            fromLon: startAt.lon,
+            fromLat: startAt.lat,
+            fromName: '我的位置',
+            toLon: place.lon,
+            toLat: place.lat,
+            toName: place.name,
+            mode,
+          });
+          setNavMsg(`可打开高德地图前往${place.name}`);
         },
       };
       navApi.current = api;
@@ -354,7 +402,7 @@ export function CatchMap({
       cancelled = true;
       cleanup();
     };
-  }, [venues, reviews]);
+  }, [venues, reviews, mapBoot]);
 
   useEffect(() => {
     if (!navigateTo || !navApi.current) return;
@@ -429,6 +477,14 @@ export function CatchMap({
         </button>
       ) : null}
       {navMsg && <div className="map-banner pick">{navMsg}</div>}
+      <a
+        className="map-amap-link"
+        href={navLink ?? buildAmapOpenUrl(lon, lat)}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        打开高德地图
+      </a>
       {picking && <div className="map-banner pick">点击地图选择上报钓点</div>}
     </div>
   );

@@ -122,11 +122,6 @@ export function App() {
     void persistReportToServer(report);
   };
 
-  const goSpots = () => {
-    setSheet(null);
-    setTab('spots');
-  };
-
   const changeTab = (next: TabId) => {
     setSheet(null);
     if (next !== 'spots') setPicking(false);
@@ -273,6 +268,8 @@ export function App() {
             {sheet === 'venues' && (
               <VenueList
                 reviews={spotReviews}
+                fromLat={coords.lat}
+                fromLon={coords.lon}
                 onOpen={(venue) => {
                   setSpotVenue(venue);
                   setSpotBack('venues');
@@ -284,10 +281,6 @@ export function App() {
                   setSpotBack(null);
                   setTab('spots');
                   setSheet('spot');
-                }}
-                onNavigate={(venue) => {
-                  setNavTarget({ lon: venue.lon, lat: venue.lat, name: venue.name });
-                  goSpots();
                 }}
               />
             )}
@@ -345,8 +338,10 @@ export function App() {
                 venue={spotVenue}
                 reviews={spotReviews}
                 reports={reports}
+                fromLat={coords.lat}
+                fromLon={coords.lon}
                 onReviewsChange={setSpotReviews}
-                onNavigate={() => {
+                onPreviewRoute={() => {
                   setNavTarget({ lon: spotVenue.lon, lat: spotVenue.lat, name: spotVenue.name });
                   setSheet(null);
                   setTab('spots');

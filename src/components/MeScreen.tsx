@@ -189,6 +189,13 @@ function MeMenus({
     <>
       <ul className="me-group">
         <li>
+          <button type="button" onClick={() => onOpen('share')}>
+            <i data-kind="share" aria-hidden />
+            分享入库
+            <span>›</span>
+          </button>
+        </li>
+        <li>
           <button type="button" onClick={() => onOpen('catches')}>
             <i data-kind="catch" aria-hidden />
             渔获记录
@@ -209,13 +216,6 @@ function MeMenus({
             <i data-kind="wish" aria-hidden />
             想买清单
             <em>{wishCount}</em>
-            <span>›</span>
-          </button>
-        </li>
-        <li>
-          <button type="button" onClick={() => onOpen('share')}>
-            <i data-kind="share" aria-hidden />
-            分享入库
             <span>›</span>
           </button>
         </li>

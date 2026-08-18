@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { buildAmapNavUrl } from '../lib/navigation';
 import { DIANPING_COLLECTED_AT, DIANPING_DISCLAIMER, DIANPING_VENUES, searchVenues, venueAvatar } from '../lib/venues';
 import { coverPhotoForVenue, rankVenues, reviewCountLabel, reviewsForVenue, scoreForVenue } from '../lib/spotScore';
 import type { FishingVenue, SpotReview } from '../types';
@@ -6,12 +7,13 @@ import { SpotStars } from './SpotStars';
 
 type Props = {
   reviews: SpotReview[];
+  fromLat: number;
+  fromLon: number;
   onOpen: (venue: FishingVenue) => void;
-  onNavigate: (venue: FishingVenue) => void;
   onFocus?: (venue: FishingVenue) => void;
 };
 
-export function VenueList({ reviews, onOpen, onNavigate, onFocus }: Props) {
+export function VenueList({ reviews, fromLat, fromLon, onOpen, onFocus }: Props) {
   const [query, setQuery] = useState('');
   const ranked = useMemo(() => rankVenues(DIANPING_VENUES, reviews), [reviews]);
   const rankOf = useMemo(() => new Map(ranked.map((venue, index) => [venue.id, index + 1])), [ranked]);
@@ -59,9 +61,21 @@ export function VenueList({ reviews, onOpen, onNavigate, onFocus }: Props) {
                 <button type="button" className="ghost" onClick={() => onFocus?.(venue)}>
                   看地图
                 </button>
-                <button type="button" className="ghost" onClick={() => onNavigate(venue)}>
+                <a
+                  className="ghost"
+                  href={buildAmapNavUrl({
+                    fromLon,
+                    fromLat,
+                    fromName: '我的位置',
+                    toLon: venue.lon,
+                    toLat: venue.lat,
+                    toName: venue.name,
+                  })}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
                   导航
-                </button>
+                </a>
               </span>
             </li>
           );

@@ -195,7 +195,7 @@ type HubChatMessage = { id: string; roomId: string; author: string; body: string
 
 ## 4e. 我的（FR-10）
 
-`MeScreen` 挂在底栏 `me`。资料 `loadProfile` / `saveProfile` 存 localStorage。四列：渔获、`shareSocial.follows`、`DEMO_FANS`、`loadWishIds`。点粉丝打开示例名单。分组菜单进渔获 / 想买 / 入库 / 天气 / 日报 / 关于。不接登录与私信。视觉与渔圈同套金青绿层次，不是单色平铺。
+`MeScreen` 挂在底栏 `me`。资料 `loadProfile` / `saveProfile` 存 localStorage。四列：渔获、`shareSocial.follows`、`DEMO_FANS`、`loadWishIds`。点粉丝打开示例名单。分组菜单进渔获 / 想买 / 入库 / 天气 / 日报 / 关于。不接登录与私信。视觉与渔圈同套金青绿层次，不是单色平铺。手机网页用 `100svh` 包住壳，避免浏览器底栏把「我的」菜单切掉。底部 `padding-bottom` 为 `calc(128px + 安全区)`，让「分享入库」等条目和入库表单滚出金色按钮、浏览器工具栏与系统键盘。菜单左侧色块用字标，不做成空图，避免像加载失败。
 
 ## 5. 天气客户端（FR-1）
 
@@ -209,9 +209,9 @@ Query：`latitude, longitude, timezone=Asia/Shanghai, current=temperature_2m,rel
 
 ## 6. 地图（FR-3）
 
-- 环境变量：`VITE_AMAP_KEY` / `AMAP_KEY`，可选安全码。构建期可打进前端；运行期 `GET /api/map-config` 再读一遍，方便 Zeabur 只配运行变量。`CatchMap` 在钓点 Tab 显示时 `resize`，避免隐藏容器空白。无 Key 或 SDK 失败时 Leaflet 用高德栅格底图（国内可显示），不用 OSM。
-- 高德加载成功：`AMap.Map` 中心上海，插件 `AMap.Scale` / `AMap.ToolBar` / `AMap.Geolocation` / `AMap.Driving` / `AMap.Walking`。附文含导航按钮。
-- 失败或无 Key：Leaflet 地图 + 同样数据；仍提供 `uri.amap.com` 导航。
+- 环境变量：`VITE_AMAP_KEY` / `AMAP_KEY`，可选安全码。构建期可打进前端；**每次加载地图都** `GET /api/map-config`（4s 超时）再合并运行期变量（云端常只配 `AMAP_KEY`）。`CatchMap` 等到钓点 Tab 第一次显示后再加载 SDK，避免在 `visibility:hidden` 容器里高德一直转圈；显示后 `resize`。无 Key、SDK 8s 超时或失败时 Leaflet 用高德栅格底图（国内可显示），不用 OSM。
+- 高德加载成功：`AMapLoader.load` 先只带 `AMap.Scale` / `AMap.ToolBar` 以便尽快出图；`AMap.Geolocation` / `AMap.Driving` / `AMap.Walking` 出图后再 `plugin`，失败不影响底图。
+- 打开高德 App：`buildAmapNavUrl` + 详情/排行上的 `<a href>`（`uri.amap.com`，`callnative=1`）。不在 `useEffect` 里 `window.open`，避免手机拦截。失败或无 Key：Leaflet 底图仍可用同一链接。
 - 运行时向 UI 回报 `engine: 'amap' | 'leaflet'`，禁止仅凭 env 有 Key 就显示「高德已开启」。
 - 附文格式函数：`formatCatchCaption(report, now)` → `沪上老张 3小时前 钓到了鲈鱼`（标点下方常显）。
 - 分享解析：`src/lib/parseShare.ts`，支持小红书 / 抖音 / 微博口令。

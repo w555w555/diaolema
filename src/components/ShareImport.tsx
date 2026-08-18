@@ -79,6 +79,7 @@ export function ShareImport({ lat, lon, onImport }: Props) {
         <textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
+          onFocus={(e) => e.currentTarget.scrollIntoView({ block: 'center', behavior: 'smooth' })}
           rows={4}
           disabled={busy}
           placeholder="例：路亚阿周发布了一篇小红书笔记：3小时前在滴水湖钓到了鲈鱼"

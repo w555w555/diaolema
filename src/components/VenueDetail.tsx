@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { formatRelativeTime } from '../lib/caption';
+import { buildAmapNavUrl } from '../lib/navigation';
 import { createSpotReview, persistSpotReview } from '../lib/spotReviews';
 import { coverPhotoForVenue, reviewCountLabel, reviewsForVenue, scoreForVenue } from '../lib/spotScore';
 import { venueAvatar, venueSourceLabel } from '../lib/venues';
@@ -10,11 +11,21 @@ type Props = {
   venue: FishingVenue;
   reviews: SpotReview[];
   reports: CatchReport[];
+  fromLat: number;
+  fromLon: number;
   onReviewsChange: (next: SpotReview[]) => void;
-  onNavigate: () => void;
+  onPreviewRoute: () => void;
 };
 
-export function VenueDetail({ venue, reviews, reports, onReviewsChange, onNavigate }: Props) {
+export function VenueDetail({
+  venue,
+  reviews,
+  reports,
+  fromLat,
+  fromLon,
+  onReviewsChange,
+  onPreviewRoute,
+}: Props) {
   const items = reviewsForVenue(venue.id, reviews);
   const score = scoreForVenue(venue.id, reviews);
   const photos = items.filter((row) => row.imageUrl);
@@ -42,9 +53,24 @@ export function VenueDetail({ venue, reviews, reports, onReviewsChange, onNaviga
       <p className="muted">
         {venue.feeLabel} · {venue.statusLabel} · {venueSourceLabel(venue.catalogSource)}
       </p>
-      <div className="share-actions">
-        <button type="button" className="share-go" onClick={onNavigate}>
-          去导航
+      <div className="share-actions share-actions-nav">
+        <a
+          className="share-go"
+          href={buildAmapNavUrl({
+            fromLon,
+            fromLat,
+            fromName: '我的位置',
+            toLon: venue.lon,
+            toLat: venue.lat,
+            toName: venue.name,
+          })}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          打开高德地图
+        </a>
+        <button type="button" className="ghost" onClick={onPreviewRoute}>
+          看路线
         </button>
       </div>
 
