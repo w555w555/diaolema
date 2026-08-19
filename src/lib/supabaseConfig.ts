@@ -1,7 +1,13 @@
 const URL_STORE = 'diaolema.supabase.url.v1';
 
+export function stripEnvValue(raw: string): string {
+  const trimmed = raw.trim();
+  const wrapped = trimmed.match(/^(['"])(.*)\1$/);
+  return (wrapped ? wrapped[2] : trimmed).trim();
+}
+
 export function normalizeSupabaseUrl(raw: string): string {
-  return raw.trim().replace(/\/+$/, '');
+  return stripEnvValue(raw).replace(/\/+$/, '');
 }
 
 export function isSupabaseProjectUrl(raw: string): boolean {
@@ -34,17 +40,21 @@ export function saveStoredSupabaseUrl(raw: string): string {
 }
 
 export function readSupabaseConfig(): { url: string; publishableKey: string } {
-  const fromEnv = (import.meta.env.VITE_SUPABASE_URL ?? '').trim();
+  const fromEnv = normalizeSupabaseUrl(import.meta.env.VITE_SUPABASE_URL ?? '');
   return {
-    url: fromEnv || readStoredSupabaseUrl(),
-    publishableKey: (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? '').trim(),
+    url: isSupabaseProjectUrl(fromEnv) ? fromEnv : readStoredSupabaseUrl(),
+    publishableKey: stripEnvValue(import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? ''),
   };
 }
 
 export function supabaseConfigStatus(): { url: boolean; publishableKey: boolean; urlFromEnv: boolean } {
-  const fromEnv = Boolean((import.meta.env.VITE_SUPABASE_URL ?? '').trim());
+  const fromEnv = normalizeSupabaseUrl(import.meta.env.VITE_SUPABASE_URL ?? '');
   const { url, publishableKey } = readSupabaseConfig();
-  return { url: Boolean(url), publishableKey: Boolean(publishableKey), urlFromEnv: fromEnv };
+  return {
+    url: Boolean(url),
+    publishableKey: Boolean(publishableKey),
+    urlFromEnv: isSupabaseProjectUrl(fromEnv),
+  };
 }
 
 export function isSupabaseConfigured(): boolean {

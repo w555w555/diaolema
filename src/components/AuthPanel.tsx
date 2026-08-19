@@ -15,7 +15,7 @@ type Props = {
 export function AuthPanel({ onSignedIn, onReady }: Props) {
   const status = supabaseConfigStatus();
   const [mode, setMode] = useState<Mode>('login');
-  const [projectUrl, setProjectUrl] = useState('');
+  const [projectUrl, setProjectUrl] = useState('https://hlsmctozqprxakxlovre.supabase.co');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
@@ -51,7 +51,7 @@ export function AuthPanel({ onSignedIn, onReady }: Props) {
   const run = async (nextMode: Mode) => {
     const client = getSupabase();
     if (!client) {
-      setError('先填项目地址。');
+      setError('连不上云端。请填项目地址：https://项目名.supabase.co');
       return;
     }
     const invalid = validateAuthForm({
@@ -125,7 +125,7 @@ export function AuthPanel({ onSignedIn, onReady }: Props) {
       className="sign-in"
       onSubmit={(ev) => {
         ev.preventDefault();
-        if (!status.url) {
+        if (!supabase) {
           bindUrl();
           return;
         }
@@ -135,7 +135,7 @@ export function AuthPanel({ onSignedIn, onReady }: Props) {
       <img src={logoUrl} alt="" width={56} height={56} />
       <p className="sign-in-kicker">渔见账号</p>
       <h3>{mode === 'login' ? '登录' : '注册'}</h3>
-      {status.url ? (
+      {supabase ? (
         <div className="auth-tabs" role="tablist">
           <button type="button" role="tab" aria-selected={mode === 'login'} data-on={mode === 'login'} onClick={() => setMode('login')}>
             登录
@@ -151,7 +151,7 @@ export function AuthPanel({ onSignedIn, onReady }: Props) {
           </button>
         </div>
       ) : null}
-      {!status.url ? (
+      {!supabase ? (
         <>
           <label>
             项目地址
@@ -173,7 +173,7 @@ export function AuthPanel({ onSignedIn, onReady }: Props) {
           autoComplete="email"
           value={email}
           onChange={(ev) => setEmail(ev.target.value)}
-          required={status.url}
+          required={Boolean(supabase)}
         />
       </label>
       <label>
@@ -184,10 +184,10 @@ export function AuthPanel({ onSignedIn, onReady }: Props) {
           value={password}
           onChange={(ev) => setPassword(ev.target.value)}
           minLength={6}
-          required={status.url}
+          required={Boolean(supabase)}
         />
       </label>
-      {status.url && mode === 'register' ? (
+      {supabase && mode === 'register' ? (
         <label>
           确认密码
           <input
@@ -202,7 +202,7 @@ export function AuthPanel({ onSignedIn, onReady }: Props) {
       ) : null}
       {error ? <p className="me-auth-error">{error}</p> : null}
       {hint ? <p className="muted">{hint}</p> : null}
-      {!status.url ? (
+      {!supabase ? (
         <button type="submit" disabled={busy || !isSupabaseProjectUrl(projectUrl)}>
           连接项目
         </button>
