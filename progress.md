@@ -62,4 +62,9 @@
 - 粉丝互关私聊：粉丝名单可开关「允许私聊」；互关且双方打开后出现「私聊」。消息表 `dm_messages`；需在 SQL Editor 跑 `supabase/dm.sql` 全文。`directChat.test.ts` 4 passed。
 - 注册/登录只填邮箱密码。项目地址由部署环境或 `/api/public-config` 提供，不再让用户填。
 
+## 2026-08-19
+
+- 小程序拥挤：天气辅文改四格、上半屏封顶给渔获留一排封面、首页卡去掉关注、渔圈预览减量、底栏收紧并补顶部安全区。
+- `weatherBarMeta` 单测；`TZ=Asia/Shanghai npm test` 165 passed。
+
 - 写入 FR-7 AI 识鱼 Spec / SDD，暂未实现代码。

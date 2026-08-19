@@ -36,6 +36,16 @@ export function windScaleLabel(kmh: number): string {
   return `${n}级`;
 }
 
+/** 首页天气条一行四格，避免间隔号长句折行。 */
+export function weatherBarMeta(weather: WeatherSnapshot): string[] {
+  return [
+    weatherLabel(weather.weatherCode),
+    `${windDirLabel(weather.windDirDeg)} ${windScaleLabel(weather.windKmh)}`,
+    `${weather.humidityPct.toFixed(0)}%`,
+    `${weather.pressureHpa.toFixed(0)}hPa`,
+  ];
+}
+
 type OpenMeteoResponse = {
   current: {
     time: string;
