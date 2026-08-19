@@ -198,7 +198,7 @@ type HubChatMessage = { id: string; roomId: string; author: string; body: string
 
 ## 4d. 渔圈（FR-9）
 
-`HubScreen` 挂在底栏 `hub`（文案「渔圈」）。首页不是五块空磁贴：顶栏 + 五入口条，下接赛事、装备、群聊、技巧预览，点预览进入对应列表。`src/data/hub.json` 静态示例：商品、赛事、技巧、评测、群；种子消息仅无云端时演示。`src/lib/hub.ts`：`toggleWish`、`messagesForRoom`、`persistGearReview` 可单测。想买 / 装备评测仍写 localStorage。商城无结算。
+`HubScreen` 挂在底栏 `hub`（文案「渔圈」）。首页不是五块空磁贴：顶栏 + 五入口条，下接即将开赛主卡、两件装备、两个群；技巧与评测只走入口条。点预览进入对应列表。`src/data/hub.json` 静态示例：商品、赛事、技巧、评测、群；种子消息仅无云端时演示。`src/lib/hub.ts`：`toggleWish`、`messagesForRoom`、`persistGearReview` 可单测。想买 / 装备评测仍写 localStorage。商城无结算。
 
 **公网群聊（已配 `getSupabase()`）**：表 `public.chat_messages`（`id, room_id, user_id, author, body, created_at`）。`room_id` 仅 `room-lure` / `room-ji` / `room-gear` / `room-match`。RLS：`SELECT` 匿名可读；`INSERT` 仅登录且 `user_id = auth.uid()`，`body` 1–200 字、`author` 1–12 字；无 UPDATE/DELETE。进入房间拉最近 200 条，Realtime 订该 `room_id` 的 INSERT。发送用资料昵称；未登录禁用输入并提示去「我的」。失败则提示并保留草稿。不写 `diaolema.hub.chat.v1`。未配 Supabase 时 `appendChatMessage` 仍走 localStorage。不做私信。详情见 `docs/superpowers/specs/2026-08-18-public-chat-design.md`。
 
@@ -377,7 +377,7 @@ src/App.tsx
         抽屉：VenueList / AdvicePanel / DailyReport / ShareImport / 词表换鱼
 ```
 
-桌面端 `.phone` 列宽 430px、圆角 44px、深底金青绿。产品名「渔见」。首页品牌行用 `public/logo.svg` + `.brand-name`（MiSans/苹方/Noto 栈、字色 `#EAF5EF–#B9CAC3`、辅文 `#69BBA7`）。启动时 `Splash` 盖住手机壳：深底金青绿光晕与水纹，Logo 淡入上浮，点按或 2.4s 后淡出，随后请求定位。切到钓点时 `CatchMap` 不卸载。AI 识鱼在底栏中间金色按钮（文案「AI 识鱼」，无 + 号、无下方小字），不占首页。地图选点时强制切到钓点 Tab。风力用 `windScaleLabel` 转成几级；出钓文案用 `outingLabel` 映射指数档位。天气条用 `windowCountdown` 显示晨昏窗口倒计时。方案格只放味形/拟饵与标点；点鱼名换目标鱼（列表按当前钓法筛选）；点天气条开天气抽屉。首页 `.home-main` 只放天气与今日方案，可内部滚动。下半 `CatchShareFeed` 独立滑动。拍照取景左上角「‹ 返回」。区头「今日渔获 · N / 全部 ›」带细金线。双列卡片封面限高 108px，图下露出钓点名与点赞，不必滑完一张图。`coverRatio` 仍按 id 变化（1/1、5/4、4/5）。图上鱼种胶囊、示例黑底白字；图下标题、钓点、点赞。`shareSocial`：点赞/关注存 localStorage，种子赞数由 id 哈希，点赞 +1 / 取消还原；关注按作者名切换。`CatchShareDetail` 同步同一状态，顶图叠作者/时间，「去钓点」全宽青绿。不把策略顶出屏幕。`shareCover`：有 `imageUrl` 用图，否则 `catchThumb` 深色底 + 鱼名。点卡片打开全文，再去地图。不展示未测的溶氧与水温。首页不堆常用工具与目标鱼说明卡。不写飞书粉丝关系、无私信。
+桌面端 `.phone` 列宽 430px、圆角 44px、深底金青绿。产品名「渔见」。首页品牌行用 `public/logo.svg` + `.brand-name`（MiSans/苹方/Noto 栈、字色 `#EAF5EF–#B9CAC3`、辅文 `#69BBA7`）。启动时 `Splash` 盖住手机壳：深底金青绿光晕与水纹，Logo 淡入上浮，点按或 2.4s 后淡出，随后请求定位。切到钓点时 `CatchMap` 不卸载。AI 识鱼在底栏中间金色按钮（文案「AI 识鱼」，无 + 号、无下方小字），不占首页。地图选点时强制切到钓点 Tab。风力用 `windScaleLabel` 转成几级；出钓文案用 `outingLabel` 映射指数档位。天气条用 `windowCountdown` 显示晨昏窗口倒计时。辅文由 `weatherBarMeta` 输出四格（现象 / 风向风力 / 湿度 / 气压），定位中跟在出钓适宜度后面，不拼进长句。方案格只放味形/拟饵与标点；点鱼名换目标鱼（列表按当前钓法筛选）；点天气条开天气抽屉。首页 `.home-main` 只放品牌、天气与今日方案，`max-height: calc(100% - 168px)`，过高则内部滚动。下半 `CatchShareFeed` 独立滑动，最少露出区头加一排封面。短屏压缩品牌行、卡片内边距与底栏高度，并补 `safe-area-inset-top`。拍照取景左上角「‹ 返回」。区头「今日渔获 · N / 全部 ›」带细金线。双列卡片封面限高 108px，图下露出钓点名与点赞，不必滑完一张图；关注按钮只在 `CatchShareDetail`。`coverRatio` 仍按 id 变化（1/1、5/4、4/5）。图上鱼种胶囊、示例黑底白字；图下标题、钓点、点赞。`shareSocial`：点赞/关注存 localStorage，种子赞数由 id 哈希，点赞 +1 / 取消还原；关注按作者名切换。`CatchShareDetail` 同步同一状态，顶图叠作者/时间，「去钓点」全宽青绿。不把策略顶出屏幕。`shareCover`：有 `imageUrl` 用图，否则 `catchThumb` 深色底 + 鱼名。点卡片打开全文，再去地图。不展示未测的溶氧与水温。首页不堆常用工具与目标鱼说明卡。不写飞书粉丝关系、无私信。
 
 ## 13. Zeabur 部署
 

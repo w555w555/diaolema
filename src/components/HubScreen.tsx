@@ -122,10 +122,6 @@ export function HubScreen({ onNeedLogin }: { onNeedLogin?: () => void }) {
             setRoomId(id);
             setView('chat');
           }}
-          onOpenTip={(id) => {
-            setTipId(id);
-            setView('tips');
-          }}
         />
       ) : null}
       {view === 'mall' ? (
@@ -231,11 +227,9 @@ function HubIcon({ kind }: { kind: (typeof TILES)[number]['view'] }) {
 function HubHome({
   onOpen,
   onOpenRoom,
-  onOpenTip,
 }: {
   onOpen: (view: Exclude<HubView, 'home' | 'chat'>) => void;
   onOpenRoom: (roomId: string) => void;
-  onOpenTip: (id: string) => void;
 }) {
   const feature = HUB_EVENTS[0];
   const date = feature ? eventDate(feature.when) : null;
@@ -276,17 +270,6 @@ function HubHome({
               <span>{feature.place}</span>
             </div>
           </button>
-          <ul className="hub-mini">
-            {HUB_EVENTS.slice(1, 3).map((item) => (
-              <li key={item.id}>
-                <button type="button" data-kind={item.kind} onClick={() => onOpen('events')}>
-                  <em>{item.kind}</em>
-                  <strong>{item.title}</strong>
-                  <span>{item.when}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
         </section>
       ) : null}
 
@@ -300,7 +283,7 @@ function HubHome({
           </button>
         </header>
         <ul className="hub-shop">
-          {HUB_PRODUCTS.slice(0, 4).map((item) => (
+          {HUB_PRODUCTS.slice(0, 2).map((item) => (
             <li key={item.id}>
               <button type="button" data-tone={gearTone(item.kind)} onClick={() => onOpen('mall')}>
                 <span className="hub-swatch" aria-hidden />
@@ -323,7 +306,7 @@ function HubHome({
           </button>
         </header>
         <ul className="hub-rooms">
-          {HUB_ROOMS.slice(0, 3).map((room, index) => (
+          {HUB_ROOMS.slice(0, 2).map((room, index) => (
             <li key={room.id}>
               <button type="button" data-tone={index === 0 ? 'live' : 'dim'} onClick={() => onOpenRoom(room.id)}>
                 <em>{room.members}</em>
@@ -331,26 +314,6 @@ function HubHome({
                   <strong>{room.name}</strong>
                   <span>{room.topic}</span>
                 </div>
-              </button>
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      <section className="hub-block">
-        <header className="hub-sec">
-          <h3>技巧精选</h3>
-          <button type="button" className="share-more" onClick={() => onOpen('tips')}>
-            更多 ›
-          </button>
-        </header>
-        <ul className="hub-tips">
-          {HUB_TIPS.slice(0, 2).map((item) => (
-            <li key={item.id}>
-              <button type="button" data-method={item.method} onClick={() => onOpenTip(item.id)}>
-                <em>{item.method}</em>
-                <strong>{item.title}</strong>
-                <span>{item.summary}</span>
               </button>
             </li>
           ))}

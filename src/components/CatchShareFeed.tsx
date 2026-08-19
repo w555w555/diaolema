@@ -44,7 +44,6 @@ export function CatchShareFeed({ reports, onOpenAll, onOpenDetail }: Props) {
         <ul className="share-masonry">
           {items.map((report) => {
             const liked = social.likes.includes(report.id);
-            const following = social.follows.includes(report.author);
             return (
               <li
                 key={report.id}
@@ -61,17 +60,6 @@ export function CatchShareFeed({ reports, onOpenAll, onOpenDetail }: Props) {
                 </button>
                 <div className="share-foot">
                   <span className="share-spot">{report.spotName}</span>
-                  <button
-                    type="button"
-                    className="share-follow"
-                    data-on={following ? 'true' : 'false'}
-                    onClick={() => {
-                      const next = toggleFollow(report.author);
-                      cloudWrite(pushFollow(report.author, next.follows.includes(report.author)));
-                    }}
-                  >
-                    {following ? '已关注' : '关注'}
-                  </button>
                   <button
                     type="button"
                     className="share-like"

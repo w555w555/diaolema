@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { CatchShareFeed } from './CatchShareFeed';
 import { catalogForStyle, coerceFishForStyle } from '../lib/fishId/catalog';
 import { outingLabel } from '../lib/fishingIndex';
-import { weatherLabel, windDirLabel, windScaleLabel } from '../lib/weather';
+import { weatherBarMeta } from '../lib/weather';
 import { fishGuide } from '../lib/fishGuide';
 import { windowCountdown } from '../lib/windowCountdown';
 import logoUrl from '../assets/logo.svg?url';
@@ -47,22 +47,14 @@ export function HomeScreen({
   const bait = advice ? (style === '路亚' ? advice.lure : advice.baitLabel) : '—';
   const spot = advice?.spot ?? '—';
   const outing = index ? outingLabel(index.label) : loading ? '读取中' : '—';
-  const meta = weather
-    ? [
-        weatherLabel(weather.weatherCode),
-        `${windDirLabel(weather.windDirDeg)} ${windScaleLabel(weather.windKmh)}`,
-        `${weather.humidityPct.toFixed(0)}%`,
-        `${weather.pressureHpa.toFixed(0)}hPa`,
-      ].join(' · ')
-    : error || '正在读取上海气象';
-  const line = locating ? `${meta} · 定位中` : meta;
+  const meta = weather ? weatherBarMeta(weather) : null;
 
   return (
     <div className="home">
       <div className="home-main">
         <header className="brand-row">
           <div className="brand-mark">
-            <img src={logoUrl} alt="" width={44} height={44} />
+            <img src={logoUrl} alt="" width={36} height={36} />
             <div className="brand-name">
               <h1>渔见</h1>
               <p>FISHING INSIGHT</p>
@@ -77,9 +69,20 @@ export function HomeScreen({
           <button type="button" className="wx-hit" onClick={() => onOpen('weather')}>
             <p className="wx-temp">
               {weather ? `${weather.temperatureC.toFixed(0)}°` : loading ? '—' : '--'}
-              <em>{outing}</em>
+              <em>
+                {outing}
+                {locating ? ' · 定位中' : ''}
+              </em>
             </p>
-            <p className="wx-sub">{line}</p>
+            {meta ? (
+              <ul className="wx-meta">
+                {meta.map((bit) => (
+                  <li key={bit}>{bit}</li>
+                ))}
+              </ul>
+            ) : (
+              <p className="wx-sub">{error || (loading ? '正在读取上海气象' : '天气暂不可用')}</p>
+            )}
           </button>
           <WindowCountdownBar />
         </section>
