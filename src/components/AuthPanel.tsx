@@ -2,8 +2,7 @@ import { useEffect, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import logoUrl from '../assets/logo.svg?url';
 import { mapAuthError, signupNeedsConfirm, validateAuthForm } from '../lib/authMessage';
-import { getSupabase, resetSupabaseClient, supabaseConfigStatus } from '../lib/supabase';
-import { isSupabaseProjectUrl, saveStoredSupabaseUrl } from '../lib/supabaseConfig';
+import { getSupabase, hydrateSupabaseConfig, isSupabaseConfigured } from '../lib/supabase';
 
 type Mode = 'login' | 'register';
 
@@ -13,19 +12,32 @@ type Props = {
 };
 
 export function AuthPanel({ onSignedIn, onReady }: Props) {
-  const status = supabaseConfigStatus();
   const [mode, setMode] = useState<Mode>('login');
-  const [projectUrl, setProjectUrl] = useState('https://hlsmctozqprxakxlovre.supabase.co');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [session, setSession] = useState<Session | null>(null);
   const [busy, setBusy] = useState(false);
+  const [booting, setBooting] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [hint, setHint] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
 
-  const supabase = getSupabase();
+  const ready = isSupabaseConfigured();
+  const supabase = ready ? getSupabase() : null;
+
+  useEffect(() => {
+    let cancelled = false;
+    void hydrateSupabaseConfig().then(() => {
+      if (cancelled) return;
+      setBooting(false);
+      setTick((n) => n + 1);
+      onReady?.();
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (!supabase) return;
@@ -36,22 +48,10 @@ export function AuthPanel({ onSignedIn, onReady }: Props) {
     return () => data.subscription.unsubscribe();
   }, [supabase, tick]);
 
-  const bindUrl = () => {
-    setError(null);
-    try {
-      saveStoredSupabaseUrl(projectUrl);
-      resetSupabaseClient();
-      setTick((n) => n + 1);
-      onReady?.();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-    }
-  };
-
   const run = async (nextMode: Mode) => {
     const client = getSupabase();
     if (!client) {
-      setError('连不上云端。请填项目地址：https://项目名.supabase.co');
+      setError('注册暂不可用，请稍后刷新再试。');
       return;
     }
     const invalid = validateAuthForm({
@@ -91,10 +91,18 @@ export function AuthPanel({ onSignedIn, onReady }: Props) {
     }
   };
 
-  if (!status.publishableKey) {
+  if (booting) {
     return (
       <div className="me-auth">
-        <p className="muted">还缺 publishable key，注册/登录不可用。</p>
+        <p className="muted">正在连接账号服务…</p>
+      </div>
+    );
+  }
+
+  if (!ready || !supabase) {
+    return (
+      <div className="me-auth">
+        <p className="muted">账号服务未就绪。请确认 Zeabur 已配置 publishable key 并重新部署。</p>
       </div>
     );
   }
@@ -125,47 +133,26 @@ export function AuthPanel({ onSignedIn, onReady }: Props) {
       className="sign-in"
       onSubmit={(ev) => {
         ev.preventDefault();
-        if (!supabase) {
-          bindUrl();
-          return;
-        }
         void run(mode);
       }}
     >
       <img src={logoUrl} alt="" width={56} height={56} />
       <p className="sign-in-kicker">渔见账号</p>
       <h3>{mode === 'login' ? '登录' : '注册'}</h3>
-      {supabase ? (
-        <div className="auth-tabs" role="tablist">
-          <button type="button" role="tab" aria-selected={mode === 'login'} data-on={mode === 'login'} onClick={() => setMode('login')}>
-            登录
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={mode === 'register'}
-            data-on={mode === 'register'}
-            onClick={() => setMode('register')}
-          >
-            注册
-          </button>
-        </div>
-      ) : null}
-      {!supabase ? (
-        <>
-          <label>
-            项目地址
-            <input
-              type="url"
-              placeholder="https://xxxx.supabase.co"
-              value={projectUrl}
-              onChange={(ev) => setProjectUrl(ev.target.value)}
-              required
-            />
-          </label>
-          <p className="muted">在 Supabase → Settings → Data API 复制 Project URL。后台打开 Authentication → Providers → Email。</p>
-        </>
-      ) : null}
+      <div className="auth-tabs" role="tablist">
+        <button type="button" role="tab" aria-selected={mode === 'login'} data-on={mode === 'login'} onClick={() => setMode('login')}>
+          登录
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={mode === 'register'}
+          data-on={mode === 'register'}
+          onClick={() => setMode('register')}
+        >
+          注册
+        </button>
+      </div>
       <label>
         邮箱
         <input
@@ -173,7 +160,7 @@ export function AuthPanel({ onSignedIn, onReady }: Props) {
           autoComplete="email"
           value={email}
           onChange={(ev) => setEmail(ev.target.value)}
-          required={Boolean(supabase)}
+          required
         />
       </label>
       <label>
@@ -184,10 +171,10 @@ export function AuthPanel({ onSignedIn, onReady }: Props) {
           value={password}
           onChange={(ev) => setPassword(ev.target.value)}
           minLength={6}
-          required={Boolean(supabase)}
+          required
         />
       </label>
-      {supabase && mode === 'register' ? (
+      {mode === 'register' ? (
         <label>
           确认密码
           <input
@@ -202,15 +189,9 @@ export function AuthPanel({ onSignedIn, onReady }: Props) {
       ) : null}
       {error ? <p className="me-auth-error">{error}</p> : null}
       {hint ? <p className="muted">{hint}</p> : null}
-      {!supabase ? (
-        <button type="submit" disabled={busy || !isSupabaseProjectUrl(projectUrl)}>
-          连接项目
-        </button>
-      ) : (
-        <button type="submit" disabled={busy}>
-          {busy ? '请稍候' : mode === 'login' ? '登录' : '注册'}
-        </button>
-      )}
+      <button type="submit" disabled={busy}>
+        {busy ? '请稍候' : mode === 'login' ? '登录' : '注册'}
+      </button>
     </form>
   );
 }

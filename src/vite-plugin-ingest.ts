@@ -10,6 +10,7 @@ import { loadScoutConfig, saveExtraManualLink, scoutPaths, toIngestConfig } from
 import { readTodayReport, runDailyScout } from './lib/scout/runDaily';
 import { fishIdAgentUrl, fishIdConfigured, identifyFishFromImage } from './lib/fishId/server';
 import { readAmapConfig } from './lib/mapConfig';
+import { publicConfigFromEnv } from './lib/supabaseConfig';
 import type { CatchReport } from './types';
 
 const root = () => process.cwd();
@@ -61,6 +62,10 @@ function sendJson(res: ServerResponse, status: number, body: unknown): void {
 
 async function handle(req: IncomingMessage, res: ServerResponse, next: () => void): Promise<void> {
   const url = req.url?.split('?')[0] ?? '';
+  if (req.method === 'GET' && url === '/api/public-config') {
+    sendJson(res, 200, publicConfigFromEnv(appEnv()));
+    return;
+  }
   if (req.method === 'GET' && url === '/api/posts') {
     const ready = tryStore();
     if (!ready.store) {
