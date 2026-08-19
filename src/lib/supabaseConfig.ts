@@ -1,4 +1,4 @@
-const URL_STORE = 'diaolema.supabase.url.v1';
+export const DEFAULT_SUPABASE_URL = 'https://hlsmctozqprxakxlovre.supabase.co';
 
 export function stripEnvValue(raw: string): string {
   const trimmed = raw.trim();
@@ -20,40 +20,46 @@ export function isSupabaseProjectUrl(raw: string): boolean {
   }
 }
 
-function storage(): Storage | null {
-  try {
-    return typeof localStorage === 'undefined' ? null : localStorage;
-  } catch {
-    return null;
+export function publicConfigFromEnv(env: Record<string, string | undefined>): { url: string; publishableKey: string } {
+  const urlRaw = normalizeSupabaseUrl(env.VITE_SUPABASE_URL || env.SUPABASE_URL || '');
+  return {
+    url: isSupabaseProjectUrl(urlRaw) ? urlRaw : DEFAULT_SUPABASE_URL,
+    publishableKey: stripEnvValue(env.VITE_SUPABASE_PUBLISHABLE_KEY || env.SUPABASE_ANON_KEY || ''),
+  };
+}
+
+let runtime: { url: string; publishableKey: string } | null = null;
+
+export function applyRuntimeSupabaseConfig(next: { url?: string; publishableKey?: string } | null): void {
+  if (!next) {
+    runtime = null;
+    return;
   }
-}
-
-export function readStoredSupabaseUrl(): string {
-  return storage()?.getItem(URL_STORE)?.trim() || '';
-}
-
-export function saveStoredSupabaseUrl(raw: string): string {
-  const url = normalizeSupabaseUrl(raw);
-  if (!isSupabaseProjectUrl(url)) throw new Error('请填 https://xxxx.supabase.co 这种项目地址。');
-  storage()?.setItem(URL_STORE, url);
-  return url;
+  const urlRaw = normalizeSupabaseUrl(next.url ?? '');
+  runtime = {
+    url: isSupabaseProjectUrl(urlRaw) ? urlRaw : DEFAULT_SUPABASE_URL,
+    publishableKey: stripEnvValue(next.publishableKey ?? ''),
+  };
 }
 
 export function readSupabaseConfig(): { url: string; publishableKey: string } {
-  const fromEnv = normalizeSupabaseUrl(import.meta.env.VITE_SUPABASE_URL ?? '');
+  const baked = publicConfigFromEnv({
+    VITE_SUPABASE_URL: import.meta.env.VITE_SUPABASE_URL,
+    VITE_SUPABASE_PUBLISHABLE_KEY: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+  });
   return {
-    url: isSupabaseProjectUrl(fromEnv) ? fromEnv : readStoredSupabaseUrl(),
-    publishableKey: stripEnvValue(import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? ''),
+    url: runtime?.url || baked.url,
+    publishableKey: baked.publishableKey || runtime?.publishableKey || '',
   };
 }
 
 export function supabaseConfigStatus(): { url: boolean; publishableKey: boolean; urlFromEnv: boolean } {
-  const fromEnv = normalizeSupabaseUrl(import.meta.env.VITE_SUPABASE_URL ?? '');
   const { url, publishableKey } = readSupabaseConfig();
+  const bakedUrl = normalizeSupabaseUrl(import.meta.env.VITE_SUPABASE_URL ?? '');
   return {
     url: Boolean(url),
     publishableKey: Boolean(publishableKey),
-    urlFromEnv: isSupabaseProjectUrl(fromEnv),
+    urlFromEnv: isSupabaseProjectUrl(bakedUrl),
   };
 }
 

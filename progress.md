@@ -60,5 +60,6 @@
 - 上报渔获：钓点为空会提示；底栏不再挡住「上报渔获」；成功后跳到「我的」渔获记录。
 - 登录后资料/渔获/点赞关注/想买/评测写入 Supabase；需再跑 `supabase/user_data.sql`。
 - 粉丝互关私聊：粉丝名单可开关「允许私聊」；互关且双方打开后出现「私聊」。消息表 `dm_messages`；需在 SQL Editor 跑 `supabase/dm.sql` 全文。`directChat.test.ts` 4 passed。
+- 注册/登录只填邮箱密码。项目地址由部署环境或 `/api/public-config` 提供，不再让用户填。
 
 - 写入 FR-7 AI 识鱼 Spec / SDD，暂未实现代码。

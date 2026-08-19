@@ -19,7 +19,7 @@ import { buildAdvice } from './lib/advice';
 import { buildFishingIndex } from './lib/fishingIndex';
 import { createUserReport, loadReports, loadServerReports, mergeReports, persistReport, persistReportToServer } from './lib/intel';
 import { cloudWrite, pullCatches, pushCatch } from './lib/userCloud';
-import { getSupabase } from './lib/supabase';
+import { getSupabase, hydrateSupabaseConfig } from './lib/supabase';
 import { requestCurrentPosition } from './lib/geo';
 import { DIANPING_VENUES } from './lib/venues';
 import { loadSpotReviews } from './lib/spotReviews';
@@ -62,6 +62,7 @@ export function App() {
   const [spotVenue, setSpotVenue] = useState<FishingVenue | null>(null);
   const [meStart, setMeStart] = useState<'home' | 'catches' | 'auth'>('home');
   const [spotBack, setSpotBack] = useState<HomeSheet | null>(null);
+  const [, setCloudReady] = useState(0);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -119,19 +120,29 @@ export function App() {
   }, [splash, locate]);
 
   useEffect(() => {
-    const supabase = getSupabase();
-    if (!supabase) return;
-    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!session) return;
-      void pullCatches()
-        .then((rows) => {
-          if (!rows.length) return;
-          rows.forEach((row) => persistReport(row));
-          setReports(loadReports());
-        })
-        .catch(() => undefined);
+    let cancelled = false;
+    let unsubscribe: (() => void) | undefined;
+    void hydrateSupabaseConfig().then(() => {
+      if (cancelled) return;
+      setCloudReady((n) => n + 1);
+      const supabase = getSupabase();
+      if (!supabase) return;
+      const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+        if (!session) return;
+        void pullCatches()
+          .then((rows) => {
+            if (!rows.length) return;
+            rows.forEach((row) => persistReport(row));
+            setReports(loadReports());
+          })
+          .catch(() => undefined);
+      });
+      unsubscribe = () => data.subscription.unsubscribe();
     });
-    return () => data.subscription.unsubscribe();
+    return () => {
+      cancelled = true;
+      unsubscribe?.();
+    };
   }, []);
 
   const saveReport = (input: Omit<CatchReport, 'id' | 'caughtAt' | 'source'> & { source?: CatchReport['source'] }) => {
