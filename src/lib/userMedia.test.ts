@@ -5,11 +5,19 @@ import {
   cloudMediaUrl,
   dataUrlToBlob,
   extFromMime,
+  isAudioMime,
   isVideoBody,
   mediaObjectPath,
   mediaUploadErrorMessage,
   publicMediaUrl,
 } from './userMedia';
+
+describe('isAudioMime', () => {
+  it('认 audio/*', () => {
+    expect(isAudioMime('audio/webm;codecs=opus')).toBe(true);
+    expect(isAudioMime('video/webm')).toBe(false);
+  });
+});
 
 describe('isVideoBody', () => {
   it('只认 [视频]', () => {
@@ -24,6 +32,7 @@ describe('mediaObjectPath', () => {
     expect(mediaObjectPath({ userId: 'uid-1', folder: 'chat', fileId: 'abc', ext: 'mp4' })).toBe('uid-1/chat/abc.mp4');
     expect(mediaObjectPath({ userId: 'uid-1', folder: 'catch', fileId: 'c1', ext: '.webm' })).toBe('uid-1/catch/c1.webm');
     expect(mediaObjectPath({ userId: 'uid-1', folder: 'catch', fileId: 'c1-img0', ext: 'jpg' })).toBe('uid-1/catch/c1-img0.jpg');
+    expect(mediaObjectPath({ userId: 'uid-1', folder: 'avatar', fileId: 'avatar', ext: 'jpg' })).toBe('uid-1/avatar/avatar.jpg');
   });
 });
 
@@ -43,6 +52,8 @@ describe('extFromMime', () => {
     expect(extFromMime('image/jpeg')).toBe('jpg');
     expect(extFromMime('image/png')).toBe('png');
     expect(extFromMime('image/webp')).toBe('webp');
+    expect(extFromMime('audio/webm;codecs=opus')).toBe('webm');
+    expect(extFromMime('audio/ogg')).toBe('ogg');
   });
 });
 

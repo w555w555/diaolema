@@ -44,7 +44,7 @@ import {
   subscribeRoomMessages,
 } from '../lib/hubChat';
 import { voiceBody } from '../lib/chatVoice';
-import { prepareChatImage, prepareChatVideo } from '../lib/userMedia';
+import { prepareChatImage, prepareChatVideo, prepareChatVoice } from '../lib/userMedia';
 import { makeQuote } from '../lib/chatQuote';
 import { cloudWrite, pushFollow, pushGearReview, pushWish } from '../lib/userCloud';
 import { DEMO_FANS, loadProfile, type MeFan } from '../lib/meProfile';
@@ -908,7 +908,14 @@ function Chat({
           return pushOut(text);
         }}
         onSendSticker={(glyph) => pushOut(glyph, { kind: 'sticker' })}
-        onSendVoice={(ms, dataUrl) => pushOut(voiceBody(ms), { kind: 'voice', durationMs: ms, mediaUrl: dataUrl })}
+        onSendVoice={async (ms, dataUrl) => {
+          try {
+            const mediaUrl = await prepareChatVoice(dataUrl);
+            await pushOut(voiceBody(ms), { kind: 'voice', durationMs: ms, mediaUrl });
+          } catch (err) {
+            setSendError(err instanceof Error ? err.message : '语音发送失败');
+          }
+        }}
         onSendImage={async (dataUrl) => {
           setSending(true);
           try {

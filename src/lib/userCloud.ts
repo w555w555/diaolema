@@ -4,6 +4,7 @@ import { stripInlineImage } from './photo';
 import { persistUserComments, type ShareComment } from './shareComments';
 import { applyFollows, applyLikes } from './shareSocial';
 import { persistGearReview, unionWishIds } from './hub';
+import { unionVenueFavIds } from './venueFav';
 import { persistSpotReview } from './spotReviews';
 import { applyBlocks } from './userSafety';
 import { applyDmAllows } from './directChat';
@@ -81,7 +82,7 @@ export async function pushProfile(profile: MeProfile): Promise<void> {
     name: profile.name,
     city: profile.city,
     bio: profile.bio,
-    avatar_url: profile.avatarUrl || '',
+    avatar_url: cloudMediaUrl(profile.avatarUrl) ?? '',
     updated_at: new Date().toISOString(),
   });
   if (error) throw error;
@@ -246,6 +247,13 @@ export async function pushCatch(report: CatchReport): Promise<void> {
   if (first.error) throw first.error;
 }
 
+export async function deleteCatch(clientId: string): Promise<void> {
+  const ctx = await authed();
+  if (!ctx || !clientId.trim()) return;
+  const { error } = await ctx.supabase.from('catch_reports').delete().eq('user_id', ctx.user.id).eq('client_id', clientId);
+  if (error) throw error;
+}
+
 export async function pullCatches(): Promise<CatchReport[]> {
   const ctx = await authed();
   if (!ctx) return [];
@@ -315,6 +323,18 @@ export async function pushLike(reportId: string, liked: boolean): Promise<void> 
     return;
   }
   const { error } = await ctx.supabase.from('share_likes').delete().eq('user_id', ctx.user.id).eq('report_id', reportId);
+  if (error) throw error;
+}
+
+export async function pushVenueFav(venueId: string, faved: boolean): Promise<void> {
+  const ctx = await authed();
+  if (!ctx || !venueId.trim()) return;
+  if (faved) {
+    const { error } = await ctx.supabase.from('venue_favs').upsert({ user_id: ctx.user.id, venue_id: venueId });
+    if (error) throw error;
+    return;
+  }
+  const { error } = await ctx.supabase.from('venue_favs').delete().eq('user_id', ctx.user.id).eq('venue_id', venueId);
   if (error) throw error;
 }
 
@@ -456,6 +476,10 @@ export async function hydrateLocalFromCloud(): Promise<void> {
   await quiet(async () => {
     const wishes = await pullNameColumn('wish_items', 'product_id');
     if (wishes.length) unionWishIds(wishes);
+  });
+  await quiet(async () => {
+    const favs = await pullNameColumn('venue_favs', 'venue_id');
+    if (favs.length) unionVenueFavIds(favs);
   });
   await quiet(async () => {
     const blocks = await pullNameColumn('user_blocks', 'author_name');

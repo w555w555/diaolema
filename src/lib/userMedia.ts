@@ -16,19 +16,26 @@ export function extFromMime(mime: string): string {
   if (type.includes('png')) return 'png';
   if (type.includes('webp')) return 'webp';
   if (type.includes('gif')) return 'gif';
+  if (type.startsWith('audio/') && type.includes('ogg')) return 'ogg';
+  if (type.includes('mpeg') || type.includes('mp3')) return 'mp3';
+  if (type.startsWith('audio/') && type.includes('mp4')) return 'm4a';
   if (type.includes('webm')) return 'webm';
   if (type.includes('quicktime')) return 'mov';
   if (type.includes('ogg')) return 'ogv';
-  return 'mp4';
+  return type.startsWith('audio/') ? 'webm' : 'mp4';
 }
 
 export function isImageMime(mime: string): boolean {
   return mime.toLowerCase().startsWith('image/');
 }
 
+export function isAudioMime(mime: string): boolean {
+  return mime.toLowerCase().startsWith('audio/');
+}
+
 export function mediaObjectPath(input: {
   userId: string;
-  folder: 'chat' | 'catch';
+  folder: 'chat' | 'catch' | 'avatar';
   fileId: string;
   ext: string;
 }): string {
@@ -97,28 +104,37 @@ function asImageFile(file: File): File {
   return new File([file], file.name || 'photo.jpg', { type: 'image/jpeg' });
 }
 
-export async function uploadUserMedia(file: File, folder: 'chat' | 'catch', fileId: string): Promise<string> {
+export async function uploadUserMedia(file: File, folder: 'chat' | 'catch' | 'avatar', fileId: string): Promise<string> {
   const image = isImageMime(file.type) || /\.(jpe?g|png|webp|gif)$/i.test(file.name);
-  const payload = image ? asImageFile(file) : asVideoFile(file);
-  if (!image) {
-    const invalid = catchVideoError(payload);
+  const audio = isAudioMime(file.type);
+  const payload = image ? asImageFile(file) : file;
+  if (!image && !audio) {
+    const video = asVideoFile(file);
+    const invalid = catchVideoError(video);
     if (invalid) throw new Error(invalid);
+    if (video.size > CATCH_VIDEO_MAX_BYTES) throw new Error('视频超过 8 MB');
+    return putUserMedia(video, folder, fileId, false);
   }
-  if (payload.size > CATCH_VIDEO_MAX_BYTES) throw new Error(image ? '图片超过 8 MB' : '视频超过 8 MB');
+  if (payload.size > CATCH_VIDEO_MAX_BYTES) throw new Error(image ? '图片超过 8 MB' : '语音超过 8 MB');
+  return putUserMedia(payload, folder, fileId, image);
+}
+
+async function putUserMedia(payload: File, folder: 'chat' | 'catch' | 'avatar', fileId: string, image: boolean): Promise<string> {
   const supabase = getSupabase();
   if (!supabase) throw new Error('未配置 Supabase。');
   const { data: sessionData } = await supabase.auth.getSession();
   const user = sessionData.session?.user;
   if (!user) throw new Error('请先登录再上传。');
   const { url } = readSupabaseConfig();
+  const mime = payload.type || (image ? 'image/jpeg' : isAudioMime(payload.type) ? 'audio/webm' : 'video/mp4');
   const path = mediaObjectPath({
     userId: user.id,
     folder,
     fileId,
-    ext: extFromMime(payload.type || (image ? 'image/jpeg' : 'video/mp4')),
+    ext: extFromMime(mime),
   });
   const { error } = await supabase.storage.from(MEDIA_BUCKET).upload(path, payload, {
-    contentType: payload.type || (image ? 'image/jpeg' : 'video/mp4'),
+    contentType: mime,
     upsert: true,
   });
   if (error) throw new Error(mediaUploadErrorMessage(error));
@@ -136,6 +152,32 @@ export async function prepareChatImage(dataUrl: string): Promise<string> {
   const blob = dataUrlToBlob(dataUrl);
   const file = new File([blob], 'chat.jpg', { type: blob.type || 'image/jpeg' });
   return uploadUserMedia(file, 'chat', crypto.randomUUID());
+}
+
+async function prepareDataUrlMedia(dataUrl: string, folder: 'chat' | 'avatar', fileId: string, loginError: string): Promise<string> {
+  const hosted = cloudMediaUrl(dataUrl);
+  if (hosted) return hosted;
+  if (!dataUrl.startsWith('data:')) return dataUrl;
+  const supabase = getSupabase();
+  if (!supabase) return dataUrl;
+  const { data } = await supabase.auth.getSession();
+  if (!data.session?.user) {
+    if (folder === 'avatar') return dataUrl;
+    throw new Error(loginError);
+  }
+  const blob = dataUrlToBlob(dataUrl);
+  const mime = blob.type || (folder === 'avatar' ? 'image/jpeg' : 'audio/webm');
+  const ext = extFromMime(mime);
+  const file = new File([blob], `${fileId}.${ext}`, { type: mime });
+  return uploadUserMedia(file, folder, fileId);
+}
+
+export async function prepareChatVoice(dataUrl: string): Promise<string> {
+  return prepareDataUrlMedia(dataUrl, 'chat', crypto.randomUUID(), '请先登录再发语音');
+}
+
+export async function prepareAvatar(dataUrl: string): Promise<string> {
+  return prepareDataUrlMedia(dataUrl, 'avatar', 'avatar', '请先登录再换头像');
 }
 
 export async function prepareChatVideo(

@@ -79,6 +79,20 @@ export function persistReport(report: CatchReport): CatchReport[] {
   return loadReports();
 }
 
+export function isOwnedCatch(id: string, reports = readUserReports()): boolean {
+  return reports.some((row) => row.id === id);
+}
+
+export function removeReport(id: string): CatchReport[] {
+  const stored = readUserReports().filter((row) => row.id !== id);
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
+  } catch {
+    /* quota */
+  }
+  return loadReports();
+}
+
 export function createUserReport(
   input: Omit<CatchReport, 'id' | 'caughtAt' | 'source'> & {
     caughtAt?: string;

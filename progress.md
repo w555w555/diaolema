@@ -82,5 +82,6 @@
 ## 2026-08-20
 
 - 今日方案加「理由」打开已有 AdvicePanel。地图选点同时改天气坐标并重算方案。登录后渔获多图与聊天图片上传 `yj-media`，行只存 HTTPS。须再跑 `supabase/social.sql` 加上 `image_urls` 与图片 MIME。`npx vitest run` 253 passed。
+- 天气详情接 Open-Meteo 24 小时与 7 天；头像与聊天语音登录后上云；钓场可收藏；自己的渔获可改删。地图仍只画营地钉。须再跑 `supabase/social.sql`（`venue_favs`、渔获 DELETE、音频 MIME）。`npx vitest run` 264 passed；`npx tsc --noEmit` 通过。
 
 - 写入 FR-7 AI 识鱼 Spec / SDD，暂未实现代码。

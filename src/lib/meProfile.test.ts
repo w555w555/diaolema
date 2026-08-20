@@ -56,6 +56,11 @@ describe('saveProfile', () => {
     saveProfile({ avatarUrl: '' });
     expect(loadProfile().avatarUrl).toBe('');
   });
+
+  it('保留云端 HTTPS 头像', () => {
+    saveProfile({ avatarUrl: 'https://abc.supabase.co/storage/v1/object/public/yj-media/u/avatar/avatar.jpg' });
+    expect(loadProfile().avatarUrl).toMatch(/^https:\/\//);
+  });
 });
 
 describe('fanCount', () => {

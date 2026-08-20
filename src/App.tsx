@@ -18,8 +18,8 @@ import { VenueList } from './components/VenueList';
 import { WeatherPanel } from './components/WeatherPanel';
 import { buildAdvice } from './lib/advice';
 import { buildFishingIndex } from './lib/fishingIndex';
-import { createUserReport, loadReports, loadServerReports, mergeReports, persistReport, persistReportToServer } from './lib/intel';
-import { cloudWrite, hydrateLocalFromCloud, pullCatches, pullPublicCatches, publishCatchImages, publishCatchVideo, pushCatch } from './lib/userCloud';
+import { createUserReport, isOwnedCatch, loadReports, loadServerReports, mergeReports, persistReport, persistReportToServer, removeReport } from './lib/intel';
+import { cloudWrite, deleteCatch, hydrateLocalFromCloud, pullCatches, pullPublicCatches, publishCatchImages, publishCatchVideo, pushCatch } from './lib/userCloud';
 import { getSupabase, hydrateSupabaseConfig } from './lib/supabase';
 import { requestCurrentPosition } from './lib/geo';
 import { DIANPING_VENUES } from './lib/venues';
@@ -28,9 +28,10 @@ import { coerceFishForStyle } from './lib/fishId/catalog';
 import { HUB_ROOMS, loadChatMessages } from './lib/hub';
 import { buildInbox, inboxUnreadTotal, loadPreviews, loadReads, subscribeInbox } from './lib/chatInbox';
 import { DEMO_FANS } from './lib/meProfile';
-import { fetchWeather } from './lib/weather';
+import { fetchWeatherBundle } from './lib/weather';
 import { getSafety, hideByAuthor, hideInboxFromBlocked } from './lib/userSafety';
 import { SHANGHAI_CENTER, type CatchReport, type FishStyle, type FishingVenue, type HubChatMessage, type SpotReview, type WeatherSnapshot } from './types';
+import type { DailyForecast, HourlyForecast } from './lib/forecast';
 import './index.css';
 
 function hubUnreadSnapshot() {
@@ -76,6 +77,8 @@ export function App() {
   const [sheet, setSheet] = useState<HomeSheet | null>(null);
   const [coords, setCoords] = useState(SHANGHAI_CENTER);
   const [weather, setWeather] = useState<WeatherSnapshot | null>(null);
+  const [hourly, setHourly] = useState<HourlyForecast[]>([]);
+  const [daily, setDaily] = useState<DailyForecast[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reports, setReports] = useState<CatchReport[]>(() => loadReports());
@@ -93,6 +96,7 @@ export function App() {
   const [locating, setLocating] = useState(false);
   const [spotVenue, setSpotVenue] = useState<FishingVenue | null>(null);
   const [meStart, setMeStart] = useState<'home' | 'catches' | 'auth'>('home');
+  const [editing, setEditing] = useState<CatchReport | null>(null);
   const [spotBack, setSpotBack] = useState<HomeSheet | null>(null);
   const [, setCloudReady] = useState(0);
 
@@ -100,8 +104,10 @@ export function App() {
     setLoading(true);
     setError(null);
     try {
-      const snap = await fetchWeather(coords.lat, coords.lon);
-      setWeather(snap);
+      const pack = await fetchWeatherBundle(coords.lat, coords.lon);
+      setWeather(pack.current);
+      setHourly(pack.hourly);
+      setDaily(pack.daily);
     } catch (e) {
       setError(e instanceof Error ? e.message : '天气读取失败');
     } finally {
@@ -184,9 +190,14 @@ export function App() {
     };
   }, []);
 
-  const saveReport = (input: Omit<CatchReport, 'id' | 'caughtAt' | 'source'> & { source?: CatchReport['source'] }) => {
-    const report = createUserReport(input);
+  const saveReport = (input: Omit<CatchReport, 'id' | 'caughtAt' | 'source'> & { id?: string; caughtAt?: string; source?: CatchReport['source'] }) => {
+    const report = createUserReport({
+      ...input,
+      id: input.id ?? editing?.id,
+      caughtAt: input.caughtAt ?? editing?.caughtAt,
+    });
     setReports(persistReport(report));
+    setEditing(null);
     void (async () => {
       try {
         const published = await publishCatchImages(await publishCatchVideo(report));
@@ -209,7 +220,10 @@ export function App() {
       locate('map');
       setSpotVisit((n) => n + 1);
     }
-    if (next === 'publish') locate('weather');
+    if (next === 'publish') {
+      locate('weather');
+      setEditing(null);
+    }
     if (next === 'me') setMeStart('home');
     setTab(next);
   };
@@ -289,10 +303,12 @@ export function App() {
                 onReport={saveReport}
               />
               <ReportForm
+                key={editing?.id ?? 'new'}
                 lat={pick.lat}
                 lon={pick.lon}
                 locating={locating}
                 picking={picking}
+                initial={editing}
                 onTogglePick={() => {
                   setPicking((v) => !v);
                   setTab('spots');
@@ -343,6 +359,20 @@ export function App() {
               onNavigateCatch={(report) => {
                 setNavTarget({ lon: report.lon, lat: report.lat, name: report.spotName });
                 setTab('spots');
+              }}
+              onEditCatch={(report) => {
+                setEditing(report);
+                setPick({ lat: report.lat, lon: report.lon });
+                setTab('publish');
+              }}
+              onDeleteCatch={(report) => {
+                if (!isOwnedCatch(report.id)) return;
+                setReports((current) => mergeReports(removeReport(report.id), current.filter((row) => row.id !== report.id)));
+                cloudWrite(deleteCatch(report.id));
+              }}
+              onOpenVenue={(venue) => {
+                setSpotVenue(venue);
+                setSheet('spot');
               }}
               onOpenDaily={() => setSheet('daily')}
               onLocate={() => locate('weather')}
@@ -415,7 +445,7 @@ export function App() {
               />
             )}
             {sheet === 'weather' && (
-              <WeatherPanel weather={weather} loading={loading} error={error} onRetry={load} onLocate={() => locate('weather')} />
+              <WeatherPanel weather={weather} hourly={hourly} daily={daily} loading={loading} error={error} onRetry={load} onLocate={() => locate('weather')} />
             )}
             {sheet === 'target' && (
               <TargetFishSheet

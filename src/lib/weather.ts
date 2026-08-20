@@ -1,4 +1,14 @@
 import type { WeatherSnapshot } from '../types';
+import {
+  enrichDailyFromHourly,
+  mapDailyForecast,
+  mapHourlyForecast,
+  pickUpcomingHours,
+  type DailyForecast,
+  type HourlyForecast,
+  type OpenMeteoDaily,
+  type OpenMeteoHourly,
+} from './forecast';
 
 const OPEN_METEO = 'https://api.open-meteo.com/v1/forecast';
 
@@ -36,64 +46,54 @@ export function windScaleLabel(kmh: number): string {
   return `${n}级`;
 }
 
-type OpenMeteoResponse = {
-  current: {
-    time: string;
-    temperature_2m: number;
-    relative_humidity_2m: number;
-    apparent_temperature: number;
-    precipitation: number;
-    weather_code: number;
-    pressure_msl: number;
-    wind_speed_10m: number;
-    wind_direction_10m: number;
-    cloud_cover: number;
-  };
-  hourly: {
-    time: string[];
-    pressure_msl: number[];
-  };
+type OpenMeteoCurrent = {
+  time: string;
+  temperature_2m: number;
+  relative_humidity_2m: number;
+  apparent_temperature: number;
+  precipitation: number;
+  weather_code: number;
+  pressure_msl: number;
+  wind_speed_10m: number;
+  wind_direction_10m: number;
+  cloud_cover: number;
 };
 
-function pressureThreeHoursAgo(hourly: OpenMeteoResponse['hourly'], currentIso: string, currentHpa: number): number {
+type OpenMeteoResponse = {
+  current: OpenMeteoCurrent;
+  hourly: OpenMeteoHourly & { pressure_msl?: number[] };
+  daily?: OpenMeteoDaily;
+};
+
+const CURRENT_VARS = [
+  'temperature_2m',
+  'relative_humidity_2m',
+  'apparent_temperature',
+  'precipitation',
+  'weather_code',
+  'pressure_msl',
+  'wind_speed_10m',
+  'wind_direction_10m',
+  'cloud_cover',
+].join(',');
+
+function pressureThreeHoursAgo(hourly: { time: string[]; pressure_msl?: number[] }, currentIso: string, currentHpa: number): number {
   const current = new Date(currentIso).getTime();
   const target = current - 3 * 60 * 60 * 1000;
+  const series = hourly.pressure_msl ?? [];
   let best = currentHpa;
   let bestDiff = Infinity;
   hourly.time.forEach((t, i) => {
     const diff = Math.abs(new Date(t).getTime() - target);
-    if (diff < bestDiff && hourly.pressure_msl[i] != null) {
+    if (diff < bestDiff && series[i] != null) {
       bestDiff = diff;
-      best = hourly.pressure_msl[i];
+      best = series[i];
     }
   });
   return currentHpa - best;
 }
 
-export async function fetchWeather(lat: number, lon: number, signal?: AbortSignal): Promise<WeatherSnapshot> {
-  const params = new URLSearchParams({
-    latitude: String(lat),
-    longitude: String(lon),
-    timezone: 'Asia/Shanghai',
-    current: [
-      'temperature_2m',
-      'relative_humidity_2m',
-      'apparent_temperature',
-      'precipitation',
-      'weather_code',
-      'pressure_msl',
-      'wind_speed_10m',
-      'wind_direction_10m',
-      'cloud_cover',
-    ].join(','),
-    hourly: 'pressure_msl',
-    past_hours: '6',
-    forecast_hours: '1',
-  });
-
-  const res = await fetch(`${OPEN_METEO}?${params}`, { signal });
-  if (!res.ok) throw new Error(`天气接口失败 ${res.status}`);
-  const data = (await res.json()) as OpenMeteoResponse;
+function snapshotFromCurrent(data: OpenMeteoResponse, lat: number, lon: number): WeatherSnapshot {
   const c = data.current;
   return {
     at: c.time,
@@ -110,4 +110,53 @@ export async function fetchWeather(lat: number, lon: number, signal?: AbortSigna
     weatherCode: c.weather_code,
     cloudPct: c.cloud_cover,
   };
+}
+
+async function requestWeather(params: URLSearchParams, signal?: AbortSignal): Promise<OpenMeteoResponse> {
+  const res = await fetch(`${OPEN_METEO}?${params}`, { signal });
+  if (!res.ok) throw new Error(`天气接口失败 ${res.status}`);
+  return (await res.json()) as OpenMeteoResponse;
+}
+
+export type WeatherBundle = {
+  current: WeatherSnapshot;
+  hourly: HourlyForecast[];
+  daily: DailyForecast[];
+};
+
+export async function fetchWeatherBundle(lat: number, lon: number, signal?: AbortSignal): Promise<WeatherBundle> {
+  const shared = {
+    latitude: String(lat),
+    longitude: String(lon),
+    timezone: 'Asia/Shanghai',
+    current: CURRENT_VARS,
+  };
+  const full = new URLSearchParams({
+    ...shared,
+    hourly: 'temperature_2m,weather_code,precipitation,wind_speed_10m,wind_direction_10m,pressure_msl,relative_humidity_2m',
+    daily: 'weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max,wind_direction_10m_dominant',
+    past_hours: '6',
+    forecast_days: '7',
+  });
+  let data: OpenMeteoResponse;
+  try {
+    data = await requestWeather(full, signal);
+  } catch {
+    const basic = new URLSearchParams({
+      ...shared,
+      hourly: 'pressure_msl',
+      past_hours: '6',
+      forecast_hours: '1',
+    });
+    data = await requestWeather(basic, signal);
+  }
+  const current = snapshotFromCurrent(data, lat, lon);
+  const hourlyAll = mapHourlyForecast(data.hourly);
+  const hourly = pickUpcomingHours(hourlyAll, current.at, 24);
+  const daily = enrichDailyFromHourly(mapDailyForecast(data.daily ?? { time: [] }), hourlyAll);
+  return { current, hourly, daily };
+}
+
+export async function fetchWeather(lat: number, lon: number, signal?: AbortSignal): Promise<WeatherSnapshot> {
+  return (await fetchWeatherBundle(lat, lon, signal)).current;
 }

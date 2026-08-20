@@ -28,8 +28,15 @@ export function normalizeProfile(input: Partial<MeProfile> | null | undefined): 
   const name = input?.name?.trim() || DEFAULT_PROFILE.name;
   const city = input?.city?.trim() || DEFAULT_PROFILE.city;
   const bio = input?.bio?.trim() || DEFAULT_PROFILE.bio;
-  const avatarUrl = input?.avatarUrl?.startsWith('data:image/') ? input.avatarUrl : '';
+  const avatarUrl = clipAvatarUrl(input?.avatarUrl);
   return { name, city, bio, avatarUrl };
+}
+
+function clipAvatarUrl(raw: string | undefined): string {
+  const url = raw?.trim() ?? '';
+  if (url.startsWith('data:image/')) return url;
+  if (/^https?:\/\//i.test(url)) return url;
+  return '';
 }
 
 export function loadProfile(): MeProfile {

@@ -1313,6 +1313,75 @@ a.share-go {
   font-size: 16px;
 }
 
+.forecast-title {
+  margin: 16px 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--gold-2);
+}
+
+.forecast-hours {
+  list-style: none;
+  display: flex;
+  gap: 8px;
+  margin: 0;
+  padding: 0 0 8px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.forecast-hours li {
+  flex: 0 0 64px;
+  background: rgba(11, 20, 19, 0.48);
+  border-radius: 12px;
+  padding: 8px 6px;
+  text-align: center;
+}
+
+.forecast-hours span,
+.forecast-hours small,
+.forecast-hours em {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  font-style: normal;
+}
+
+.forecast-hours strong {
+  display: block;
+  margin: 4px 0;
+  font-size: 16px;
+}
+
+.forecast-days {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.forecast-days li {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(232, 178, 74, 0.12);
+}
+
+.forecast-days li:last-child {
+  border-bottom: 0;
+}
+
+.forecast-days span,
+.forecast-days small {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.forecast-days b {
+  font-size: 14px;
+}
+
 .layer {
   font-size: 18px;
   margin: 10px 0 6px;
@@ -3536,6 +3605,10 @@ button.hub-chat-share b {
   content: '买';
 }
 
+.me-group i[data-kind='spot']::after {
+  content: '藏';
+}
+
 .me-group i[data-kind='share']::after {
   content: '入';
 }
@@ -3562,7 +3635,8 @@ button.hub-chat-share b {
 
 .me-group i[data-kind='fans'],
 .me-group i[data-kind='weather'],
-.me-group i[data-kind='daily'] {
+.me-group i[data-kind='daily'],
+.me-group i[data-kind='spot'] {
   color: #7ee0c6;
   background: radial-gradient(circle at 30% 20%, rgba(47, 199, 160, 0.3), rgba(47, 199, 160, 0.08));
 }
@@ -3619,6 +3693,12 @@ button.hub-chat-share b {
 .me-feed span {
   font-size: 12px;
   color: var(--muted);
+}
+
+.me-feed-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
 }
 
 .me-people li {

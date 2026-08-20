@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { formatRelativeTime } from '../lib/caption';
 import { buildAmapNavUrl } from '../lib/navigation';
 import { createSpotReview, persistSpotReview } from '../lib/spotReviews';
-import { cloudWrite, pushSpotReview } from '../lib/userCloud';
+import { cloudWrite, pushSpotReview, pushVenueFav } from '../lib/userCloud';
+import { isVenueFaved, toggleVenueFav } from '../lib/venueFav';
 import { coverPhotoForVenue, reviewCountLabel, reviewsForVenue, scoreForVenue } from '../lib/spotScore';
 import { DIANPING_VENUES, catchesForVenue, nearbyVenues, venueAvatar, venueDistanceLabel, venueSourceLabel } from '../lib/venues';
 import { SpotStars } from './SpotStars';
@@ -38,7 +39,12 @@ export function VenueDetail({
   const [rating, setRating] = useState<1 | 2 | 3 | 4 | 5>(5);
   const [body, setBody] = useState('');
   const [copied, setCopied] = useState(false);
+  const [faved, setFaved] = useState(() => isVenueFaved(venue.id));
   const address = `${venue.district}${venue.addressHint ? ` · ${venue.addressHint}` : ''}`;
+
+  useEffect(() => {
+    setFaved(isVenueFaved(venue.id));
+  }, [venue.id]);
 
   return (
     <article className="spot-detail">
@@ -74,6 +80,18 @@ export function VenueDetail({
         </a>
         <button type="button" className="ghost" onClick={onPreviewRoute}>
           看路线
+        </button>
+        <button
+          type="button"
+          className={faved ? 'active' : 'ghost'}
+          onClick={() => {
+            const next = toggleVenueFav(venue.id);
+            const on = next.includes(venue.id);
+            setFaved(on);
+            cloudWrite(pushVenueFav(venue.id, on));
+          }}
+        >
+          {faved ? '已收藏' : '收藏'}
         </button>
         <button
           type="button"

@@ -142,7 +142,7 @@ values (
   'yj-media',
   true,
   8388608,
-  array['video/mp4', 'video/webm', 'video/quicktime', 'video/ogg', 'image/jpeg', 'image/png', 'image/webp', 'image/gif']
+  array['video/mp4', 'video/webm', 'video/quicktime', 'video/ogg', 'image/jpeg', 'image/png', 'image/webp', 'image/gif', 'audio/webm', 'audio/ogg', 'audio/mpeg', 'audio/mp4']
 )
 on conflict (id) do update
 set public = excluded.public,
@@ -199,3 +199,17 @@ begin
   end;
 end
 $$;
+
+create table if not exists public.venue_favs (
+  user_id uuid not null references auth.users (id) on delete cascade,
+  venue_id text not null,
+  primary key (user_id, venue_id)
+);
+alter table public.venue_favs enable row level security;
+drop policy if exists venue_fav_own on public.venue_favs;
+create policy venue_fav_own on public.venue_favs for all to authenticated using (auth.uid() = user_id) with check (auth.uid() = user_id);
+grant select, insert, update, delete on table public.venue_favs to authenticated;
+
+drop policy if exists catch_delete on public.catch_reports;
+create policy catch_delete on public.catch_reports for delete to authenticated using (auth.uid() = user_id);
+grant delete on table public.catch_reports to authenticated;

@@ -1,9 +1,9 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { PhotoCapture } from './PhotoCapture';
 import { compressImageFile } from '../lib/fishId/client';
 import { packedToDataUrl } from '../lib/photo';
 import { reportSpotName } from '../lib/reportSpot';
-import { CATCH_IMAGE_MAX, catchVideoError, clipCatchImages, readVideoDurationMs } from '../lib/catchMedia';
+import { CATCH_IMAGE_MAX, catchImages, catchVideoError, clipCatchImages, readVideoDurationMs } from '../lib/catchMedia';
 import { blobToDataUrl } from '../lib/chatVoice';
 import type { CatchReport } from '../types';
 
@@ -12,20 +12,31 @@ type Props = {
   lon: number;
   locating?: boolean;
   picking: boolean;
+  initial?: CatchReport | null;
   onTogglePick: () => void;
-  onSubmit: (input: Omit<CatchReport, 'id' | 'source' | 'caughtAt'>) => void;
+  onSubmit: (input: Omit<CatchReport, 'source'> & { source?: CatchReport['source'] }) => void;
 };
 
-export function ReportForm({ lat, lon, locating, picking, onTogglePick, onSubmit }: Props) {
-  const [author, setAuthor] = useState('我');
-  const [fish, setFish] = useState('鲫鱼');
-  const [spotName, setSpotName] = useState('');
-  const [note, setNote] = useState('');
-  const [images, setImages] = useState<string[]>([]);
-  const [videoUrl, setVideoUrl] = useState<string | undefined>();
+export function ReportForm({ lat, lon, locating, picking, initial, onTogglePick, onSubmit }: Props) {
+  const [author, setAuthor] = useState(initial?.author ?? '我');
+  const [fish, setFish] = useState(initial?.fish ?? '鲫鱼');
+  const [spotName, setSpotName] = useState(initial?.spotName ?? '');
+  const [note, setNote] = useState(initial?.note ?? '');
+  const [images, setImages] = useState<string[]>(() => (initial ? catchImages(initial) : []));
+  const [videoUrl, setVideoUrl] = useState<string | undefined>(initial?.videoUrl);
   const [photoError, setPhotoError] = useState<string | null>(null);
   const [spotError, setSpotError] = useState<string | null>(null);
   const videoInput = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!initial) return;
+    setAuthor(initial.author);
+    setFish(initial.fish);
+    setSpotName(initial.spotName);
+    setNote(initial.note ?? '');
+    setImages(catchImages(initial));
+    setVideoUrl(initial.videoUrl);
+  }, [initial]);
 
   const addFiles = async (files: File[]) => {
     setPhotoError(null);
@@ -72,6 +83,8 @@ export function ReportForm({ lat, lon, locating, picking, onTogglePick, onSubmit
         }
         setSpotError(null);
         onSubmit({
+          id: initial?.id ?? `user-${Date.now()}`,
+          caughtAt: initial?.caughtAt ?? new Date().toISOString(),
           author: author.trim() || '我',
           fish: fish.trim() || '鲫鱼',
           spotName: spot,
@@ -88,7 +101,7 @@ export function ReportForm({ lat, lon, locating, picking, onTogglePick, onSubmit
       }}
     >
       <header>
-        <h2>报渔获</h2>
+        <h2>{initial ? '改渔获' : '报渔获'}</h2>
         <button type="button" className={picking ? 'active' : 'ghost'} onClick={onTogglePick}>
           {picking ? '选点中' : '地图选点'}
         </button>
@@ -165,7 +178,7 @@ export function ReportForm({ lat, lon, locating, picking, onTogglePick, onSubmit
         <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="饵、钓法，可选" />
       </label>
       <p className="muted coords">{locating ? '正在定位…' : `${lat.toFixed(5)}, ${lon.toFixed(5)}`}</p>
-      <button type="submit">上报渔获</button>
+      <button type="submit">{initial ? '保存修改' : '上报渔获'}</button>
     </form>
   );
 }

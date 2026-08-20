@@ -89,6 +89,8 @@ drop policy if exists catch_insert on public.catch_reports;
 create policy catch_insert on public.catch_reports for insert to authenticated with check (auth.uid() = user_id);
 drop policy if exists catch_update on public.catch_reports;
 create policy catch_update on public.catch_reports for update to authenticated using (auth.uid() = user_id) with check (auth.uid() = user_id);
+drop policy if exists catch_delete on public.catch_reports;
+create policy catch_delete on public.catch_reports for delete to authenticated using (auth.uid() = user_id);
 
 drop policy if exists likes_own on public.share_likes;
 create policy likes_own on public.share_likes for all to authenticated using (auth.uid() = user_id) with check (auth.uid() = user_id);
@@ -114,5 +116,15 @@ drop policy if exists spot_update on public.spot_reviews;
 create policy spot_update on public.spot_reviews for update to authenticated using (auth.uid() = user_id);
 
 grant select on table public.profiles, public.catch_reports, public.gear_reviews, public.spot_reviews to anon, authenticated;
-grant select, insert, update, delete on table public.share_likes, public.share_follows, public.wish_items to authenticated;
-grant insert, update on table public.profiles, public.catch_reports, public.gear_reviews, public.spot_reviews to authenticated;
+create table if not exists public.venue_favs (
+  user_id uuid not null references auth.users (id) on delete cascade,
+  venue_id text not null,
+  primary key (user_id, venue_id)
+);
+
+alter table public.venue_favs enable row level security;
+drop policy if exists venue_fav_own on public.venue_favs;
+create policy venue_fav_own on public.venue_favs for all to authenticated using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+grant select, insert, update, delete on table public.share_likes, public.share_follows, public.wish_items, public.venue_favs to authenticated;
+grant insert, update, delete on table public.profiles, public.catch_reports, public.gear_reviews, public.spot_reviews to authenticated;

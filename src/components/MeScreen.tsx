@@ -29,22 +29,25 @@ import {
 import { IMAGE_BODY } from '../lib/chatImage';
 import { firstUnreadId, localDmRoomId, markThreadRead, peekThreadRead, previewLine, rememberPreviews, searchMessages } from '../lib/chatInbox';
 import { DEMO_FANS, fanCount, fileToAvatarUrl, loadProfile, saveProfile, type MeFan, type MeProfile } from '../lib/meProfile';
+import { DIANPING_VENUES } from '../lib/venues';
+import { isOwnedCatch } from '../lib/intel';
+import { loadVenueFavIds } from '../lib/venueFav';
 import { cloudWrite, pullFanNames, pullProfile, pushProfile, pushBlock } from '../lib/userCloud';
+import { prepareAvatar, prepareChatImage, prepareChatVideo, prepareChatVoice } from '../lib/userMedia';
 import { getShareSocial, setFans, subscribeShareSocial } from '../lib/shareSocial';
 import { getSafety, subscribeSafety, unblockAuthor } from '../lib/userSafety';
 import { saveChatMedia } from '../lib/chatMedia';
 import { voiceBody } from '../lib/chatVoice';
-import { prepareChatImage, prepareChatVideo } from '../lib/userMedia';
 import { makeQuote } from '../lib/chatQuote';
 import { getSupabase, isSupabaseConfigured } from '../lib/supabase';
-import type { CatchReport, ChatQuote, HubChatMessage } from '../types';
+import type { CatchReport, ChatQuote, FishingVenue, HubChatMessage } from '../types';
 import { AuthPanel } from './AuthPanel';
 import { ChatComposer } from './ChatComposer';
 import { ChatLog } from './ChatLog';
 import { ShareImport } from './ShareImport';
 
 export type MeStart = 'home' | 'catches' | 'auth';
-type MeView = MeStart | 'wish' | 'share' | 'weather' | 'about' | 'edit' | 'fans' | 'follows' | 'dm' | 'blocked';
+type MeView = MeStart | 'wish' | 'favs' | 'share' | 'weather' | 'about' | 'edit' | 'fans' | 'follows' | 'dm' | 'blocked';
 
 type Props = {
   startView?: MeStart;
@@ -53,6 +56,9 @@ type Props = {
   lon: number;
   onImport: (report: CatchReport) => void;
   onNavigateCatch: (report: CatchReport) => void;
+  onEditCatch?: (report: CatchReport) => void;
+  onDeleteCatch?: (report: CatchReport) => void;
+  onOpenVenue?: (venue: FishingVenue) => void;
   onOpenDaily: () => void;
   onLocate: () => void;
   onRetryWeather: () => void;
@@ -65,6 +71,7 @@ const TITLES: Record<MeView, string> = {
   home: '我的',
   catches: '渔获记录',
   wish: '想买清单',
+  favs: '收藏钓场',
   share: '分享入库',
   weather: '定位与天气',
   about: '关于渔见',
@@ -83,6 +90,9 @@ export function MeScreen({
   lon,
   onImport,
   onNavigateCatch,
+  onEditCatch,
+  onDeleteCatch,
+  onOpenVenue,
   onOpenDaily,
   onLocate,
   onRetryWeather,
@@ -97,12 +107,17 @@ export function MeScreen({
   const [peer, setPeer] = useState<MeFan | null>(null);
   const [dmAllows, setDmAllows] = useState(loadDmAllows);
   const wishIds = loadWishIds();
+  const favIds = loadVenueFavIds();
   const social = useSyncExternalStore(subscribeShareSocial, getShareSocial);
   const follows = social.follows;
   const fans = mergeFanList(social.fans);
   const wishItems = useMemo(
     () => HUB_PRODUCTS.filter((item) => wishIds.includes(item.id)),
     [wishIds],
+  );
+  const favItems = useMemo(
+    () => DIANPING_VENUES.filter((venue) => favIds.includes(venue.id)),
+    [favIds],
   );
 
   const back = () => {
@@ -185,8 +200,16 @@ export function MeScreen({
             </button>
             <h2>{view === 'dm' ? (peer?.name ?? '私聊') : TITLES[view]}</h2>
           </header>
-          {view === 'catches' ? <CatchList reports={reports} onNavigate={onNavigateCatch} /> : null}
+          {view === 'catches' ? (
+            <CatchList
+              reports={reports}
+              onNavigate={onNavigateCatch}
+              onEdit={onEditCatch}
+              onDelete={onDeleteCatch}
+            />
+          ) : null}
           {view === 'wish' ? <WishList items={wishItems} /> : null}
+          {view === 'favs' ? <FavList items={favItems} onOpen={onOpenVenue} /> : null}
           {view === 'share' ? <ShareImport lat={lat} lon={lon} onImport={onImport} /> : null}
           {view === 'weather' ? (
             <WeatherTools onLocate={onLocate} onRetry={onRetryWeather} />
@@ -240,9 +263,15 @@ export function MeScreen({
             <EditProfile
               profile={profile}
               onSave={(next) => {
-                setProfile(saveProfile(next));
-                cloudWrite(pushProfile(next));
-                setView('home');
+                void (async () => {
+                  const avatarUrl = next.avatarUrl.startsWith('data:image/')
+                    ? await prepareAvatar(next.avatarUrl)
+                    : next.avatarUrl;
+                  const saved = saveProfile({ ...next, avatarUrl });
+                  setProfile(saved);
+                  cloudWrite(pushProfile(saved));
+                  setView('home');
+                })();
               }}
             />
           ) : null}
@@ -253,6 +282,7 @@ export function MeScreen({
           signedIn={Boolean(session?.user?.email)}
           catchCount={reports.length}
           wishCount={wishIds.length}
+          favCount={favIds.length}
           onOpen={setView}
           onOpenDaily={onOpenDaily}
         />
@@ -325,12 +355,14 @@ function MeMenus({
   signedIn,
   catchCount,
   wishCount,
+  favCount,
   onOpen,
   onOpenDaily,
 }: {
   signedIn: boolean;
   catchCount: number;
   wishCount: number;
+  favCount: number;
   onOpen: (view: MeView) => void;
   onOpenDaily: () => void;
 }) {
@@ -364,6 +396,14 @@ function MeMenus({
             <i data-kind="wish" aria-hidden />
             想买清单
             <em>{wishCount}</em>
+            <span>›</span>
+          </button>
+        </li>
+        <li>
+          <button type="button" onClick={() => onOpen('favs')}>
+            <i data-kind="spot" aria-hidden />
+            收藏钓场
+            <em>{favCount}</em>
             <span>›</span>
           </button>
         </li>
@@ -667,7 +707,14 @@ function DirectMessage({
         onNeedLogin={onNeedLogin}
         onSendText={(body) => pushOut(body)}
         onSendSticker={(glyph) => pushOut(glyph, { kind: 'sticker' })}
-        onSendVoice={(ms, dataUrl) => pushOut(voiceBody(ms), { kind: 'voice', durationMs: ms, mediaUrl: dataUrl })}
+        onSendVoice={async (ms, dataUrl) => {
+          try {
+            const mediaUrl = await prepareChatVoice(dataUrl);
+            await pushOut(voiceBody(ms), { kind: 'voice', durationMs: ms, mediaUrl });
+          } catch (err) {
+            setSendError(err instanceof Error ? err.message : '语音发送失败');
+          }
+        }}
         onSendImage={async (dataUrl) => {
           setSending(true);
           try {
@@ -729,9 +776,13 @@ function PeopleList({
 function CatchList({
   reports,
   onNavigate,
+  onEdit,
+  onDelete,
 }: {
   reports: CatchReport[];
   onNavigate: (report: CatchReport) => void;
+  onEdit?: (report: CatchReport) => void;
+  onDelete?: (report: CatchReport) => void;
 }) {
   if (!reports.length) return <p className="muted">还没有渔获记录。</p>;
   return (
@@ -743,11 +794,59 @@ function CatchList({
             {sourceLabel(row.source)}
             {row.note ? ` · ${row.note}` : ''}
           </span>
-          <button type="button" className="ghost" onClick={() => onNavigate(row)}>
-            导航
-          </button>
+          <div className="me-feed-actions">
+            <button type="button" className="ghost" onClick={() => onNavigate(row)}>
+              导航
+            </button>
+            {isOwnedCatch(row.id) ? (
+              <>
+                <button type="button" className="ghost" onClick={() => onEdit?.(row)}>
+                  改
+                </button>
+                <button
+                  type="button"
+                  className="ghost"
+                  onClick={() => {
+                    if (window.confirm('删除这条渔获？')) onDelete?.(row);
+                  }}
+                >
+                  删
+                </button>
+              </>
+            ) : null}
+          </div>
         </li>
       ))}
+    </ul>
+  );
+}
+
+function FavList({
+  items,
+  onOpen,
+}: {
+  items: { id: string; name: string; district: string; kind: string }[];
+  onOpen?: (venue: FishingVenue) => void;
+}) {
+  if (!items.length) return <p className="muted">还没有收藏的钓场。去钓点详情里点收藏。</p>;
+  return (
+    <ul className="me-feed">
+      {items.map((item) => {
+        const venue = DIANPING_VENUES.find((row) => row.id === item.id);
+        return (
+          <li key={item.id}>
+            <strong>{item.name}</strong>
+            <span>
+              {item.district} · {item.kind}
+            </span>
+            {venue ? (
+              <button type="button" className="ghost" onClick={() => onOpen?.(venue)}>
+                打开
+              </button>
+            ) : null}
+          </li>
+        );
+      })}
     </ul>
   );
 }
