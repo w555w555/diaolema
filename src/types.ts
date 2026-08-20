@@ -36,6 +36,15 @@ export type FishingAdvice = {
 
 export type FishStyle = '台钓' | '路亚';
 
+/** 作钓水域类型。收费塘指计时/计次的休闲塘，不是斤塘。 */
+export type WaterKind = '公园浅湖' | '大水面' | '收费塘' | '路亚塘' | '内河' | '河口';
+
+/** 用户目视水色。未知不假设；不编造透明度厘米或溶氧。 */
+export type WaterColor = '未知' | '瘦清' | '黄绿' | '肥浊' | '泥浆' | '恶水';
+
+/** 仅收费塘 / 路亚塘使用。未知不假设刚换水。 */
+export type PondCare = '未知' | '刚换水' | '换水回稳' | '刚调水消毒' | '老水';
+
 export type CatchReport = {
   id: string;
   author: string;

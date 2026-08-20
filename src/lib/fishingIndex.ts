@@ -1,5 +1,6 @@
 import type { FishingIndex, FishingIndexLabel, WeatherSnapshot } from '../types';
 import { shanghaiHour, shanghaiMonth } from './shanghaiTime';
+import { applyWaterIndex, type WaterQuery } from './water';
 
 export function indexBand(score: number): FishingIndexLabel {
   if (score >= 80) return '很高';
@@ -18,7 +19,11 @@ function isLightRain(code: number, precip: number): boolean {
   return precip > 0.2 || (code >= 51 && code <= 67) || (code >= 80 && code <= 82);
 }
 
-export function buildFishingIndex(weather: WeatherSnapshot, at: Date = new Date()): FishingIndex {
+export function buildFishingIndex(
+  weather: WeatherSnapshot,
+  at: Date = new Date(),
+  water: WaterQuery = {},
+): FishingIndex {
   const month = shanghaiMonth(at);
   const hour = shanghaiHour(at);
   const summer = month >= 6 && month <= 9;
@@ -89,13 +94,17 @@ export function buildFishingIndex(weather: WeatherSnapshot, at: Date = new Date(
     reasons.push('正值晨昏窗口');
   }
 
+  const watered = applyWaterIndex(score, reasons, water, { summer, windKmh: weather.windKmh });
+  score = watered.score;
+  const ranked = watered.reasons;
+
   score = Math.max(0, Math.min(100, Math.round(score)));
-  if (reasons.length < 2) {
-    reasons.push(`湿度 ${weather.humidityPct.toFixed(0)}%`);
-    reasons.push(`体感 ${weather.apparentC.toFixed(0)}°C`);
+  if (ranked.length < 2) {
+    ranked.push(`湿度 ${weather.humidityPct.toFixed(0)}%`);
+    ranked.push(`体感 ${weather.apparentC.toFixed(0)}°C`);
   }
 
-  return { score, label: indexBand(score), reasons: reasons.slice(0, 4) };
+  return { score, label: indexBand(score), reasons: ranked.slice(0, 5) };
 }
 
 export function outingLabel(label: FishingIndexLabel): string {

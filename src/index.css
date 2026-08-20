@@ -511,7 +511,8 @@ button.splash::before {
 .plan-head,
 .plan-grid,
 .plan-card h2,
-.plan-lead {
+.plan-lead,
+.water-rows {
   position: relative;
   z-index: 1;
 }
@@ -558,6 +559,47 @@ button.splash::before {
 .style-switch button[data-on='true'] {
   background: linear-gradient(135deg, #e8b24a, #f5c96b);
   color: #3a2b0a;
+}
+
+.water-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 12px 0 0;
+  position: relative;
+  z-index: 1;
+}
+
+.water-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.water-row > small {
+  flex: none;
+  width: 2.6em;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.water-row button {
+  margin: 0;
+  padding: 4px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  background: rgba(11, 20, 19, 0.48);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.water-row button[data-on='true'] {
+  background: linear-gradient(135deg, #e8b24a, #f5c96b);
+  color: #3a2b0a;
+  border-color: transparent;
 }
 
 .plan-card h2,

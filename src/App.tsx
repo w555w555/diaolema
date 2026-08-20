@@ -30,7 +30,9 @@ import { buildInbox, inboxUnreadTotal, loadPreviews, loadReads, subscribeInbox }
 import { DEMO_FANS } from './lib/meProfile';
 import { fetchWeatherBundle } from './lib/weather';
 import { getSafety, hideByAuthor, hideInboxFromBlocked } from './lib/userSafety';
-import { SHANGHAI_CENTER, type CatchReport, type FishStyle, type FishingVenue, type HubChatMessage, type SpotReview, type WeatherSnapshot } from './types';
+import { loadWaterPrefs, saveWaterPrefs } from './lib/waterPrefs';
+import { venueToWaterKind } from './lib/water';
+import { SHANGHAI_CENTER, type CatchReport, type FishStyle, type FishingVenue, type HubChatMessage, type PondCare, type SpotReview, type WaterColor, type WaterKind, type WeatherSnapshot } from './types';
 import type { DailyForecast, HourlyForecast } from './lib/forecast';
 import './index.css';
 
@@ -88,6 +90,9 @@ export function App() {
   const [focusVenue, setFocusVenue] = useState<FishingVenue | null>(null);
   const [targetFish, setTargetFish] = useState('');
   const [style, setStyle] = useState<FishStyle>('台钓');
+  const [waterKind, setWaterKind] = useState<WaterKind>(() => loadWaterPrefs().waterKind);
+  const [waterColor, setWaterColor] = useState<WaterColor>(() => loadWaterPrefs().waterColor);
+  const [pondCare, setPondCare] = useState<PondCare>(() => loadWaterPrefs().pondCare);
   const [share, setShare] = useState<CatchReport | null>(null);
   const [authorName, setAuthorName] = useState<string | null>(null);
   const [splash, setSplash] = useState(true);
@@ -126,17 +131,37 @@ export function App() {
     });
   }, []);
 
+  const persistWater = useCallback(
+    (next: { waterKind?: WaterKind; waterColor?: WaterColor; pondCare?: PondCare }) => {
+      const saved = saveWaterPrefs({
+        waterKind: next.waterKind ?? waterKind,
+        waterColor: next.waterColor ?? waterColor,
+        pondCare: next.pondCare ?? pondCare,
+      });
+      setWaterKind(saved.waterKind);
+      setWaterColor(saved.waterColor);
+      setPondCare(saved.pondCare);
+    },
+    [waterKind, waterColor, pondCare],
+  );
+
   const advice = useMemo(
     () =>
       weather
         ? buildAdvice(weather, new Date(), {
             targetFish: targetFish || undefined,
             style,
+            waterKind,
+            waterColor,
+            pondCare,
           })
         : null,
-    [weather, targetFish, style],
+    [weather, targetFish, style, waterKind, waterColor, pondCare],
   );
-  const index = useMemo(() => (weather ? buildFishingIndex(weather) : null), [weather]);
+  const index = useMemo(
+    () => (weather ? buildFishingIndex(weather, new Date(), { waterKind, waterColor, pondCare }) : null),
+    [weather, waterKind, waterColor, pondCare],
+  );
 
   const locate = useCallback((from: 'weather' | 'map' = 'weather') => {
     setLocating(true);
@@ -279,6 +304,12 @@ export function App() {
                 setStyle(next);
                 setTargetFish((cur) => coerceFishForStyle(cur, next));
               }}
+              waterKind={waterKind}
+              waterColor={waterColor}
+              pondCare={pondCare}
+              onWaterKindChange={(kind) => persistWater({ waterKind: kind })}
+              onWaterColorChange={(color) => persistWater({ waterColor: color })}
+              onPondCareChange={(care) => persistWater({ pondCare: care })}
               onRefresh={() => void load()}
               onOpen={setSheet}
               reports={reports}
@@ -506,6 +537,12 @@ export function App() {
                 }}
                 onOpenVenue={(venue) => {
                   setSpotVenue(venue);
+                }}
+                onUseForAdvice={(venue) => {
+                  persistWater({ waterKind: venueToWaterKind(venue) });
+                  setSheet(null);
+                  setSpotBack(null);
+                  setTab('home');
                 }}
               />
             )}

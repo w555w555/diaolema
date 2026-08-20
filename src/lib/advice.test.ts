@@ -77,6 +77,12 @@ describe('buildAdvice', () => {
     expect(a.lure).toMatch(/5–7g/);
     expect(a.lure).toMatch(/斜切亮片/);
     expect(a.lureNote).toMatch(/匀速/);
+    const big = buildAdvice(snap({ temperatureC: 26 }), noon, {
+      targetFish: '翘嘴',
+      style: '路亚',
+      waterKind: '大水面',
+    });
+    expect(big.lure).toMatch(/7–12g/);
     const snake = buildAdvice(snap({ temperatureC: 24 }), dawn, { targetFish: '黑鱼', style: '路亚' });
     expect(snake.lure).toMatch(/雷蛙/);
     expect(snake.lureNote).toMatch(/停顿/);

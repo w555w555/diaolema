@@ -92,6 +92,7 @@ describe('planLurePick', () => {
     expect(planLure('翘嘴', flags)).toMatch(/斜切亮片/);
     expect(planLureNote('翘嘴', flags)).toMatch(/匀速/);
     expect(planLureNote('翘嘴', flags)).toMatch(/7–12g/);
+    expect(planLure('翘嘴', flags, { waterKind: '大水面' })).toMatch(/7–12g/);
   });
 
   it('翘嘴冬春低温用 12–20g 远投', () => {

@@ -8,9 +8,18 @@
  * 酷米网白条瓜子亮片 1.5–3g。清水银白、浊水红头金。
  * 上海路亚塘「鲈」按大口黑鲈（加州鲈）给结构软虫，近岸轻荡；不是欧美降压抢食。
  * 上海近海平面低压 ≤1005 hPa（酷钓鱼海拔 0 米；钓鱼之家 1006–1028 好钓）。
+ * 水域/水色/塘保养见 `water.ts`：黄绿最好开口；刚换水应激；清水银白、浊水红头金。
  */
 import type { FishStyle, WeatherSnapshot } from '../types';
 import { shanghaiHour, shanghaiMonth } from './shanghaiTime';
+import {
+  isPondWater,
+  normalizeWater,
+  waterFlavorOverride,
+  waterLureColor,
+  type NormalizedWater,
+  type WaterQuery,
+} from './water';
 
 export type ClimateFlags = {
   temp: number;
@@ -53,7 +62,7 @@ export function climateFlags(weather: WeatherSnapshot, at: Date): ClimateFlags {
   };
 }
 
-export function planFlavor(flags: ClimateFlags): string {
+export function planFlavor(flags: ClimateFlags, water: WaterQuery = {}): string {
   let flavor: string;
   if (flags.hotNoon || flags.temp >= 30) flavor = '本味清淡';
   else if (flags.temp < 12) flavor = '大腥';
@@ -63,13 +72,16 @@ export function planFlavor(flags: ClimateFlags): string {
 
   if (flags.highStable && flags.temp >= 22 && flavor !== '大腥') flavor = '清香';
   if ((flags.lowPressure || flags.falling) && flavor === '本味清淡') flavor = '清淡带果酸';
-  return flavor;
+  return waterFlavorOverride(flavor, normalizeWater(water));
 }
 
-export function planForm(fish: string, flags: ClimateFlags, style: FishStyle): string {
+export function planForm(fish: string, flags: ClimateFlags, style: FishStyle, water: WaterQuery = {}): string {
+  const pond = normalizeWater(water);
   if (style === '路亚') return '拟饵';
+  if (pond.pondCare === '刚换水' || pond.pondCare === '刚调水消毒') return '软粘轻口';
   if (['黄颡鱼', '鲶鱼', '塘鲺'].includes(fish)) return '虫饵';
   if (['草鱼', '鳊鱼'].includes(fish) && flags.temp >= 26) return '颗粒/玉米';
+  if (pond.pondCare === '老水' || pond.waterColor === '肥浊') return '轻搓离底';
   if (['鲤鱼', '草鱼', '青鱼'].includes(fish) || flags.highStable || flags.windy) return '搓饵';
   return '拉饵';
 }
@@ -109,15 +121,23 @@ export type LurePick = {
   retrieve: string;
 };
 
-function lureColor(flags: ClimateFlags, nightDark: boolean): string {
+function lureColor(flags: ClimateFlags, nightDark: boolean, water: NormalizedWater): string {
+  const fromWater = waterLureColor(water, flags.raining, flags.night);
+  if (fromWater) return fromWater;
   if (flags.raining) return '红头/金色';
   if (flags.night) return nightDark ? '橙红暗色' : '微光银';
   return '银白自然色';
 }
 
-export function planLurePick(fish: string, flags: ClimateFlags): LurePick {
-  const color = lureColor(flags, true);
+function summerSpoonSize(water: NormalizedWater): string {
+  return water.waterKind === '大水面' ? '7–12g' : '5–7g';
+}
+
+export function planLurePick(fish: string, flags: ClimateFlags, waterQuery: WaterQuery = {}): LurePick {
+  const water = normalizeWater(waterQuery);
+  const color = lureColor(flags, true, water);
   const winterFar = flags.temp < 15 || flags.month <= 3 || flags.month === 12;
+  const turbid = water.waterColor === '泥浆' || water.waterColor === '肥浊';
 
   if (fish === '翘嘴' || fish === '红鳍鲌') {
     if (flags.prime && !flags.hotNoon && !flags.night) {
@@ -144,12 +164,15 @@ export function planLurePick(fish: string, flags: ClimateFlags): LurePick {
         retrieve: '读秒下沉后慢收，偶作停顿',
       };
     }
+    const summerSize = summerSpoonSize(water);
     return {
       name: '斜切亮片（带红羽更好）',
       color,
-      size: flags.summer ? '5–7g' : winterFar ? '12–20g' : '7–10g',
+      size: flags.summer ? summerSize : winterFar ? '12–20g' : '7–10g',
       retrieve: flags.summer
-        ? '匀速收，间停两秒；淀山湖滴水湖等大水面可加到 7–12g'
+        ? water.waterKind === '大水面'
+          ? '匀速收，间停两秒；大水面略加重'
+          : '匀速收，间停两秒；淀山湖滴水湖等大水面可加到 7–12g'
         : '匀速收，间停两秒仿伤鱼',
     };
   }
@@ -181,19 +204,22 @@ export function planLurePick(fish: string, flags: ClimateFlags): LurePick {
   }
 
   if (fish === '鲈鱼') {
+    const bassColor = turbid ? '红头金/高对比' : flags.raining ? '艳色' : flags.prime && !flags.hotNoon ? '银白青背' : '青背/虾色';
     if (flags.prime && !flags.hotNoon) {
       return {
-        name: '浅层米诺',
-        color: flags.raining ? '艳色' : '银白青背',
+        name: turbid ? '加震米诺 / 复合亮片' : '浅层米诺',
+        color: bassColor,
         size: '7–10cm',
-        retrieve: '抽停搜坝头乱石，近岸轻荡不必远投',
+        retrieve: turbid
+          ? '贴障碍近岸多抛，加震或高对比，视线差时不要远搜亮水'
+          : '抽停搜坝头乱石，近岸轻荡不必远投',
       };
     }
     return {
-      name: '铅头钩软虫',
-      color: flags.raining ? '艳色' : '青背/虾色',
+      name: turbid ? '加震软虫 / 铅头钩' : '铅头钩软虫',
+      color: bassColor,
       size: '3–5寸',
-      retrieve: '跳底贴结构，近岸轻荡不必远投',
+      retrieve: turbid ? '贴结构跳底，近岸多抛' : '跳底贴结构，近岸轻荡不必远投',
     };
   }
 
@@ -238,20 +264,36 @@ export function planLurePick(fish: string, flags: ClimateFlags): LurePick {
   };
 }
 
-export function planLure(fish: string, flags: ClimateFlags): string {
-  const pick = planLurePick(fish, flags);
+export function planLure(fish: string, flags: ClimateFlags, water: WaterQuery = {}): string {
+  const pick = planLurePick(fish, flags, water);
   return `${pick.size} ${pick.color} ${pick.name}`;
 }
 
-export function planLureNote(fish: string, flags: ClimateFlags): string {
-  return planLurePick(fish, flags).retrieve;
+export function planLureNote(fish: string, flags: ClimateFlags, water: WaterQuery = {}): string {
+  return planLurePick(fish, flags, water).retrieve;
 }
 
-export function planSpot(fish: string, flags: ClimateFlags, style: FishStyle): string {
-  const base =
+export function planSpot(fish: string, flags: ClimateFlags, style: FishStyle, waterQuery: WaterQuery = {}): string {
+  const water = normalizeWater(waterQuery);
+  let base =
     style === '路亚'
       ? (LURE_SPOT[fish] ?? '水草边缘 · 结构区')
       : (FLOAT_SPOT[fish] ?? '草边缓流');
+
+  if (water.waterKind === '河口' && (fish === '鲈鱼' || fish === '鲻鱼' || fish === '黄鱼')) {
+    base = '潮沟闸口 · 缓流边';
+  }
+  if (water.waterKind === '大水面' && (fish === '翘嘴' || fish === '红鳍鲌') && !flags.prime) {
+    base = style === '路亚' ? '深浅交界 · 可略远投' : base;
+  }
+
+  if (isPondWater(water.waterKind)) {
+    if (water.pondCare === '刚换水' || water.pondCare === '刚调水消毒') {
+      return `进水口缓流轻口 · ${base}`;
+    }
+    if (water.pondCare === '老水') return `略离底避酱层 · ${base}`;
+    if (flags.hotNoon) return `荫凉边 / 增氧机附近 · ${base}`;
+  }
 
   if (flags.raining) return `进水口缓流 · ${base}`;
   if (flags.hotNoon) return `荫凉桥洞 / 深水 · ${base}`;
@@ -264,7 +306,12 @@ export function planSpot(fish: string, flags: ClimateFlags, style: FishStyle): s
   return base;
 }
 
-export function planWindow(flags: ClimateFlags): string {
+export function planWindow(flags: ClimateFlags, waterQuery: WaterQuery = {}): string {
+  const water = normalizeWater(waterQuery);
+  if (water.waterColor === '恶水') return '水色不宜';
+  if (water.pondCare === '刚换水') return '刚换水口差';
+  if (water.pondCare === '刚调水消毒') return '调水后口差';
+  if (water.waterColor === '泥浆') return '泥浆口差';
   if (flags.hotNoon) return '避开正午';
   if (flags.falling || flags.lowPressure) return '气压走低口差';
   if (flags.rising) return '气压回升窗口';
@@ -277,5 +324,7 @@ export function baitLabel(flavor: string, form: string, style: FishStyle, lure: 
   if (style === '路亚') return lure;
   if (form === '虫饵') return `${flavor}蚯蚓红虫`;
   if (form === '颗粒/玉米') return `${flavor}颗粒`;
+  if (form === '软粘轻口') return `${flavor}软粘饵`;
+  if (form === '轻搓离底') return `${flavor}轻搓`;
   return `${flavor}${form}`;
 }

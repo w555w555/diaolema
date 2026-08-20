@@ -1,5 +1,6 @@
 import { coerceFishForStyle, fishFitsStyle, catalogForStyle } from './fishId/catalog';
 import { baitLabel, climateFlags, planFlavor, planForm, planLure, planLureNote, planSpot, planWindow } from './plan';
+import { isPondWater, normalizeWater, waterAdviceNotes, type WaterQuery } from './water';
 import type { FishStyle, FishingAdvice, WaterLayer, WeatherSnapshot } from '../types';
 
 const LAYER_ORDER: WaterLayer[] = ['底层', '中下层', '中上层', '上层'];
@@ -12,11 +13,12 @@ function liftLayer(layer: WaterLayer): WaterLayer {
 export function buildAdvice(
   weather: WeatherSnapshot,
   at: Date = new Date(),
-  options: { targetFish?: string; style?: FishStyle } = {},
+  options: { targetFish?: string; style?: FishStyle } & WaterQuery = {},
 ): FishingAdvice {
   const flags = climateFlags(weather, at);
   const reasons: string[] = [];
   const style: FishStyle = options.style ?? '台钓';
+  const water = normalizeWater(options);
 
   let layer: WaterLayer;
   let baits: string[];
@@ -30,7 +32,9 @@ export function buildAdvice(
     baits = ['清淡香饵', '玉米', '小麦胚芽', '螺蛳（青鱼）'];
     method = '台钓守底 / 夜钓';
     tip = muggy
-      ? '正午亮水底也容易闷。改树荫、桥洞或进水口的中下层，不要死守浅滩底。'
+      ? isPondWater(water.waterKind)
+        ? '正午塘底也容易闷。改荫凉边、增氧机附近的中下层，不要死守亮水底。'
+        : '正午亮水底也容易闷。改树荫、桥洞或进水口的中下层，不要死守浅滩底。'
       : '避开正午暴晒水面，找树荫、桥洞或等夜钓；线组放细，抛频放慢。';
     targetFish = ['鲫鱼', '鲤鱼', '青鱼', '草鱼'];
     reasons.push(`盛夏正午气温 ${weather.temperatureC.toFixed(0)}°C，鱼下沉避热`);
@@ -105,13 +109,22 @@ export function buildAdvice(
     reasons.push(`${focus}夏天中上层更肯吃草，改浮钓或离底`);
   }
 
-  const flavor = planFlavor(flags);
-  const form = planForm(focus, flags, style);
-  const lure = planLure(focus, flags);
-  const lureNote = style === '路亚' ? planLureNote(focus, flags) : '';
+  if ((water.pondCare === '老水' || water.waterColor === '肥浊') && layer === '底层') {
+    layer = '中下层';
+    reasons.push('塘底酱层或肥水时略离底，避免饵陷入');
+  }
+  if ((water.pondCare === '刚换水' || water.pondCare === '刚调水消毒') && layer === '上层') {
+    layer = '中下层';
+  }
+
+  const flavor = planFlavor(flags, water);
+  const form = planForm(focus, flags, style, water);
+  const lure = planLure(focus, flags, water);
+  const lureNote = style === '路亚' ? planLureNote(focus, flags, water) : '';
   const label = baitLabel(flavor, form, style, lure);
-  const spot = planSpot(focus, flags, style);
-  const window = planWindow(flags);
+  const spot = planSpot(focus, flags, style, water);
+  const window = planWindow(flags, water);
+  const waterNotes = waterAdviceNotes(water);
 
   if (style === '路亚') {
     method = `路亚 · ${lure}`;
@@ -123,6 +136,14 @@ export function buildAdvice(
     reasons.unshift(`${focus}用${flavor}${form}，标点在${spot}`);
   }
 
+  if (water.pondCare === '刚换水' || water.pondCare === '刚调水消毒') {
+    tip = `${tip} 软粘轻口，不要抽散炮。`;
+  }
+  if (water.waterColor === '恶水') {
+    tip = '水色发黑、水华或有异味时按国内经验不宜强求出钓。';
+  }
+
+  if (waterNotes.length) reasons.unshift(...waterNotes.slice(0, 2));
   reasons.push(`湿度 ${weather.humidityPct.toFixed(0)}%`);
 
   return {
@@ -130,7 +151,7 @@ export function buildAdvice(
     baits,
     method,
     tip,
-    reasons: reasons.slice(0, 6),
+    reasons: reasons.slice(0, 7),
     targetFish,
     flavor,
     form,

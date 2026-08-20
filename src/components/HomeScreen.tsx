@@ -6,7 +6,8 @@ import { weatherLabel, windDirLabel, windScaleLabel } from '../lib/weather';
 import { fishGuide } from '../lib/fishGuide';
 import { windowCountdown } from '../lib/windowCountdown';
 import logoUrl from '../assets/logo.svg?url';
-import type { CatchReport, FishStyle, FishingAdvice, FishingIndex, WeatherSnapshot } from '../types';
+import type { CatchReport, FishStyle, FishingAdvice, FishingIndex, PondCare, WaterColor, WaterKind, WeatherSnapshot } from '../types';
+import { POND_CARE_CHIPS, WATER_COLOR_CHIPS, WATER_KIND_CHIPS, isPondWater } from '../lib/water';
 
 export type HomeSheet = 'advice' | 'venues' | 'daily' | 'share' | 'weather' | 'target' | 'catch' | 'spot' | 'guide' | 'author';
 
@@ -21,6 +22,12 @@ type Props = {
   targetFish: string;
   style: FishStyle;
   onStyleChange: (style: FishStyle) => void;
+  waterKind: WaterKind;
+  waterColor: WaterColor;
+  pondCare: PondCare;
+  onWaterKindChange: (kind: WaterKind) => void;
+  onWaterColorChange: (color: WaterColor) => void;
+  onPondCareChange: (care: PondCare) => void;
   reports: CatchReport[];
   onOpenInbox: () => void;
   onOpenShare: (report: CatchReport) => void;
@@ -38,6 +45,12 @@ export function HomeScreen({
   targetFish,
   style,
   onStyleChange,
+  waterKind,
+  waterColor,
+  pondCare,
+  onWaterKindChange,
+  onWaterColorChange,
+  onPondCareChange,
   reports,
   onOpenInbox,
   onOpenShare,
@@ -118,6 +131,49 @@ export function HomeScreen({
               <small>标点</small>
               <strong className="teal">{spot}</strong>
             </article>
+          </div>
+          <div className="water-rows">
+            <div className="water-row" role="toolbar" aria-label="水域类型">
+              <small>水域</small>
+              {WATER_KIND_CHIPS.map((chip) => (
+                <button
+                  key={chip.id}
+                  type="button"
+                  data-on={waterKind === chip.id ? 'true' : 'false'}
+                  onClick={() => onWaterKindChange(chip.id)}
+                >
+                  {chip.label}
+                </button>
+              ))}
+            </div>
+            <div className="water-row" role="toolbar" aria-label="水色">
+              <small>水色</small>
+              {WATER_COLOR_CHIPS.map((chip) => (
+                <button
+                  key={chip.id}
+                  type="button"
+                  data-on={waterColor === chip.id ? 'true' : 'false'}
+                  onClick={() => onWaterColorChange(chip.id)}
+                >
+                  {chip.label}
+                </button>
+              ))}
+            </div>
+            {isPondWater(waterKind) ? (
+              <div className="water-row" role="toolbar" aria-label="塘保养">
+                <small>塘况</small>
+                {POND_CARE_CHIPS.map((chip) => (
+                  <button
+                    key={chip.id}
+                    type="button"
+                    data-on={pondCare === chip.id ? 'true' : 'false'}
+                    onClick={() => onPondCareChange(chip.id)}
+                  >
+                    {chip.label}
+                  </button>
+                ))}
+              </div>
+            ) : null}
           </div>
         </section>
       </div>
