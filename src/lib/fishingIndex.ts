@@ -27,7 +27,7 @@ export function buildFishingIndex(weather: WeatherSnapshot, at: Date = new Date(
   const mildFall = !falling && weather.pressureDelta3h <= -0.5;
   const rising = weather.pressureDelta3h >= 1.5;
   const highStable = weather.pressureHpa >= 1022 && Math.abs(weather.pressureDelta3h) < 1;
-  const lowPressure = weather.pressureHpa <= 1008;
+  const lowPressure = weather.pressureHpa <= 1005;
   const windy = weather.windKmh >= 25;
   const prime = (hour >= 5 && hour <= 7) || (hour >= 17 && hour <= 19);
   const storm = isStorm(weather.weatherCode, weather.precipitationMm);

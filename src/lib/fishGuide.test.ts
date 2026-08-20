@@ -7,7 +7,7 @@ describe('fishGuide', () => {
     expect(guide.name).toBe('翘嘴');
     expect(guide.intro).toContain('掠食');
     expect(guide.habitat).toContain('深浅交界');
-    expect(guide.tips.some((row) => row.style === '路亚' && row.items.some((item) => item.includes('亮片')))).toBe(
+    expect(guide.tips.some((row) => row.style === '路亚' && row.items.some((item) => item.includes('5–7g')))).toBe(
       true,
     );
   });

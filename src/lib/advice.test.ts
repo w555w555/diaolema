@@ -68,7 +68,7 @@ describe('buildAdvice', () => {
 
   it('路亚按对象鱼给出克数颜色与操法', () => {
     const a = buildAdvice(snap({ temperatureC: 26 }), noon, { targetFish: '翘嘴', style: '路亚' });
-    expect(a.lure).toMatch(/7–12g/);
+    expect(a.lure).toMatch(/5–7g/);
     expect(a.lure).toMatch(/斜切亮片/);
     expect(a.lureNote).toMatch(/匀速/);
     const snake = buildAdvice(snap({ temperatureC: 24 }), dawn, { targetFish: '黑鱼', style: '路亚' });

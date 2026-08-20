@@ -80,11 +80,12 @@ describe('planSpot', () => {
 });
 
 describe('planLurePick', () => {
-  it('翘嘴夏天白天用 7–12g 斜切亮片', () => {
+  it('翘嘴夏天白天用 5–7g 斜切亮片', () => {
     const flags = climateFlags(snap({ temperatureC: 26 }), noon);
-    expect(planLure('翘嘴', flags)).toMatch(/7–12g/);
+    expect(planLure('翘嘴', flags)).toMatch(/5–7g/);
     expect(planLure('翘嘴', flags)).toMatch(/斜切亮片/);
     expect(planLureNote('翘嘴', flags)).toMatch(/匀速/);
+    expect(planLureNote('翘嘴', flags)).toMatch(/7–12g/);
   });
 
   it('翘嘴冬春低温用 12–20g 远投', () => {

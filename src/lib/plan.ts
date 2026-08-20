@@ -2,10 +2,12 @@
  * 味型 / 饵形 / 标点 / 拟饵：编译自国内教材与公开钓技，运行时不联网、不调模型。
  * 气压：钓鱼之家「升压/稳压好钓、走低口差」；渔钓者上浮为找氧。
  * 台钓：渔钓者冬春主腥、夏主清淡；低压口差加果酸。
- * 路亚克数与操法：渔夫者/钓鱼007 翘嘴冬春 12–20g、夏 7–12g、夜钓 7–10g；
- * 渔钓者黑鱼雷蛙走走停停；酷钓鱼铅头钩 5–7g 溪流 / 7–10g 湖库；
+ * 路亚克数与操法：渔夫者/钓鱼007 翘嘴冬春 12–20g、夜钓 7–10g；
+ * 上海公园浅湖夏天 5–7g（小浪纹/碧溪上），淀山湖滴水湖大水面可加到 7–12g；
+ * 渔钓者黑鱼雷蛙走走停停，中鱼后等两三秒再抽；酷钓鱼铅头钩 5–7g 溪流 / 7–10g 湖库；
  * 酷米网白条瓜子亮片 1.5–3g。清水银白、浊水红头金。
- * 上海路亚塘「鲈」按大口黑鲈（加州鲈）给结构软虫，不是欧美降压抢食。
+ * 上海路亚塘「鲈」按大口黑鲈（加州鲈）给结构软虫，近岸轻荡；不是欧美降压抢食。
+ * 上海近海平面低压 ≤1005 hPa（酷钓鱼海拔 0 米；钓鱼之家 1006–1028 好钓）。
  */
 import type { FishStyle, WeatherSnapshot } from '../types';
 import { shanghaiHour, shanghaiMonth } from './shanghaiTime';
@@ -39,7 +41,7 @@ export function climateFlags(weather: WeatherSnapshot, at: Date): ClimateFlags {
     falling: weather.pressureDelta3h <= -1.5,
     rising: weather.pressureDelta3h >= 1.5,
     highStable: weather.pressureHpa >= 1022 && Math.abs(weather.pressureDelta3h) < 1,
-    lowPressure: weather.pressureHpa <= 1008,
+    lowPressure: weather.pressureHpa <= 1005,
     raining:
       weather.precipitationMm > 0.2 ||
       (weather.weatherCode >= 51 && weather.weatherCode <= 67) ||
@@ -145,8 +147,10 @@ export function planLurePick(fish: string, flags: ClimateFlags): LurePick {
     return {
       name: '斜切亮片（带红羽更好）',
       color,
-      size: flags.summer ? '7–12g' : winterFar ? '12–20g' : '7–10g',
-      retrieve: '匀速收，间停两秒仿伤鱼',
+      size: flags.summer ? '5–7g' : winterFar ? '12–20g' : '7–10g',
+      retrieve: flags.summer
+        ? '匀速收，间停两秒；淀山湖滴水湖等大水面可加到 7–12g'
+        : '匀速收，间停两秒仿伤鱼',
     };
   }
 
@@ -172,7 +176,7 @@ export function planLurePick(fish: string, flags: ClimateFlags): LurePick {
       name: '雷蛙',
       color: flags.raining ? '黄白亮色' : '黑绿蛙色',
       size: '10–14g',
-      retrieve: '草上轻跳停顿，对齐攻击节奏',
+      retrieve: '草上轻跳停顿；中鱼后等两三秒再抽，钩透硬嘴',
     };
   }
 
@@ -182,14 +186,14 @@ export function planLurePick(fish: string, flags: ClimateFlags): LurePick {
         name: '浅层米诺',
         color: flags.raining ? '艳色' : '银白青背',
         size: '7–10cm',
-        retrieve: '抽停搜坝头乱石',
+        retrieve: '抽停搜坝头乱石，近岸轻荡不必远投',
       };
     }
     return {
       name: '铅头钩软虫',
       color: flags.raining ? '艳色' : '青背/虾色',
       size: '3–5寸',
-      retrieve: '跳底贴结构',
+      retrieve: '跳底贴结构，近岸轻荡不必远投',
     };
   }
 

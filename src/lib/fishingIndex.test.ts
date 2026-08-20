@@ -66,6 +66,12 @@ describe('buildFishingIndex', () => {
     expect(idx.reasons.some((r) => r.includes('口差'))).toBe(true);
   });
 
+  it('1007 在上海不算低压口差', () => {
+    const idx = buildFishingIndex(snap({ pressureHpa: 1007, pressureDelta3h: 0, temperatureC: 22 }), dawn);
+    expect(idx.score).toBe(78);
+    expect(idx.reasons.some((r) => r.includes('口差'))).toBe(false);
+  });
+
   it('极端天气夹紧到 0–100', () => {
     const low = buildFishingIndex(
       snap({ temperatureC: 36, precipitationMm: 12, weatherCode: 95, windKmh: 40 }),
