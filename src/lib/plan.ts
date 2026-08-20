@@ -49,7 +49,7 @@ export function climateFlags(weather: WeatherSnapshot, at: Date): ClimateFlags {
       weather.weatherCode >= 95,
     windy: weather.windKmh >= 25,
     prime: (hour >= 5 && hour <= 7) || (hour >= 17 && hour <= 19),
-    night: hour < 6 || hour >= 19,
+    night: hour < 5 || hour >= 20,
   };
 }
 
@@ -69,8 +69,8 @@ export function planFlavor(flags: ClimateFlags): string {
 export function planForm(fish: string, flags: ClimateFlags, style: FishStyle): string {
   if (style === '路亚') return '拟饵';
   if (['黄颡鱼', '鲶鱼', '塘鲺'].includes(fish)) return '虫饵';
-  if (['鲤鱼', '草鱼', '青鱼'].includes(fish) || flags.highStable || flags.windy) return '搓饵';
   if (['草鱼', '鳊鱼'].includes(fish) && flags.temp >= 26) return '颗粒/玉米';
+  if (['鲤鱼', '草鱼', '青鱼'].includes(fish) || flags.highStable || flags.windy) return '搓饵';
   return '拉饵';
 }
 

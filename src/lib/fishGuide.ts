@@ -13,7 +13,7 @@ const GUIDES: Record<CatalogFish, Omit<FishGuide, 'name'>> = {
   鲫鱼: {
     aliases: '鲫瓜、喜头',
     intro: '上海公园湖与河道最常见的底层鱼。喜群居。高压稳压时靠边贴底觅食；闷热低压会离底找氧，口往往变轻，不是抢食。盛夏正午放弃亮水浅滩，改桥洞、树荫下底钓或小离底。不编造溶氧或水温数字。',
-    habitat: '缓坡、草边、凹岸、进水口附近的泥底。',
+    habitat: '缓坡、草边、凹岸、进水口；盛夏改桥洞树荫。',
     tips: [
       {
         style: '台钓',
@@ -109,7 +109,7 @@ const GUIDES: Record<CatalogFish, Omit<FishGuide, 'name'>> = {
     tips: [
       {
         style: '台钓',
-        items: ['商品饵或虾肉，钓离底或轻触底。', '闸口进出水时口更好。', '线组不要太粗。'],
+        items: ['商品饵或沙蚕，钓离底或轻触底。', '闸口多看落潮后期缓流，不要跟花鲈抢涨潮。', '线组不要太粗。'],
       },
     ],
   },
@@ -117,7 +117,7 @@ const GUIDES: Record<CatalogFish, Omit<FishGuide, 'name'>> = {
     aliases: '加州鲈、大口黑鲈、花鲈、海鲈',
     intro:
       '上海路亚塘里的「鲈鱼」几乎都是引进种大口黑鲈（加州鲈）：结构区伏击，软虫贴坝头乱石，近岸轻荡比远投重要。长江口、滨江调查里的鲈才是中国花鲈（Lateolabrax maculatus）：九段沙盐沼优势种，潮沟最多、春季最多秋季最少。拟饵按塘里的加州鲈给；花鲈改闸口、码头，看初涨至涨半、初落至落半。不要把花鲈标点套到塘鲈上。',
-    habitat: '塘：坝头乱石、增氧机、障碍；河口花鲈：潮沟、急流拐弯。',
+    habitat: '塘：坝头乱石、增氧机、障碍；河口花鲈：潮沟、闸口、明珠湖等半咸水。',
     tips: [
       {
         style: '路亚',
@@ -184,7 +184,7 @@ const GUIDES: Record<CatalogFish, Omit<FishGuide, 'name'>> = {
   },
   红鳍鲌: {
     aliases: '红梢、翘嘴近亲',
-    intro: '鲌亚科，习性接近翘嘴，体型常略小。上海内河调查里红鳍鲌 IRI 很高，河道可兼钓。',
+    intro: '鲌亚科，习性接近翘嘴，体型常略小。上海内河调查里数量优势明显，河道可兼钓。',
     habitat: '近岸中上层、回流。',
     tips: [
       {

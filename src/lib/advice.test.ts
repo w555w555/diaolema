@@ -53,6 +53,12 @@ describe('buildAdvice', () => {
     expect(a.reasons.some((r) => r.includes('口差'))).toBe(true);
   });
 
+  it('盛夏正午叠加低压 → 中下层荫凉', () => {
+    const a = buildAdvice(snap({ temperatureC: 33, pressureHpa: 1004 }), noon);
+    expect(a.layer).toBe('中下层');
+    expect(a.reasons.some((r) => r.includes('不要死守亮水底') || r.includes('中下层'))).toBe(true);
+  });
+
   it('盛夏正午台钓草鱼改中上层', () => {
     const a = buildAdvice(snap({ temperatureC: 33 }), noon, { targetFish: '草鱼', style: '台钓' });
     expect(a.layer).toBe('中上层');

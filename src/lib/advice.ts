@@ -25,12 +25,16 @@ export function buildAdvice(
   let targetFish: string[];
 
   if (flags.hotNoon) {
-    layer = '底层';
+    const muggy = flags.falling || flags.lowPressure;
+    layer = muggy ? '中下层' : '底层';
     baits = ['清淡香饵', '玉米', '小麦胚芽', '螺蛳（青鱼）'];
     method = '台钓守底 / 夜钓';
-    tip = '避开正午暴晒水面，找树荫、桥洞或等夜钓；线组放细，抛频放慢。';
+    tip = muggy
+      ? '正午亮水底也容易闷。改树荫、桥洞或进水口的中下层，不要死守浅滩底。'
+      : '避开正午暴晒水面，找树荫、桥洞或等夜钓；线组放细，抛频放慢。';
     targetFish = ['鲫鱼', '鲤鱼', '青鱼', '草鱼'];
     reasons.push(`盛夏正午气温 ${weather.temperatureC.toFixed(0)}°C，鱼下沉避热`);
+    if (muggy) reasons.push('正午叠加气压走低，改荫凉中下层，不要死守亮水底');
   } else if (flags.falling) {
     layer = '中上层';
     baits = ['轻质拉饵', '小钩细线', '蚯蚓', '亮片/米诺'];
@@ -40,7 +44,7 @@ export function buildAdvice(
     reasons.push(`近 3 小时气压下降 ${Math.abs(weather.pressureDelta3h).toFixed(1)} hPa，按国内经验口易变差、鱼可能上浮找氧`);
   } else if (flags.highStable) {
     layer = '底层';
-    baits = ['蚯蚓', '红虫', '腥味搓饵', '搓饵'];
+    baits = ['蚯蚓', '红虫', '腥味搓饵', '商品搓饵'];
     method = '传统钓 / 台钓守底';
     tip = '高压稳定相对好钓底，铅坠找实底守钓，鲫鲤黄颡更肯吃。';
     targetFish = ['鲫鱼', '鲤鱼', '黄颡鱼'];

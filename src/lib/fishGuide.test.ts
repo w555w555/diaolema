@@ -25,6 +25,12 @@ describe('fishGuide', () => {
     expect(guide.aliases).toMatch(/加州鲈/);
   });
 
+  it('鲻鱼强调台钓与落潮，不指路亚', () => {
+    const guide = fishGuide('鲻鱼');
+    expect(guide.intro).toMatch(/路亚效果差/);
+    expect(guide.tips.some((row) => row.items.some((item) => item.includes('落潮')))).toBe(true);
+  });
+
   it('词表外回落通用说明', () => {
     const guide = fishGuide('未知鱼');
     expect(guide.name).toBe('未知鱼');

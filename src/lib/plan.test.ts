@@ -42,6 +42,12 @@ describe('planFlavor / planForm', () => {
     expect(planForm('鲤鱼', flags, '台钓')).toBe('搓饵');
   });
 
+  it('草鱼夏天改颗粒，不被搓饵盖掉', () => {
+    const flags = climateFlags(snap({ temperatureC: 28 }), dawn);
+    expect(planForm('草鱼', flags, '台钓')).toBe('颗粒/玉米');
+    expect(planForm('鳊鱼', flags, '台钓')).toBe('颗粒/玉米');
+  });
+
   it('低压或气压走低且本味清淡改果酸', () => {
     const falling = climateFlags(snap({ temperatureC: 33, pressureDelta3h: -2 }), noon);
     expect(planFlavor(falling)).toBe('清淡带果酸');
@@ -109,5 +115,19 @@ describe('planLurePick', () => {
     const night = climateFlags(snap({ temperatureC: 22 }), new Date('2026-08-17T21:00:00+08:00'));
     expect(planLure('翘嘴', night)).toMatch(/7–10g/);
     expect(planLure('翘嘴', night)).toMatch(/勺型亮片/);
+  });
+
+  it('凌晨五点与黄昏用波扒，20 点后才换勺型', () => {
+    const five = climateFlags(snap({ temperatureC: 24 }), new Date('2026-08-17T05:30:00+08:00'));
+    expect(five.prime).toBe(true);
+    expect(five.night).toBe(false);
+    expect(planLure('翘嘴', five)).toMatch(/波扒/);
+    const dusk = climateFlags(snap({ temperatureC: 24 }), new Date('2026-08-17T19:30:00+08:00'));
+    expect(dusk.prime).toBe(true);
+    expect(dusk.night).toBe(false);
+    expect(planLure('翘嘴', dusk)).toMatch(/波扒/);
+    const twenty = climateFlags(snap({ temperatureC: 24 }), new Date('2026-08-17T20:30:00+08:00'));
+    expect(twenty.night).toBe(true);
+    expect(planLure('翘嘴', twenty)).toMatch(/勺型亮片/);
   });
 });
