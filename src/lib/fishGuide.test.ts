@@ -18,6 +18,13 @@ describe('fishGuide', () => {
     expect(guide.intro).toContain('底层');
   });
 
+  it('鲈鱼介绍区分塘鲈加州鲈与河口花鲈', () => {
+    const guide = fishGuide('鲈鱼');
+    expect(guide.intro).toMatch(/加州鲈|大口黑鲈/);
+    expect(guide.intro).toMatch(/花鲈/);
+    expect(guide.aliases).toMatch(/加州鲈/);
+  });
+
   it('词表外回落通用说明', () => {
     const guide = fishGuide('未知鱼');
     expect(guide.name).toBe('未知鱼');

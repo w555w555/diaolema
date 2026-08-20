@@ -36,22 +36,22 @@ export function buildFishingIndex(weather: WeatherSnapshot, at: Date = new Date(
   const reasons: string[] = [];
 
   if (falling) {
-    score += 16;
-    reasons.push(`近 3 小时气压下降 ${Math.abs(weather.pressureDelta3h).toFixed(1)} hPa，鱼易开口`);
+    score -= 16;
+    reasons.push(`近 3 小时气压下降 ${Math.abs(weather.pressureDelta3h).toFixed(1)} hPa，按国内经验口易变差`);
   } else if (mildFall) {
-    score += 8;
-    reasons.push(`气压缓降 ${Math.abs(weather.pressureDelta3h).toFixed(1)} hPa`);
+    score -= 8;
+    reasons.push(`气压缓降 ${Math.abs(weather.pressureDelta3h).toFixed(1)} hPa，口可能变轻`);
   } else if (rising) {
-    score -= 10;
-    reasons.push(`气压上升 ${weather.pressureDelta3h.toFixed(1)} hPa，口可能变轻`);
+    score += 10;
+    reasons.push(`气压上升 ${weather.pressureDelta3h.toFixed(1)} hPa，鱼更愿回底层开口`);
   }
 
   if (highStable) {
-    score -= 12;
-    reasons.push(`高气压 ${weather.pressureHpa.toFixed(0)} hPa 且走势稳，鱼多贴底少动`);
-  } else if (lowPressure) {
     score += 8;
-    reasons.push(`气压 ${weather.pressureHpa.toFixed(0)} hPa 偏低，中上层更活`);
+    reasons.push(`高气压 ${weather.pressureHpa.toFixed(0)} hPa 且走势稳，宜守底`);
+  } else if (lowPressure) {
+    score -= 12;
+    reasons.push(`气压 ${weather.pressureHpa.toFixed(0)} hPa 偏低，鱼找氧但口差`);
   }
 
   if (hotNoon) {

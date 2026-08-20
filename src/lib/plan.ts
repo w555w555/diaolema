@@ -1,9 +1,11 @@
 /**
- * 味型 / 饵形 / 标点 / 拟饵：编译自公开垂钓经验，运行时不联网、不调模型。
- * 台钓：渔钓者冬春主腥、夏主清淡；龙国钓鱼频道低压口差加果酸。
+ * 味型 / 饵形 / 标点 / 拟饵：编译自国内教材与公开钓技，运行时不联网、不调模型。
+ * 气压：钓鱼之家「升压/稳压好钓、走低口差」；渔钓者上浮为找氧。
+ * 台钓：渔钓者冬春主腥、夏主清淡；低压口差加果酸。
  * 路亚克数与操法：渔夫者/钓鱼007 翘嘴冬春 12–20g、夏 7–12g、夜钓 7–10g；
  * 渔钓者黑鱼雷蛙走走停停；酷钓鱼铅头钩 5–7g 溪流 / 7–10g 湖库；
  * 酷米网白条瓜子亮片 1.5–3g。清水银白、浊水红头金。
+ * 上海路亚塘「鲈」按大口黑鲈（加州鲈）给结构软虫，不是欧美降压抢食。
  */
 import type { FishStyle, WeatherSnapshot } from '../types';
 
@@ -14,6 +16,7 @@ export type ClimateFlags = {
   summer: boolean;
   hotNoon: boolean;
   falling: boolean;
+  rising: boolean;
   highStable: boolean;
   lowPressure: boolean;
   raining: boolean;
@@ -33,6 +36,7 @@ export function climateFlags(weather: WeatherSnapshot, at: Date): ClimateFlags {
     summer,
     hotNoon: summer && weather.temperatureC >= 30 && hour >= 10 && hour <= 16,
     falling: weather.pressureDelta3h <= -1.5,
+    rising: weather.pressureDelta3h >= 1.5,
     highStable: weather.pressureHpa >= 1022 && Math.abs(weather.pressureDelta3h) < 1,
     lowPressure: weather.pressureHpa <= 1008,
     raining:
@@ -55,8 +59,7 @@ export function planFlavor(flags: ClimateFlags): string {
   else flavor = '清香';
 
   if (flags.highStable && flags.temp >= 22 && flavor !== '大腥') flavor = '清香';
-  if (flags.lowPressure && flavor === '本味清淡') flavor = '清淡带果酸';
-  if (flags.falling && flags.temp < 28 && (flavor === '清香' || flavor === '本味清淡')) flavor = '香腥';
+  if ((flags.lowPressure || flags.falling) && flavor === '本味清淡') flavor = '清淡带果酸';
   return flavor;
 }
 
@@ -258,8 +261,10 @@ export function planSpot(fish: string, flags: ClimateFlags, style: FishStyle): s
 
 export function planWindow(flags: ClimateFlags): string {
   if (flags.hotNoon) return '避开正午';
+  if (flags.falling || flags.lowPressure) return '气压走低口差';
+  if (flags.rising) return '气压回升窗口';
   if (flags.prime) return '早晚优先';
-  if (flags.falling) return '气压下降窗口';
+  if (flags.highStable) return '高压宜守底';
   return '按气压择时';
 }
 

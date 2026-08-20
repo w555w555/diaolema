@@ -17,9 +17,10 @@ describe('normalizeFishName', () => {
     expect(normalizeFishName('鳊')).toBe('鳊鱼');
   });
 
-  it('词表外英文种名视为不确定', () => {
-    expect(normalizeFishName('largemouth bass')).toBe(UNCERTAIN);
-    expect(normalizeFishName('大口黑鲈')).toBe(UNCERTAIN);
+  it('加州鲈与大口黑鲈归到词表鲈鱼', () => {
+    expect(normalizeFishName('加州鲈')).toBe('鲈鱼');
+    expect(normalizeFishName('大口黑鲈')).toBe('鲈鱼');
+    expect(normalizeFishName('largemouth bass')).toBe('鲈鱼');
   });
 
   it('空值和乱码为不确定', () => {

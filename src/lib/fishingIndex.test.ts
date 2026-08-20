@@ -25,11 +25,12 @@ const noon = new Date('2026-08-17T12:00:00+08:00');
 const dawn = new Date('2026-08-17T06:00:00+08:00');
 
 describe('buildFishingIndex', () => {
-  it('气压急降且晨间适温 → 很高', () => {
+  it('气压急降且晨间适温 → 不给很高', () => {
     const idx = buildFishingIndex(snap({ pressureDelta3h: -2.4, temperatureC: 24 }), dawn);
-    expect(idx.score).toBe(94);
-    expect(idx.label).toBe('很高');
+    expect(idx.score).toBe(62);
+    expect(idx.label).toBe('一般');
     expect(idx.reasons.some((r) => r.includes('气压下降'))).toBe(true);
+    expect(idx.reasons.some((r) => r.includes('口易变差'))).toBe(true);
   });
 
   it('盛夏正午高温 → 偏低', () => {
@@ -45,10 +46,24 @@ describe('buildFishingIndex', () => {
     expect(idx.score).toBeLessThan(35);
   });
 
-  it('高气压稳定不给很高', () => {
+  it('高气压稳定给较高或很高', () => {
     const idx = buildFishingIndex(snap({ pressureHpa: 1024, pressureDelta3h: 0.1 }), dawn);
+    expect(idx.score).toBe(86);
+    expect(idx.label).toBe('很高');
+    expect(idx.reasons.some((r) => r.includes('宜守底'))).toBe(true);
+  });
+
+  it('气压急升加分', () => {
+    const idx = buildFishingIndex(snap({ pressureDelta3h: 2, temperatureC: 22 }), dawn);
+    expect(idx.score).toBeGreaterThan(70);
+    expect(idx.reasons.some((r) => r.includes('气压上升'))).toBe(true);
+  });
+
+  it('低气压压分', () => {
+    const idx = buildFishingIndex(snap({ pressureHpa: 1005, pressureDelta3h: 0, temperatureC: 22 }), dawn);
     expect(idx.score).toBe(66);
     expect(idx.label).toBe('较高');
+    expect(idx.reasons.some((r) => r.includes('口差'))).toBe(true);
   });
 
   it('极端天气夹紧到 0–100', () => {

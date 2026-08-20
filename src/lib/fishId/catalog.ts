@@ -30,6 +30,7 @@ export type CatalogFish = (typeof FISH_CATALOG)[number];
  * 钓法归属编译自公开对象鱼文，运行时不联网。
  * 台钓：渔翁垂钓网/饵料网鲫鲤草青鳊罗非；黄颡手竿串钩（钓鱼人）；鲻鱼手竿商品饵，路亚效果差（酷钓鱼）。
  * 路亚：渔钓者/酷钓鱼黑鱼鳜鲈翘嘴鳡；红鳍鲌同鲌亚科；上海河道翘嘴鲈鳜（小浪纹）。
+ * 上海路亚塘「鲈」按大口黑鲈（加州鲈）归入词表鲈鱼；河口花鲈亦归鲈鱼，介绍页区分。
  * 兼钓：白条微物路亚+袖钩台钓；罗非台钓经典+南方微物；鲶/塘鲺软虫路亚+荤饵底钓。
  */
 export const FISH_METHODS: Record<CatalogFish, readonly FishStyle[]> = {
@@ -89,6 +90,10 @@ const ALIASES: Record<string, CatalogFish> = {
   七星鲈: '鲈鱼',
   海鲈: '鲈鱼',
   鲈: '鲈鱼',
+  加州鲈: '鲈鱼',
+  大口黑鲈: '鲈鱼',
+  'largemouth bass': '鲈鱼',
+  largemouth: '鲈鱼',
   鳜: '鳜鱼',
   桂鱼: '鳜鱼',
   鳌花: '鳜鱼',
@@ -129,7 +134,6 @@ export function normalizeFishName(raw: string | null | undefined): string {
   if (!trimmed || trimmed === UNCERTAIN) return UNCERTAIN;
 
   const lower = trimmed.toLowerCase();
-  if (lower.includes('largemouth') || trimmed.includes('大口黑鲈')) return UNCERTAIN;
 
   const exact = FISH_CATALOG.find((name) => name === trimmed);
   if (exact) return exact;

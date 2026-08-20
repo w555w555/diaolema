@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { climateFlags, planFlavor, planForm, planLure, planLureNote, planSpot } from './plan';
+import { climateFlags, planFlavor, planForm, planLure, planLureNote, planSpot, planWindow } from './plan';
 import type { WeatherSnapshot } from '../types';
 
 function snap(partial: Partial<WeatherSnapshot> = {}): WeatherSnapshot {
@@ -40,6 +40,21 @@ describe('planFlavor / planForm', () => {
     const flags = climateFlags(snap({ temperatureC: 22 }), dawn);
     expect(planForm('鲫鱼', flags, '台钓')).toBe('拉饵');
     expect(planForm('鲤鱼', flags, '台钓')).toBe('搓饵');
+  });
+
+  it('低压或气压走低且本味清淡改果酸', () => {
+    const falling = climateFlags(snap({ temperatureC: 33, pressureDelta3h: -2 }), noon);
+    expect(planFlavor(falling)).toBe('清淡带果酸');
+    const low = climateFlags(snap({ temperatureC: 31, pressureHpa: 1005 }), noon);
+    expect(planFlavor(low)).toBe('清淡带果酸');
+  });
+
+  it('窗口按国内气压口径', () => {
+    expect(planWindow(climateFlags(snap({ pressureDelta3h: -2 }), dawn))).toBe('气压走低口差');
+    expect(planWindow(climateFlags(snap({ pressureDelta3h: 2 }), dawn))).toBe('气压回升窗口');
+    expect(planWindow(climateFlags(snap({ pressureHpa: 1024, pressureDelta3h: 0.1 }), noon))).toBe(
+      '高压宜守底',
+    );
   });
 });
 

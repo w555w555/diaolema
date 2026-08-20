@@ -32,21 +32,31 @@ describe('buildAdvice', () => {
     expect(a.reasons.some((r) => r.includes('避热'))).toBe(true);
   });
 
-  it('气压急降 → 中上层', () => {
+  it('气压急降 → 中上层找氧、口差', () => {
     const a = buildAdvice(snap({ pressureDelta3h: -2.4, temperatureC: 27 }), dawn);
     expect(a.layer).toBe('中上层');
-    expect(a.baits).toContain('腥香商品饵');
+    expect(a.baits).toContain('轻质拉饵');
+    expect(a.reasons.some((r) => r.includes('口易变差') || r.includes('找氧'))).toBe(true);
+    expect(a.window).toBe('气压走低口差');
   });
 
-  it('高气压稳定 → 底层', () => {
+  it('高气压稳定 → 底层守底', () => {
     const a = buildAdvice(snap({ pressureHpa: 1024, pressureDelta3h: 0.1 }), dawn);
     expect(a.layer).toBe('底层');
     expect(a.method).toMatch(/守底/);
+    expect(a.reasons.some((r) => r.includes('宜守底'))).toBe(true);
   });
 
-  it('低气压 → 中上层', () => {
+  it('低气压 → 中上层找氧口差', () => {
     const a = buildAdvice(snap({ pressureHpa: 1005, pressureDelta3h: 0 }), dawn);
     expect(a.layer).toBe('中上层');
+    expect(a.reasons.some((r) => r.includes('口差'))).toBe(true);
+  });
+
+  it('盛夏正午台钓草鱼改中上层', () => {
+    const a = buildAdvice(snap({ temperatureC: 33 }), noon, { targetFish: '草鱼', style: '台钓' });
+    expect(a.layer).toBe('中上层');
+    expect(a.reasons.some((r) => r.includes('浮钓') || r.includes('中上层'))).toBe(true);
   });
 
   it('默认中下层，降水上调一层', () => {

@@ -33,25 +33,25 @@ export function buildAdvice(
     reasons.push(`盛夏正午气温 ${weather.temperatureC.toFixed(0)}°C，鱼下沉避热`);
   } else if (flags.falling) {
     layer = '中上层';
-    baits = ['腥香商品饵', '活虾', '亮片/米诺', '蚯蚓'];
-    method = '台钓加快抛频 / 路亚搜上层';
-    tip = '气压下降鱼上浮抢食，雾化抽频率，路亚沿水草边搜索。';
-    targetFish = ['翘嘴', '白条', '鲈鱼', '黄颡鱼'];
-    reasons.push(`近 3 小时气压下降 ${Math.abs(weather.pressureDelta3h).toFixed(1)} hPa，鱼易上浮觅食`);
+    baits = ['轻质拉饵', '小钩细线', '蚯蚓', '亮片/米诺'];
+    method = '台钓改浮或半水 / 路亚放慢搜中上';
+    tip = '气压走低鱼上浮找氧，口往往变轻。优先进水口、下风口、水草边，不要当成抢食窗口。';
+    targetFish = ['白条', '翘嘴', '鳊鱼', '草鱼'];
+    reasons.push(`近 3 小时气压下降 ${Math.abs(weather.pressureDelta3h).toFixed(1)} hPa，按国内经验口易变差、鱼可能上浮找氧`);
   } else if (flags.highStable) {
     layer = '底层';
-    baits = ['蚯蚓', '红虫', '腥味搓饵', '小钩细线'];
+    baits = ['蚯蚓', '红虫', '腥味搓饵', '搓饵'];
     method = '传统钓 / 台钓守底';
-    tip = '高气压鱼口轻，铅坠找实底，减少逗引，盯顿口。';
+    tip = '高压稳定相对好钓底，铅坠找实底守钓，鲫鲤黄颡更肯吃。';
     targetFish = ['鲫鱼', '鲤鱼', '黄颡鱼'];
-    reasons.push(`海平面气压 ${weather.pressureHpa.toFixed(0)} hPa 且走势平稳，鱼多贴底`);
+    reasons.push(`海平面气压 ${weather.pressureHpa.toFixed(0)} hPa 且走势平稳，宜守底`);
   } else if (flags.lowPressure) {
     layer = '中上层';
-    baits = ['轻质拉饵', '浮钓草饵', '铅笔/波扒', '活饵'];
-    method = '浮钓 / 路亚表层';
-    tip = '低压氧薄，鱼在中上水层活动，饵要轻、要动。';
+    baits = ['轻质拉饵', '浮钓草饵', '小钩细线', '活饵'];
+    method = '浮钓半水 / 路亚搜中上放慢';
+    tip = '低压易闷，鱼在中上找氧但口差。找进出水口与下风；看见成片浮头就收竿。';
     targetFish = ['白条', '翘嘴', '鳊鱼', '草鱼'];
-    reasons.push(`气压 ${weather.pressureHpa.toFixed(0)} hPa 偏低，中上层更活跃`);
+    reasons.push(`气压 ${weather.pressureHpa.toFixed(0)} hPa 偏低，中上层找氧、口差`);
   } else {
     layer = '中下层';
     baits = ['香腥拉饵', '蚯蚓', '玉米', '螺蛳'];
@@ -90,8 +90,15 @@ export function buildAdvice(
   if (['黑鱼', '鳜鱼', '鲈鱼'].includes(focus) && style === '路亚') {
     layer = flags.hotNoon ? '中下层' : flags.prime ? '上层' : layer;
   }
+  if (focus === '鳜鱼' && style === '路亚' && !flags.prime) {
+    layer = '底层';
+  }
   if ((focus === '翘嘴' || focus === '白条') && style === '路亚' && flags.prime) {
     layer = '上层';
+  }
+  if (flags.hotNoon && style === '台钓' && (focus === '草鱼' || focus === '鳊鱼')) {
+    layer = '中上层';
+    reasons.push(`${focus}夏天中上层更肯吃草，改浮钓或离底`);
   }
 
   const flavor = planFlavor(flags);
