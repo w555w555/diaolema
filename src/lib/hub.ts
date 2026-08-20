@@ -1,4 +1,6 @@
 import raw from '../data/hub.json';
+import { bumpInbox } from './chatInbox';
+import { unionNames } from './cloudMerge';
 import { loadProfile } from './meProfile';
 import type {
   GearReview,
@@ -85,6 +87,12 @@ export function loadWishIds(): string[] {
   return Array.isArray(parsed) ? parsed.filter((id) => typeof id === 'string') : [];
 }
 
+export function unionWishIds(remote: Iterable<string>, current = loadWishIds()): string[] {
+  const next = unionNames(current, remote);
+  writeJson(WISH_KEY, next);
+  return next;
+}
+
 export function toggleWish(productId: string, current = loadWishIds()): string[] {
   const next = current.includes(productId)
     ? current.filter((id) => id !== productId)
@@ -97,6 +105,21 @@ export function messagesForRoom(roomId: string, messages: HubChatMessage[]): Hub
   return messages
     .filter((row) => row.roomId === roomId)
     .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+}
+
+export function mergeThreadMessages(primary: HubChatMessage[], extra: HubChatMessage[]): HubChatMessage[] {
+  const rows = [...primary];
+  const seen = new Set(primary.map((row) => row.id));
+  for (const row of extra) {
+    if (seen.has(row.id)) continue;
+    const duplicate = rows.some(
+      (current) => current.body === row.body && current.author === row.author,
+    );
+    if (duplicate) continue;
+    rows.push(row);
+    seen.add(row.id);
+  }
+  return rows.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 }
 
 export function loadChatMessages(): HubChatMessage[] {
@@ -117,19 +140,38 @@ export function createChatMessage(
     body: input.body,
     source: 'user',
     createdAt: new Date().toISOString(),
+    kind: input.kind,
+    durationMs: input.durationMs,
+    mediaUrl: input.mediaUrl,
+    replyTo: input.replyTo,
   };
 }
 
 export function persistChatMessage(message: HubChatMessage): HubChatMessage[] {
   const stored = [...readJson<HubChatMessage[]>(CHAT_KEY, []).filter((row) => row.id !== message.id), message];
   writeJson(CHAT_KEY, stored);
+  bumpInbox();
   return loadChatMessages();
 }
 
-export function appendChatMessage(roomId: string, body: string): HubChatMessage[] {
+export function appendChatMessage(
+  roomId: string,
+  body: string,
+  extra?: Pick<HubChatMessage, 'kind' | 'durationMs' | 'mediaUrl' | 'replyTo'>,
+): HubChatMessage[] {
   const text = body.trim();
   if (!text) return loadChatMessages();
-  return persistChatMessage(createChatMessage({ roomId, body: text, author: loadProfile().name }));
+  return persistChatMessage(
+    createChatMessage({
+      roomId,
+      body: text,
+      author: loadProfile().name,
+      kind: extra?.kind,
+      durationMs: extra?.durationMs,
+      mediaUrl: extra?.mediaUrl,
+      replyTo: extra?.replyTo,
+    }),
+  );
 }
 
 export function loadGearReviews(): GearReview[] {

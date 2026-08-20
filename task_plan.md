@@ -27,11 +27,17 @@
 | 17. 钓友分享 | complete | 瀑布流 + 本机点赞/关注 |
 | 18. 钓点评分与反馈 | complete | 稀疏评分钉 + VenueDetail |
 | 20. 我的个人中心 | complete | 登录后改昵称/头像；群聊用昵称 |
-| 24. 公网群聊 | complete | Supabase chat_messages + Realtime；需在控制台跑 SQL |
+| 26. 内容互动 + 语音表情 | complete | 评论/转发卡片可点开/真关注/主页；聊天表情与 15s 语音 |
+| 27. 聊天发图 + 会话未读 | complete | `[图片]` 本机图；渔圈会话列表与底栏红点 |
+| 28. 钓点筛选距离 + 举报拉黑 | complete | 类型/营业中/离我近；拉黑隐藏渔获评论私聊 |
+| 29. 渔获多图与短视频 | complete | 最多 9 图；短视频 ≤15 秒；列表角标 |
+| 30. 短视频上传云端 | complete | Storage 公开桶；群聊/分享只存 URL，别人可播 |
+| 31. 聊天引用 + 已读/搜索 | complete | 回复引用；会话/群内搜索；未读「以下为新消息」 |
 | 25. 粉丝互关私聊 | complete | 互关 + 双方允许开关；dm_allows / dm_messages |
 | 21. 手机定位与拍照 | complete | 开屏/+ 定位；识鱼与报渔获拍照 |
 | 22. Zeabur 打包 | complete | GitHub 或 CLI 部署；zbpack + start |
-| 23. 识鱼改到底栏 + | complete | 首页去掉识鱼卡；+ 文案「识鱼」 |
+| 32. 登录拉回 + 评论上云 + 私聊 Realtime + 示例图 | complete | 点赞/关注/想买/评测/拉黑/私聊开关登录合并；share_comments；FanList 用 canOpenFanChat；DM Realtime；public/shares 与 spot-photos |
+| 33. 理由入口 + 选点天气 + 图上云 | complete | 方案「理由」；选点改天气；渔获/聊天图上传 Storage |
 
 ## Decisions
 

@@ -1,6 +1,11 @@
 import { getSupabase } from './supabase';
-import { clipChatAuthor, draftChatBody, mapChatRow, mergeChatMessage } from './hubChat';
+import { clipChatAuthor, draftChatBody, mapChatRow, mergeChatMessage, type ChatSendExtra } from './hubChat';
 import { loadProfile } from './meProfile';
+import { clipVoiceDuration, voiceBody } from './chatVoice';
+import { IMAGE_BODY } from './chatImage';
+import { VIDEO_BODY, cloudMediaUrl } from './userMedia';
+import { clipQuotePreview, encodeQuotedBody } from './chatQuote';
+import { mergeAllowMap } from './cloudMerge';
 import type { HubChatMessage } from '../types';
 
 const ALLOW_KEY = 'diaolema.me.dmAllow.v1';
@@ -15,8 +20,37 @@ export function canStartDirectMessage(input: { mutual: boolean; myAllow: boolean
   return input.mutual && input.myAllow && input.peerAllow;
 }
 
+export function dmAllowOn(peerKey: string, allows: Record<string, boolean>, sample: boolean): boolean {
+  if (Object.prototype.hasOwnProperty.call(allows, peerKey)) return Boolean(allows[peerKey]);
+  return sample;
+}
+
+export function canOpenFanChat(input: {
+  sample: boolean;
+  mutual: boolean;
+  myAllow: boolean;
+  peerAllow: boolean;
+  blocked?: boolean;
+}): boolean {
+  if (input.blocked) return false;
+  if (input.sample) return input.myAllow && input.peerAllow;
+  return canStartDirectMessage(input);
+}
+
 export function dmThreadId(userId: string, peerKey: string): string {
   return `dm:${userId}:${peerKey}`;
+}
+
+export function dmThreadIds(userId: string, peerKey: string): string[] {
+  const mine = dmThreadId(userId, peerKey);
+  const peer = dmThreadId(peerKey, userId);
+  return mine === peer ? [mine] : [mine, peer];
+}
+
+export function applyDmAllows(remote: Record<string, boolean>): Record<string, boolean> {
+  const next = mergeAllowMap(loadDmAllows(), remote);
+  storage()?.setItem(ALLOW_KEY, JSON.stringify(next));
+  return next;
 }
 
 function storage(): Storage | null {
@@ -56,36 +90,82 @@ export async function pushDmAllow(peerKey: string, allowed: boolean): Promise<vo
   if (error) throw error;
 }
 
+const DM_SELECT_QUOTE =
+  'id, thread_id, sender_id, author, body, created_at, kind, duration_ms, media_url, reply_to_id, reply_author, reply_preview';
+const DM_SELECT_FULL = 'id, thread_id, sender_id, author, body, created_at, kind, duration_ms, media_url';
+const DM_SELECT_BASIC = 'id, thread_id, sender_id, author, body, created_at';
+
+function mapDmRow(row: unknown): HubChatMessage | null {
+  if (!row || typeof row !== 'object') return null;
+  const rec = row as Record<string, unknown>;
+  return mapChatRow({
+    id: rec.id as string,
+    room_id: String(rec.thread_id),
+    user_id: String(rec.sender_id),
+    author: String(rec.author ?? ''),
+    body: String(rec.body ?? ''),
+    created_at: String(rec.created_at),
+    kind: typeof rec.kind === 'string' ? rec.kind : undefined,
+    duration_ms: typeof rec.duration_ms === 'number' ? rec.duration_ms : undefined,
+    media_url: typeof rec.media_url === 'string' ? rec.media_url : undefined,
+    reply_to_id: typeof rec.reply_to_id === 'string' ? rec.reply_to_id : undefined,
+    reply_author: typeof rec.reply_author === 'string' ? rec.reply_author : undefined,
+    reply_preview: typeof rec.reply_preview === 'string' ? rec.reply_preview : undefined,
+  });
+}
+
 export async function fetchDmMessages(peerKey: string): Promise<HubChatMessage[]> {
   const supabase = getSupabase();
   if (!supabase) return [];
   const { data: sessionData } = await supabase.auth.getSession();
   const user = sessionData.session?.user;
   if (!user) return [];
-  const threadId = dmThreadId(user.id, peerKey);
-  const { data, error } = await supabase
+  const threadIds = dmThreadIds(user.id, peerKey);
+  const quote = await supabase
     .from('dm_messages')
-    .select('id, thread_id, sender_id, author, body, created_at')
-    .eq('thread_id', threadId)
+    .select(DM_SELECT_QUOTE)
+    .in('thread_id', threadIds)
     .order('created_at', { ascending: true })
     .limit(200);
-  if (error) throw error;
-  return (data ?? [])
-    .map((row) =>
-      mapChatRow({
-        id: row.id,
-        room_id: row.thread_id,
-        user_id: row.sender_id,
-        author: row.author,
-        body: row.body,
-        created_at: row.created_at,
-      }),
-    )
+  const full =
+    quote.error && /reply_to|column|schema cache/i.test(quote.error.message)
+      ? await supabase
+          .from('dm_messages')
+          .select(DM_SELECT_FULL)
+          .in('thread_id', threadIds)
+          .order('created_at', { ascending: true })
+          .limit(200)
+      : quote;
+  const result =
+    full.error && /kind|duration_ms|media_url|column|schema cache/i.test(full.error.message)
+      ? await supabase
+          .from('dm_messages')
+          .select(DM_SELECT_BASIC)
+          .in('thread_id', threadIds)
+          .order('created_at', { ascending: true })
+          .limit(200)
+      : full;
+  if (result.error) throw result.error;
+  return (result.data ?? [])
+    .map((row) => mapDmRow(row))
     .filter((row): row is HubChatMessage => Boolean(row));
 }
 
-export async function sendDmMessage(peerKey: string, raw: string): Promise<HubChatMessage | null> {
-  const body = draftChatBody(raw);
+export async function sendDmMessage(
+  peerKey: string,
+  raw: string,
+  extra?: ChatSendExtra,
+): Promise<HubChatMessage | null> {
+  const body =
+    extra?.kind === 'voice'
+      ? clipVoiceDuration(extra.durationMs ?? 0)
+        ? voiceBody(extra.durationMs ?? 0)
+        : null
+      : extra?.kind === 'image'
+        ? IMAGE_BODY
+        : extra?.kind === 'video'
+          ? VIDEO_BODY
+          : draftChatBody(raw);
   if (!body) return null;
   const supabase = getSupabase();
   if (!supabase) throw new Error('未配置 Supabase。');
@@ -93,25 +173,69 @@ export async function sendDmMessage(peerKey: string, raw: string): Promise<HubCh
   const user = sessionData.session?.user;
   if (!user) throw new Error('请先登录再私聊。');
   const threadId = dmThreadId(user.id, peerKey);
-  const { data, error } = await supabase
-    .from('dm_messages')
-    .insert({
-      thread_id: threadId,
-      sender_id: user.id,
-      author: clipChatAuthor(loadProfile().name),
-      body,
-    })
-    .select('id, thread_id, sender_id, author, body, created_at')
-    .single();
+  const payload: Record<string, unknown> = {
+    thread_id: threadId,
+    sender_id: user.id,
+    author: clipChatAuthor(loadProfile().name),
+    body,
+  };
+  if (extra?.kind) {
+    payload.kind = extra.kind;
+    if (extra.durationMs) payload.duration_ms = extra.durationMs;
+  }
+  const media = cloudMediaUrl(extra?.mediaUrl);
+  if (media) payload.media_url = media;
+  if (extra?.replyTo) {
+    payload.reply_to_id = extra.replyTo.id;
+    payload.reply_author = clipChatAuthor(extra.replyTo.author);
+    payload.reply_preview = clipQuotePreview(extra.replyTo.preview);
+  }
+  const selectCols = extra?.kind || extra?.replyTo ? DM_SELECT_QUOTE : DM_SELECT_BASIC;
+  let data: unknown = null;
+  let error: { message: string } | null = null;
+  const first = await supabase.from('dm_messages').insert(payload).select(selectCols).single();
+  data = first.data;
+  error = first.error;
+  if (error && extra && /kind|duration_ms|media_url|reply_to|schema cache|column/i.test(error.message)) {
+    const fallback = await supabase
+      .from('dm_messages')
+      .insert({
+        thread_id: threadId,
+        sender_id: user.id,
+        author: clipChatAuthor(loadProfile().name),
+        body: extra.replyTo ? encodeQuotedBody(extra.replyTo, body) : body,
+      })
+      .select(DM_SELECT_BASIC)
+      .single();
+    data = fallback.data;
+    error = fallback.error;
+  }
   if (error) throw error;
-  return mapChatRow({
-    id: data.id,
-    room_id: data.thread_id,
-    user_id: data.sender_id,
-    author: data.author,
-    body: data.body,
-    created_at: data.created_at,
-  });
+  return mapDmRow(data);
+}
+
+export function subscribeDmMessages(threadIds: string[], onInsert: (row: HubChatMessage) => void): () => void {
+  const supabase = getSupabase();
+  const ids = [...new Set(threadIds.filter(Boolean))];
+  if (!supabase || !ids.length) return () => undefined;
+  const channels = ids.map((threadId) =>
+    supabase
+      .channel(`dm-chat:${threadId}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'dm_messages', filter: `thread_id=eq.${threadId}` },
+        (payload) => {
+          const mapped = mapDmRow(payload.new);
+          if (mapped) onInsert(mapped);
+        },
+      )
+      .subscribe(),
+  );
+  return () => {
+    channels.forEach((channel) => {
+      void supabase.removeChannel(channel);
+    });
+  };
 }
 
 export { mergeChatMessage };

@@ -1,7 +1,8 @@
 import { venueKindDataUri } from './venueIcons';
 import { escapeHtml } from './caption';
-import { starsHtml } from './spotScore';
-import type { FishingVenue, VenueStatus } from '../types';
+import { distanceKm, formatDistanceKm } from './geo';
+import { rankVenues, starsHtml } from './spotScore';
+import type { CatchReport, FishingVenue, SpotReview, VenueStatus } from '../types';
 import raw from '../data/dianping-venues.json';
 
 type VenueFile = {
@@ -146,4 +147,63 @@ export function venueCaptionHtml(venue: FishingVenue): string {
       <button type="button" data-nav="open" data-vid="${escapeHtml(venue.id)}">打开高德导航</button>
     </div>
   </div>`;
+}
+
+export type VenueKindFilter = 'all' | 'lure' | 'pond' | 'sea';
+export type VenueSort = 'score' | 'near';
+
+export type VenueFilterInput = {
+  query?: string;
+  kind?: VenueKindFilter;
+  openOnly?: boolean;
+  sort?: VenueSort;
+  from?: { lat: number; lon: number };
+};
+
+export function filterVenues(
+  venues: FishingVenue[],
+  reviews: SpotReview[],
+  input: VenueFilterInput = {},
+): FishingVenue[] {
+  let rows = searchVenues(rankVenues(venues, reviews), input.query ?? '');
+  if (input.kind && input.kind !== 'all') {
+    rows = rows.filter((venue) => venueMarkerTone(venue.kind) === input.kind);
+  }
+  if (input.openOnly) {
+    rows = rows.filter((venue) => venue.status === 'open');
+  }
+  if (input.sort === 'near' && input.from) {
+    const from = input.from;
+    return [...rows].sort((a, b) => distanceKm(from, a) - distanceKm(from, b));
+  }
+  return rows;
+}
+
+export function nearbyVenues(current: FishingVenue, all: FishingVenue[], limit = 3): FishingVenue[] {
+  return [...all]
+    .filter((row) => row.id !== current.id)
+    .sort((a, b) => distanceKm(current, a) - distanceKm(current, b))
+    .slice(0, Math.max(0, limit));
+}
+
+function bareVenueName(name: string): string {
+  return name.replace(/（.*?）/g, '').replace(/\(.*?\)/g, '').trim();
+}
+
+export function catchesForVenue(venue: FishingVenue, reports: CatchReport[]): CatchReport[] {
+  const name = venue.name.trim();
+  const bare = bareVenueName(name);
+  const road = venue.addressHint.trim();
+  return reports.filter((row) => {
+    const spot = row.spotName.trim();
+    if (!spot) return false;
+    if (name.includes(spot) || spot.includes(name)) return true;
+    if (bare && (bare.includes(spot) || spot.includes(bare))) return true;
+    if (road && (road === spot || road.includes(spot) || spot.includes(road))) return true;
+    return false;
+  });
+}
+
+export function venueDistanceLabel(venue: Pick<FishingVenue, 'lat' | 'lon'>, fromLat: number, fromLon: number): string {
+  return formatDistanceKm(distanceKm({ lat: fromLat, lon: fromLon }, venue));
 }

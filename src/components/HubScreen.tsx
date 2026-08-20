@@ -1,6 +1,24 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import type { Session } from '@supabase/supabase-js';
+import { saveChatMedia } from '../lib/chatMedia';
+import { IMAGE_BODY } from '../lib/chatImage';
+import {
+  buildInbox,
+  firstUnreadId,
+  loadReads,
+  localDmRoomId,
+  markThreadRead,
+  peekThreadRead,
+  rememberPreviews,
+  searchInbox,
+  searchMessages,
+  subscribeInbox,
+  previewLine,
+  type InboxItem,
+} from '../lib/chatInbox';
+import { dmThreadIds, fetchDmMessages, sendDmMessage, subscribeDmMessages } from '../lib/directChat';
 import { formatRelativeTime } from '../lib/caption';
+import { chatAvatarHue, chatAvatarLetter } from '../lib/chatAvatar';
 import {
   appendChatMessage,
   createGearReview,
@@ -12,25 +30,32 @@ import {
   loadChatMessages,
   loadGearReviews,
   loadWishIds,
+  mergeThreadMessages,
   messagesForRoom,
   persistGearReview,
   roomById,
   toggleWish,
 } from '../lib/hub';
 import {
-  CHAT_BODY_MAX,
   chatLoadErrorMessage,
-  draftChatBody,
   fetchRoomMessages,
   mergeChatMessage,
   sendRoomMessage,
   subscribeRoomMessages,
 } from '../lib/hubChat';
-import { cloudWrite, pushGearReview, pushWish } from '../lib/userCloud';
-import { loadProfile } from '../lib/meProfile';
+import { voiceBody } from '../lib/chatVoice';
+import { prepareChatImage, prepareChatVideo } from '../lib/userMedia';
+import { makeQuote } from '../lib/chatQuote';
+import { cloudWrite, pushFollow, pushGearReview, pushWish } from '../lib/userCloud';
+import { DEMO_FANS, loadProfile, type MeFan } from '../lib/meProfile';
+import { getShareSocial, subscribeShareSocial, toggleFollow } from '../lib/shareSocial';
+import { getSafety, hideByAuthor, hideInboxFromBlocked, subscribeSafety } from '../lib/userSafety';
 import { getSupabase, isSupabaseConfigured } from '../lib/supabase';
 import { reviewCountLabel } from '../lib/spotScore';
-import type { GearReview, HubChatMessage, HubTip, HubView } from '../types';
+import type { CatchReport, ChatQuote, GearReview, HubChatMessage, HubTip, HubView } from '../types';
+import { ChatComposer } from './ChatComposer';
+import { ChatLog } from './ChatLog';
+import { SafetyActions } from './SafetyActions';
 import { SpotStars } from './SpotStars';
 
 const TILES: { view: Exclude<HubView, 'home' | 'chat'>; title: string; short: string }[] = [
@@ -50,15 +75,40 @@ function eventDate(when: string) {
   };
 }
 
-export function HubScreen({ onNeedLogin }: { onNeedLogin?: () => void }) {
+export function HubScreen({
+  reports = [],
+  onNeedLogin,
+  onOpenAuthor,
+  onOpenShare,
+}: {
+  reports?: CatchReport[];
+  onNeedLogin?: () => void;
+  onOpenAuthor?: (name: string) => void;
+  onOpenShare?: (report: CatchReport) => void;
+}) {
   const cloud = isSupabaseConfigured();
   const [view, setView] = useState<HubView>('home');
   const [roomId, setRoomId] = useState<string | null>(null);
+  const [dmPeer, setDmPeer] = useState<MeFan | null>(null);
   const [wish, setWish] = useState(loadWishIds);
   const [messages, setMessages] = useState(loadChatMessages);
+  const [cloudInbox, setCloudInbox] = useState<HubChatMessage[]>([]);
   const [reviews, setReviews] = useState(loadGearReviews);
   const [tipId, setTipId] = useState<string | null>(null);
   const [session, setSession] = useState<Session | null>(null);
+  const safety = useSyncExternalStore(subscribeSafety, getSafety, getSafety);
+  const readStamp = useSyncExternalStore(
+    subscribeInbox,
+    () => {
+      const rows = loadChatMessages();
+      return `${JSON.stringify(loadReads())}|${rows.length}|${rows.at(-1)?.id ?? ''}`;
+    },
+    () => '',
+  );
+
+  useEffect(() => {
+    setMessages(loadChatMessages());
+  }, [readStamp]);
 
   useEffect(() => {
     const supabase = getSupabase();
@@ -71,10 +121,67 @@ export function HubScreen({ onNeedLogin }: { onNeedLogin?: () => void }) {
     return () => data.subscription.unsubscribe();
   }, []);
 
+  useEffect(() => {
+    if (!cloud) return undefined;
+    let cancelled = false;
+    void Promise.all(HUB_ROOMS.map((room) => fetchRoomMessages(room.id).catch(() => [] as HubChatMessage[]))).then(
+      (lists) => {
+        if (cancelled) return;
+        const flat = lists.flat();
+        setCloudInbox(flat);
+        rememberPreviews(
+          HUB_ROOMS.map((room) => messagesForRoom(room.id, flat).at(-1)).filter((row): row is HubChatMessage => Boolean(row)),
+        );
+      },
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [cloud, view]);
+
+  const inbox = useMemo(() => {
+    const seen = new Set<string>();
+    const pool: HubChatMessage[] = [];
+    for (const row of [...messages, ...cloudInbox]) {
+      if (seen.has(row.id)) continue;
+      seen.add(row.id);
+      pool.push(row);
+    }
+    return hideInboxFromBlocked(
+      buildInbox({
+        rooms: HUB_ROOMS,
+        messages: hideByAuthor(pool, safety.blocks),
+        fans: DEMO_FANS.map((fan) => ({ id: fan.id, name: fan.name })),
+        reads: loadReads(),
+        myUserId: session?.user?.id ?? null,
+        cloud,
+      }),
+      safety.blocks,
+    );
+  }, [messages, cloudInbox, session?.user?.id, cloud, readStamp, safety]);
+
+  const openThread = (item: InboxItem) => {
+    if (item.kind === 'dm' && item.peerId) {
+      setDmPeer(
+        DEMO_FANS.find((fan) => fan.id === item.peerId) ?? {
+          id: item.peerId,
+          name: item.title,
+          city: '上海',
+          note: '',
+        },
+      );
+    } else {
+      setDmPeer(null);
+    }
+    setRoomId(item.id);
+    setView('chat');
+  };
+
   const back = () => {
     if (view === 'chat') {
       setView('community');
       setRoomId(null);
+      setDmPeer(null);
       return;
     }
     if (view === 'tips' && tipId) {
@@ -88,8 +195,10 @@ export function HubScreen({ onNeedLogin }: { onNeedLogin?: () => void }) {
     view === 'home'
       ? '渔圈'
       : view === 'chat'
-        ? (roomById(roomId ?? '')?.name ?? '群聊')
-        : TILES.find((row) => row.view === view)?.title ?? '渔圈';
+        ? (dmPeer?.name ?? roomById(roomId ?? '')?.name ?? '聊天')
+        : view === 'community'
+          ? '消息'
+          : TILES.find((row) => row.view === view)?.title ?? '渔圈';
 
   return (
     <div className={`page-scroll hub-page${view === 'chat' ? ' is-chat' : ''}`}>
@@ -114,14 +223,12 @@ export function HubScreen({ onNeedLogin }: { onNeedLogin?: () => void }) {
 
       {view === 'home' ? (
         <HubHome
+          inbox={inbox}
           onOpen={(next) => {
             setTipId(null);
             setView(next);
           }}
-          onOpenRoom={(id) => {
-            setRoomId(id);
-            setView('chat');
-          }}
+          onOpenThread={openThread}
           onOpenTip={(id) => {
             setTipId(id);
             setView('tips');
@@ -149,25 +256,23 @@ export function HubScreen({ onNeedLogin }: { onNeedLogin?: () => void }) {
           }}
         />
       ) : null}
-      {view === 'community' ? (
-        <Community
-          cloud={cloud}
-          onOpen={(id) => {
-            setRoomId(id);
-            setView('chat');
-          }}
-        />
-      ) : null}
+      {view === 'community' ? <InboxList rows={inbox} onOpen={openThread} searchable /> : null}
       {view === 'chat' && roomId ? (
         <Chat
           key={roomId}
-          roomId={roomId}
+          roomId={dmPeer ? localDmRoomId(dmPeer.id) : roomId}
+          dmPeer={dmPeer}
           cloud={cloud}
           signedIn={Boolean(session?.user)}
           localMessages={messages}
+          reports={reports}
           myUserId={session?.user?.id ?? null}
-          onLocalSend={(body) => setMessages(appendChatMessage(roomId, body))}
+          onLocalSend={(body, extra) =>
+            setMessages(appendChatMessage(dmPeer ? localDmRoomId(dmPeer.id) : roomId, body, extra))
+          }
           onNeedLogin={onNeedLogin}
+          onOpenAuthor={onOpenAuthor}
+          onOpenShare={onOpenShare}
         />
       ) : null}
     </div>
@@ -229,12 +334,14 @@ function HubIcon({ kind }: { kind: (typeof TILES)[number]['view'] }) {
 }
 
 function HubHome({
+  inbox,
   onOpen,
-  onOpenRoom,
+  onOpenThread,
   onOpenTip,
 }: {
+  inbox: InboxItem[];
   onOpen: (view: Exclude<HubView, 'home' | 'chat'>) => void;
-  onOpenRoom: (roomId: string) => void;
+  onOpenThread: (item: InboxItem) => void;
   onOpenTip: (id: string) => void;
 }) {
   const feature = HUB_EVENTS[0];
@@ -316,25 +423,13 @@ function HubHome({
       <section className="hub-block">
         <header className="hub-sec">
           <h3>
-            社区在聊<em>{HUB_ROOMS.length}</em>
+            消息<em>{inbox.reduce((sum, row) => sum + row.unread, 0)}</em>
           </h3>
           <button type="button" className="share-more" onClick={() => onOpen('community')}>
-            进群 ›
+            全部 ›
           </button>
         </header>
-        <ul className="hub-rooms">
-          {HUB_ROOMS.slice(0, 3).map((room, index) => (
-            <li key={room.id}>
-              <button type="button" data-tone={index === 0 ? 'live' : 'dim'} onClick={() => onOpenRoom(room.id)}>
-                <em>{room.members}</em>
-                <div>
-                  <strong>{room.name}</strong>
-                  <span>{room.topic}</span>
-                </div>
-              </button>
-            </li>
-          ))}
-        </ul>
+        <InboxList rows={inbox} onOpen={onOpenThread} />
       </section>
 
       <section className="hub-block">
@@ -507,78 +602,160 @@ function Reviews({
   );
 }
 
-function Community({ cloud, onOpen }: { cloud: boolean; onOpen: (roomId: string) => void }) {
+function InboxList({
+  rows,
+  onOpen,
+  searchable = false,
+}: {
+  rows: InboxItem[];
+  onOpen: (item: InboxItem) => void;
+  searchable?: boolean;
+}) {
+  const [query, setQuery] = useState('');
+  const visible = searchInbox(rows, query);
   return (
-    <ul className="hub-cards">
-      {HUB_ROOMS.map((room) => (
-        <li key={room.id}>
-          <button type="button" className="hub-card hub-open" onClick={() => onOpen(room.id)}>
-            <p className="share-kicker">{room.members} 人 · {cloud ? '公网群聊' : '本机群聊'}</p>
-            <strong>{room.name}</strong>
-            <span>{room.topic}</span>
+    <>
+      {searchable ? (
+        <input
+          className="hub-chat-search"
+          value={query}
+          onChange={(ev) => setQuery(ev.target.value)}
+          placeholder="搜索会话"
+        />
+      ) : null}
+      {searchable && query.trim() && visible.length === 0 ? <p className="muted">没有匹配的会话。</p> : null}
+      <ul className="hub-inbox">
+        {visible.map((row) => (
+        <li key={row.id}>
+          <button type="button" onClick={() => onOpen(row)}>
+            <i className="hub-chat-avatar" style={{ background: `hsl(${chatAvatarHue(row.title)} 42% 28%)` }} aria-hidden>
+              {chatAvatarLetter(row.title)}
+            </i>
+            <div>
+              <strong>
+                {row.title}
+                {row.kind === 'dm' ? <em>私聊</em> : null}
+              </strong>
+              <span>{row.preview}</span>
+            </div>
+            <b>
+              {row.at ? formatRelativeTime(row.at) : ''}
+              {row.unread > 0 ? <i>{row.unread > 99 ? '99+' : row.unread}</i> : null}
+            </b>
           </button>
         </li>
       ))}
     </ul>
+    </>
   );
 }
 
 function Chat({
   roomId,
+  dmPeer,
   cloud,
   signedIn,
   localMessages,
+  reports,
   myUserId,
   onLocalSend,
   onNeedLogin,
+  onOpenAuthor,
+  onOpenShare,
 }: {
   roomId: string;
+  dmPeer: MeFan | null;
   cloud: boolean;
   signedIn: boolean;
   localMessages: HubChatMessage[];
+  reports: CatchReport[];
   myUserId: string | null;
-  onLocalSend: (body: string) => void;
+  onLocalSend: (body: string, extra?: Pick<HubChatMessage, 'kind' | 'durationMs' | 'mediaUrl' | 'replyTo'>) => void;
   onNeedLogin?: () => void;
+  onOpenAuthor?: (name: string) => void;
+  onOpenShare?: (report: CatchReport) => void;
 }) {
-  const [draft, setDraft] = useState('');
   const [cloudMessages, setCloudMessages] = useState<HubChatMessage[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [sendError, setSendError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
+  const [pendingMention, setPendingMention] = useState('');
+  const [quote, setQuote] = useState<ChatQuote | null>(null);
+  const [seeking, setSeeking] = useState(false);
+  const [query, setQuery] = useState('');
+  const [highlightId, setHighlightId] = useState<string | null>(null);
+  const openedReadAt = useRef(peekThreadRead(roomId));
   const room = roomById(roomId);
   const nickname = loadProfile().name;
-  const messages = cloud ? cloudMessages : localMessages;
-  const rows = useMemo(() => messagesForRoom(roomId, messages), [roomId, messages]);
+  const myAvatar = loadProfile().avatarUrl;
+  const social = useSyncExternalStore(subscribeShareSocial, getShareSocial);
+  const [peer, setPeer] = useState<{ name: string; sample: boolean; mine: boolean } | null>(null);
+  const isDm = Boolean(dmPeer);
+  const cloudRows = useMemo(() => messagesForRoom(roomId, cloudMessages), [roomId, cloudMessages]);
+  const localRows = useMemo(() => messagesForRoom(roomId, localMessages), [roomId, localMessages]);
+  const rows = useMemo(() => {
+    if (!cloud) return localRows;
+    if (isDm && !(cloud && signedIn)) return localRows;
+    if (cloudRows.length === 0) return localRows;
+    return mergeThreadMessages(
+      cloudRows,
+      localRows.filter((row) => row.source === 'user'),
+    );
+  }, [cloud, isDm, signedIn, cloudRows, localRows]);
+  const unreadId = firstUnreadId(rows, openedReadAt.current, myUserId, cloud);
+  const hits = useMemo(() => (seeking ? searchMessages(rows, query) : []), [seeking, rows, query]);
   const canSend = cloud ? signedIn : true;
+  const following = peer ? social.follows.includes(peer.name) : false;
+
+  useEffect(() => {
+    markThreadRead(roomId);
+  }, [roomId]);
+
+  const lastId = rows.at(-1)?.id;
+  useEffect(() => {
+    const last = rows.at(-1);
+    if (last) rememberPreviews([last]);
+    // lastId is enough: new array identity must not rewrite previews.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lastId]);
 
   useEffect(() => {
     if (!cloud) return undefined;
     let cancelled = false;
     setLoadError(null);
     setCloudMessages([]);
-    void fetchRoomMessages(roomId)
+    const load = isDm && dmPeer
+      ? fetchDmMessages(dmPeer.id)
+      : fetchRoomMessages(roomId);
+    void load
       .then((next) => {
         if (!cancelled) setCloudMessages(next);
       })
       .catch((err: unknown) => {
-        if (!cancelled) setLoadError(chatLoadErrorMessage(err));
+        if (!cancelled) setLoadError(chatLoadErrorMessage(err).replace('群聊', isDm ? '私聊' : '群聊'));
       });
-    const stop = subscribeRoomMessages(roomId, (row) => {
-      setCloudMessages((current) => mergeChatMessage(current, row));
-    });
+    const stop =
+      isDm && dmPeer && myUserId
+        ? subscribeDmMessages(dmThreadIds(myUserId, dmPeer.id), (row) => {
+            setCloudMessages((current) => mergeChatMessage(current, row));
+          })
+        : isDm
+          ? () => undefined
+          : subscribeRoomMessages(roomId, (row) => {
+              setCloudMessages((current) => mergeChatMessage(current, row));
+            });
     return () => {
       cancelled = true;
       stop();
     };
-  }, [cloud, roomId]);
+  }, [cloud, roomId, isDm, dmPeer, myUserId]);
 
-  const submit = async () => {
-    const body = draftChatBody(draft);
-    if (!body) return;
+  const pushOut = async (body: string, extra?: Pick<HubChatMessage, 'kind' | 'durationMs' | 'mediaUrl' | 'replyTo'>) => {
     setSendError(null);
+    const packed = { ...extra, replyTo: extra?.replyTo ?? quote ?? undefined };
     if (!cloud) {
-      onLocalSend(draft);
-      setDraft('');
+      onLocalSend(body, packed);
+      setQuote(null);
       return;
     }
     if (!signedIn) {
@@ -587,9 +764,18 @@ function Chat({
     }
     setSending(true);
     try {
-      const row = await sendRoomMessage(roomId, draft);
-      if (row) setCloudMessages((current) => mergeChatMessage(current, row));
-      setDraft('');
+      const row = isDm && dmPeer
+        ? await sendDmMessage(dmPeer.id, body, packed)
+        : await sendRoomMessage(roomId, body, packed);
+      if (row) {
+        const next = packed.mediaUrl || packed.replyTo
+          ? { ...row, mediaUrl: packed.mediaUrl ?? row.mediaUrl, kind: packed.kind ?? row.kind, replyTo: packed.replyTo ?? row.replyTo }
+          : row;
+        if (packed.mediaUrl?.startsWith('data:')) saveChatMedia(next.id, packed.mediaUrl);
+        setCloudMessages((current) => mergeChatMessage(current, next));
+        rememberPreviews([{ ...next, roomId }]);
+        setQuote(null);
+      }
     } catch {
       setSendError('发送失败');
     } finally {
@@ -600,52 +786,151 @@ function Chat({
   return (
     <div className="hub-chat">
       <p className="muted">
-        {room?.topic}
-        {cloud ? ` · 以「${nickname}」发送 · 公网群聊` : ` · 以「${nickname}」发送 · 消息只留在本机`}
+        {isDm ? `与 ${dmPeer?.name} 私聊` : room?.topic}
+        {cloud ? ` · 以「${nickname}」发送 · ${isDm ? '私聊' : '公网群聊'}` : ` · 以「${nickname}」发送 · 消息只留在本机`}
+        <button type="button" className="ghost hub-chat-search-toggle" onClick={() => setSeeking((open) => !open)}>
+          {seeking ? '关闭搜索' : '搜索'}
+        </button>
       </p>
+      {seeking ? (
+        <div className="hub-chat-seek">
+          <input
+            className="hub-chat-search"
+            value={query}
+            onChange={(ev) => setQuery(ev.target.value)}
+            placeholder="搜作者或口讯"
+          />
+          {query.trim() ? (
+            hits.length ? (
+              <ul className="hub-chat-hits">
+                {hits.slice(0, 8).map((row) => (
+                  <li key={row.id}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setHighlightId(row.id);
+                      }}
+                    >
+                      <strong>{row.author}</strong>
+                      <span>{previewLine(row)}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="muted">没有匹配的口讯。</p>
+            )
+          ) : null}
+        </div>
+      ) : null}
       {loadError ? <p className="hub-chat-error">{loadError}</p> : null}
-      <ul className="hub-chat-log">
-        {rows.map((row) => {
-          const mine = cloud ? Boolean(row.userId && myUserId && row.userId === myUserId) : row.source === 'user';
-          return (
-            <li key={row.id} data-mine={mine ? 'true' : 'false'}>
-              <strong>
-                {row.author}
-                {row.source !== 'user' ? ' · 示例' : ''}
-              </strong>
-              <p>{row.body}</p>
-              <em>{formatRelativeTime(row.createdAt)}</em>
-            </li>
-          );
-        })}
-      </ul>
-      {cloud && !loadError && rows.length === 0 ? <p className="muted">还没有口讯。</p> : null}
-      <form
-        className="hub-chat-form"
-        onSubmit={(ev) => {
-          ev.preventDefault();
-          void submit();
+      <ChatLog
+        rows={rows}
+        reports={reports}
+        myUserId={myUserId}
+        cloud={cloud}
+        unreadId={unreadId}
+        highlightId={highlightId}
+        onAvatar={(row, mine) => setPeer({ name: row.author, sample: row.source !== 'user', mine })}
+        onFollow={(name) => {
+          const next = toggleFollow(name);
+          cloudWrite(pushFollow(name, next.follows.includes(name)));
         }}
-      >
-        <input
-          value={draft}
-          maxLength={CHAT_BODY_MAX}
-          disabled={cloud && !signedIn}
-          onChange={(ev) => setDraft(ev.target.value)}
-          placeholder={cloud && !signedIn ? '登录后才能发言' : '说一句口讯…'}
-        />
-        {cloud && !signedIn ? (
-          <button type="button" onClick={() => onNeedLogin?.()}>
-            去登录
-          </button>
-        ) : (
-          <button type="submit" disabled={sending}>
-            发送
-          </button>
-        )}
-      </form>
+        onMention={(name) => setPendingMention(`@${name} `)}
+        onReply={(row) => setQuote(makeQuote(row))}
+        onOpenShare={onOpenShare}
+      />
+      {cloud && !loadError && rows.length === 0 ? <p className="muted">还没有口讯。</p> : null}
+      {peer ? (
+        <div className="hub-member" role="presentation" onClick={() => setPeer(null)}>
+          <div
+            className="hub-member-card"
+            role="dialog"
+            aria-label={`${peer.name}的名片`}
+            onClick={(ev) => ev.stopPropagation()}
+          >
+            <i className="hub-chat-avatar" style={{ background: `hsl(${chatAvatarHue(peer.name)} 42% 28%)` }} aria-hidden>
+              {peer.mine && myAvatar ? <img src={myAvatar} alt="" /> : chatAvatarLetter(peer.name)}
+            </i>
+            <strong>{peer.name}</strong>
+            <span>{peer.sample ? '示例钓友' : peer.mine ? '我' : '群成员'}</span>
+            {!peer.mine ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = toggleFollow(peer.name);
+                    cloudWrite(pushFollow(peer.name, next.follows.includes(peer.name)));
+                  }}
+                >
+                  {following ? '取消关注' : '关注'}
+                </button>
+                <button
+                  type="button"
+                  className="ghost"
+                  onClick={() => {
+                    setPendingMention(`@${peer.name} `);
+                    setPeer(null);
+                  }}
+                >
+                  @TA
+                </button>
+                <button
+                  type="button"
+                  className="ghost"
+                  onClick={() => {
+                    onOpenAuthor?.(peer.name);
+                    setPeer(null);
+                  }}
+                >
+                  主页
+                </button>
+                <SafetyActions name={peer.name} />
+              </>
+            ) : null}
+            <button type="button" className="ghost" onClick={() => setPeer(null)}>
+              关闭
+            </button>
+          </div>
+        </div>
+      ) : null}
+      {pendingMention ? <p className="muted">将发送：{pendingMention}…</p> : null}
+      <ChatComposer
+        canSend={canSend}
+        sending={sending}
+        placeholder={cloud && !signedIn ? '登录后才能发言' : '说一句口讯…'}
+        quote={quote}
+        onClearQuote={() => setQuote(null)}
+        onNeedLogin={onNeedLogin}
+        onSendText={(body) => {
+          const text = `${pendingMention}${body}`;
+          setPendingMention('');
+          return pushOut(text);
+        }}
+        onSendSticker={(glyph) => pushOut(glyph, { kind: 'sticker' })}
+        onSendVoice={(ms, dataUrl) => pushOut(voiceBody(ms), { kind: 'voice', durationMs: ms, mediaUrl: dataUrl })}
+        onSendImage={async (dataUrl) => {
+          setSending(true);
+          try {
+            const mediaUrl = await prepareChatImage(dataUrl);
+            await pushOut(IMAGE_BODY, { kind: 'image', mediaUrl });
+          } catch (err) {
+            setSendError(err instanceof Error ? err.message : '图片发送失败');
+            setSending(false);
+          }
+        }}
+        onSendVideo={async (file, ms) => {
+          setSending(true);
+          try {
+            const next = await prepareChatVideo(file, ms);
+            await pushOut(next.body, { kind: 'video', durationMs: next.durationMs, mediaUrl: next.mediaUrl });
+          } catch (err) {
+            setSendError(err instanceof Error ? err.message : '视频发送失败');
+            setSending(false);
+          }
+        }}
+      />
       {sendError ? <p className="hub-chat-error">{sendError}</p> : null}
-      {canSend ? null : <p className="muted">去「我的」登录后再发言。</p>}
     </div>
   );
 }

@@ -49,6 +49,8 @@ export type CatchReport = {
   title?: string;
   sourceUrl?: string;
   imageUrl?: string;
+  imageUrls?: string[];
+  videoUrl?: string;
 };
 
 export type VenueStatus = 'open' | 'paused' | 'closed' | 'unknown';
@@ -150,6 +152,12 @@ export type HubRoom = {
   members: number;
 };
 
+export type ChatQuote = {
+  id: string;
+  author: string;
+  preview: string;
+};
+
 export type HubChatMessage = {
   id: string;
   roomId: string;
@@ -158,6 +166,10 @@ export type HubChatMessage = {
   createdAt: string;
   source: 'seed' | 'user';
   userId?: string;
+  kind?: 'text' | 'voice' | 'sticker' | 'share' | 'image' | 'video';
+  durationMs?: number;
+  mediaUrl?: string;
+  replyTo?: ChatQuote;
 };
 
 export type SeedHubChatMessage = Omit<HubChatMessage, 'createdAt'> & { hoursAgo: number };

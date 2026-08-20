@@ -4,7 +4,7 @@ import { buildAmapNavUrl } from '../lib/navigation';
 import { createSpotReview, persistSpotReview } from '../lib/spotReviews';
 import { cloudWrite, pushSpotReview } from '../lib/userCloud';
 import { coverPhotoForVenue, reviewCountLabel, reviewsForVenue, scoreForVenue } from '../lib/spotScore';
-import { venueAvatar, venueSourceLabel } from '../lib/venues';
+import { DIANPING_VENUES, catchesForVenue, nearbyVenues, venueAvatar, venueDistanceLabel, venueSourceLabel } from '../lib/venues';
 import { SpotStars } from './SpotStars';
 import type { CatchReport, FishingVenue, SpotReview } from '../types';
 
@@ -16,6 +16,7 @@ type Props = {
   fromLon: number;
   onReviewsChange: (next: SpotReview[]) => void;
   onPreviewRoute: () => void;
+  onOpenVenue?: (venue: FishingVenue) => void;
 };
 
 export function VenueDetail({
@@ -26,23 +27,24 @@ export function VenueDetail({
   fromLon,
   onReviewsChange,
   onPreviewRoute,
+  onOpenVenue,
 }: Props) {
   const items = reviewsForVenue(venue.id, reviews);
   const score = scoreForVenue(venue.id, reviews);
   const photos = items.filter((row) => row.imageUrl);
   const cover = coverPhotoForVenue(venue.id, reviews);
-  const catches = reports.filter(
-    (row) => venue.name.includes(row.spotName) || row.spotName.includes(venue.name.replace(/（.*?）/g, '').slice(0, 4)),
-  );
+  const catches = catchesForVenue(venue, reports);
+  const nearby = nearbyVenues(venue, DIANPING_VENUES, 3);
   const [rating, setRating] = useState<1 | 2 | 3 | 4 | 5>(5);
   const [body, setBody] = useState('');
+  const [copied, setCopied] = useState(false);
+  const address = `${venue.district}${venue.addressHint ? ` · ${venue.addressHint}` : ''}`;
 
   return (
     <article className="spot-detail">
       <img className="spot-hero" data-logo={cover ? 'false' : 'true'} src={venueAvatar(cover)} alt="" />
       <p className="share-kicker">
-        {venue.district}
-        {venue.addressHint ? ` · ${venue.addressHint}` : ''} · {venue.kind}
+        {venueDistanceLabel(venue, fromLat, fromLon)} · {address} · {venue.kind}
       </p>
       <h3>{venue.name}</h3>
       <p className="spot-score-line">
@@ -73,6 +75,18 @@ export function VenueDetail({
         <button type="button" className="ghost" onClick={onPreviewRoute}>
           看路线
         </button>
+        <button
+          type="button"
+          className="ghost"
+          onClick={() => {
+            void navigator.clipboard.writeText(`${venue.name} ${address}`).then(
+              () => setCopied(true),
+              () => setCopied(false),
+            );
+          }}
+        >
+          {copied ? '已复制地址' : '复制地址'}
+        </button>
       </div>
 
       {photos.length > 0 ? (
@@ -84,6 +98,20 @@ export function VenueDetail({
           ))}
         </ul>
       ) : null}
+
+      <h4>附近钓场</h4>
+      <ul className="spot-nearby">
+        {nearby.map((row) => (
+          <li key={row.id}>
+            <button type="button" className="ghost" onClick={() => onOpenVenue?.(row)}>
+              {row.name}
+              <span>
+                {venueDistanceLabel(row, venue.lat, venue.lon)} · {row.district}
+              </span>
+            </button>
+          </li>
+        ))}
+      </ul>
 
       <h4>客户反馈</h4>
       {items.length === 0 ? (

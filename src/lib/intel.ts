@@ -17,6 +17,8 @@ function fromSeed(rows: SeedCatch[], now = new Date()): CatchReport[] {
     title: row.title,
     sourceUrl: row.sourceUrl,
     imageUrl: row.imageUrl,
+    imageUrls: row.imageUrls,
+    videoUrl: row.videoUrl,
     caughtAt: new Date(now.getTime() - row.hoursAgo * 3600 * 1000).toISOString(),
   }));
 }

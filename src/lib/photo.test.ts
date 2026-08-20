@@ -15,4 +15,19 @@ describe('stripInlineImage', () => {
       imageUrl: 'https://example.com/a.jpg',
     });
   });
+
+  it('多图和视频的 data URL 也去掉', () => {
+    expect(
+      stripInlineImage({
+        fish: '鲈鱼',
+        imageUrl: '/shares/a.png',
+        imageUrls: ['data:image/jpeg;base64,xx', '/shares/b.png'],
+        videoUrl: 'data:video/mp4;base64,yy',
+      }),
+    ).toEqual({
+      fish: '鲈鱼',
+      imageUrl: '/shares/a.png',
+      imageUrls: ['/shares/b.png'],
+    });
+  });
 });

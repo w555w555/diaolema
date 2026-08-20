@@ -41,3 +41,26 @@ create policy dm_messages_insert on public.dm_messages
 
 grant select, insert, update, delete on table public.dm_allows to authenticated;
 grant select, insert on table public.dm_messages to authenticated;
+
+drop policy if exists dm_messages_select on public.dm_messages;
+create policy dm_messages_select on public.dm_messages
+  for select to authenticated
+  using (
+    thread_id like ('dm:' || auth.uid()::text || ':%')
+    or thread_id like ('dm:%:' || auth.uid()::text)
+  );
+
+do $$
+begin
+  if to_regclass('public.dm_messages') is null then
+    return;
+  end if;
+  execute 'alter table public.dm_messages replica identity full';
+  begin
+    execute 'alter publication supabase_realtime add table public.dm_messages';
+  exception
+    when duplicate_object then null;
+    when undefined_object then null;
+  end;
+end
+$$;

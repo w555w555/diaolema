@@ -13,6 +13,10 @@ describe('shareCover', () => {
     expect(shareCover({ fish: '鲈鱼', imageUrl: 'https://example.com/lu.jpg' })).toBe('https://example.com/lu.jpg');
   });
 
+  it('多图时封面用第一张', () => {
+    expect(shareCover({ fish: '鲈鱼', imageUrls: ['/shares/a.png', '/shares/b.png'] })).toBe('/shares/a.png');
+  });
+
   it('摘要去掉示例声明并截断', () => {
     expect(shareExcerpt('湖湾拉饵。示例短文，仅供界面演示。')).toBe('湖湾拉饵。');
   });

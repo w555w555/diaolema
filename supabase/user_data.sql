@@ -25,6 +25,9 @@ create table if not exists public.catch_reports (
   caught_at timestamptz not null
 );
 
+alter table public.catch_reports add column if not exists video_url text;
+alter table public.catch_reports add column if not exists image_urls text;
+
 create table if not exists public.share_likes (
   user_id uuid not null references auth.users (id) on delete cascade,
   report_id text not null,

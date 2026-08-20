@@ -32,6 +32,7 @@
     "src/lib/scout/runDaily.ts",
     "src/lib/scout/cli.ts",
     "src/lib/scout/extractPublic.ts",
-    "src/lib/scout/extractPublic.test.ts"
+    "src/lib/scout/extractPublic.test.ts",
+    "src/lib/seedMedia.test.ts"
   ]
 }

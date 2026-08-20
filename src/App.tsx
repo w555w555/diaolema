@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { AdvicePanel } from './components/AdvicePanel';
 import { BottomNav, type TabId } from './components/BottomNav';
 import { CatchMap } from './components/CatchMap';
 import { DailyReport } from './components/DailyReport';
 import { FishIdPanel } from './components/FishIdPanel';
+import { AuthorProfile } from './components/AuthorProfile';
 import { CatchShareDetail } from './components/CatchShareFeed';
 import { HomeScreen, TargetFishSheet, FishGuidePanel, type HomeSheet } from './components/HomeScreen';
 import { HubScreen } from './components/HubScreen';
@@ -18,15 +19,43 @@ import { WeatherPanel } from './components/WeatherPanel';
 import { buildAdvice } from './lib/advice';
 import { buildFishingIndex } from './lib/fishingIndex';
 import { createUserReport, loadReports, loadServerReports, mergeReports, persistReport, persistReportToServer } from './lib/intel';
-import { cloudWrite, pullCatches, pushCatch } from './lib/userCloud';
+import { cloudWrite, hydrateLocalFromCloud, pullCatches, pullPublicCatches, publishCatchImages, publishCatchVideo, pushCatch } from './lib/userCloud';
 import { getSupabase, hydrateSupabaseConfig } from './lib/supabase';
 import { requestCurrentPosition } from './lib/geo';
 import { DIANPING_VENUES } from './lib/venues';
 import { loadSpotReviews } from './lib/spotReviews';
 import { coerceFishForStyle } from './lib/fishId/catalog';
+import { HUB_ROOMS, loadChatMessages } from './lib/hub';
+import { buildInbox, inboxUnreadTotal, loadPreviews, loadReads, subscribeInbox } from './lib/chatInbox';
+import { DEMO_FANS } from './lib/meProfile';
 import { fetchWeather } from './lib/weather';
-import { SHANGHAI_CENTER, type CatchReport, type FishStyle, type FishingVenue, type SpotReview, type WeatherSnapshot } from './types';
+import { getSafety, hideByAuthor, hideInboxFromBlocked } from './lib/userSafety';
+import { SHANGHAI_CENTER, type CatchReport, type FishStyle, type FishingVenue, type HubChatMessage, type SpotReview, type WeatherSnapshot } from './types';
 import './index.css';
+
+function hubUnreadSnapshot() {
+  const seen = new Set<string>();
+  const pool: HubChatMessage[] = [];
+  for (const row of [...loadChatMessages(), ...loadPreviews()]) {
+    if (seen.has(row.id)) continue;
+    seen.add(row.id);
+    pool.push(row);
+  }
+  const blocked = getSafety().blocks;
+  return inboxUnreadTotal(
+    hideInboxFromBlocked(
+      buildInbox({
+        rooms: HUB_ROOMS,
+        messages: hideByAuthor(pool, blocked),
+        fans: DEMO_FANS.map((fan) => ({ id: fan.id, name: fan.name })),
+        reads: loadReads(),
+        myUserId: null,
+        cloud: false,
+      }),
+      blocked,
+    ),
+  );
+}
 
 const SHEET_TITLE: Record<HomeSheet, string> = {
   advice: '今日怎么钓',
@@ -38,10 +67,12 @@ const SHEET_TITLE: Record<HomeSheet, string> = {
   guide: '鱼类介绍',
   catch: '渔获分享',
   spot: '钓点详情',
+  author: '钓友主页',
 };
 
 export function App() {
   const [tab, setTab] = useState<TabId>('home');
+  const hubUnread = useSyncExternalStore(subscribeInbox, hubUnreadSnapshot, () => 0);
   const [sheet, setSheet] = useState<HomeSheet | null>(null);
   const [coords, setCoords] = useState(SHANGHAI_CENTER);
   const [weather, setWeather] = useState<WeatherSnapshot | null>(null);
@@ -55,6 +86,7 @@ export function App() {
   const [targetFish, setTargetFish] = useState('');
   const [style, setStyle] = useState<FishStyle>('台钓');
   const [share, setShare] = useState<CatchReport | null>(null);
+  const [authorName, setAuthorName] = useState<string | null>(null);
   const [splash, setSplash] = useState(true);
   const [spotReviews, setSpotReviews] = useState<SpotReview[]>(() => loadSpotReviews());
   const [spotVisit, setSpotVisit] = useState(0);
@@ -136,8 +168,15 @@ export function App() {
             setReports(loadReports());
           })
           .catch(() => undefined);
+        void hydrateLocalFromCloud().catch(() => undefined);
       });
       unsubscribe = () => data.subscription.unsubscribe();
+      void pullPublicCatches()
+        .then((rows) => {
+          if (cancelled || !rows.length) return;
+          setReports((current) => mergeReports(current, rows));
+        })
+        .catch(() => undefined);
     });
     return () => {
       cancelled = true;
@@ -148,8 +187,17 @@ export function App() {
   const saveReport = (input: Omit<CatchReport, 'id' | 'caughtAt' | 'source'> & { source?: CatchReport['source'] }) => {
     const report = createUserReport(input);
     setReports(persistReport(report));
-    void persistReportToServer(report);
-    cloudWrite(pushCatch(report));
+    void (async () => {
+      try {
+        const published = await publishCatchImages(await publishCatchVideo(report));
+        setReports(persistReport(published));
+        void persistReportToServer(published);
+        cloudWrite(pushCatch(published));
+      } catch {
+        void persistReportToServer(report);
+        cloudWrite(pushCatch(report));
+      }
+    })();
     setMeStart('catches');
     setTab('me');
   };
@@ -194,7 +242,9 @@ export function App() {
                 setSheet('venues');
               }}
               onPick={(lat, lon) => {
-                setPick({ lat, lon });
+                const next = { lat, lon };
+                setPick(next);
+                setCoords(next);
                 setPicking(false);
                 setTab('publish');
               }}
@@ -254,17 +304,34 @@ export function App() {
 
           {tab === 'hub' && (
             <HubScreen
+              reports={reports}
               onNeedLogin={() => {
                 setMeStart('auth');
                 setTab('me');
+              }}
+              onOpenAuthor={(name) => {
+                setAuthorName(name);
+                setSheet('author');
+              }}
+              onOpenShare={(report) => {
+                setShare(report);
+                setSheet('catch');
               }}
             />
           )}
 
           {tab === 'me' && (
             <MeScreen
-              key={meStart}
               startView={meStart}
+              onAuthDone={() => setMeStart('home')}
+              onOpenAuthor={(name) => {
+                setAuthorName(name);
+                setSheet('author');
+              }}
+              onOpenShare={(report) => {
+                setShare(report);
+                setSheet('catch');
+              }}
               reports={reports}
               lat={pick.lat}
               lon={pick.lon}
@@ -287,11 +354,13 @@ export function App() {
             title={
               sheet === 'spot' && spotVenue
                 ? spotVenue.name
-                : sheet === 'guide'
-                  ? `${coerceFishForStyle(targetFish || advice?.targetFish[0] || '', style)}介绍`
-                  : sheet
-                    ? SHEET_TITLE[sheet]
-                    : ''
+                : sheet === 'author' && authorName
+                  ? authorName
+                  : sheet === 'guide'
+                    ? `${coerceFishForStyle(targetFish || advice?.targetFish[0] || '', style)}介绍`
+                    : sheet
+                      ? SHEET_TITLE[sheet]
+                      : ''
             }
             open={sheet != null}
             onClose={() => {
@@ -372,8 +441,26 @@ export function App() {
                   setNavTarget({ lon: share.lon, lat: share.lat, name: share.spotName });
                   setTab('spots');
                 }}
+                onOpenAuthor={(name) => {
+                  setAuthorName(name);
+                  setSheet('author');
+                }}
+                onNeedLogin={() => {
+                  setMeStart('auth');
+                  setTab('me');
+                }}
               />
             )}
+            {sheet === 'author' && authorName ? (
+              <AuthorProfile
+                name={authorName}
+                reports={reports}
+                onOpenCatch={(report) => {
+                  setShare(report);
+                  setSheet('catch');
+                }}
+              />
+            ) : null}
             {sheet === 'spot' && spotVenue && (
               <VenueDetail
                 venue={spotVenue}
@@ -387,11 +474,14 @@ export function App() {
                   setSheet(null);
                   setTab('spots');
                 }}
+                onOpenVenue={(venue) => {
+                  setSpotVenue(venue);
+                }}
               />
             )}
           </Sheet>
         </div>
-        <BottomNav tab={tab} onChange={changeTab} />
+        <BottomNav tab={tab} onChange={changeTab} hubUnread={hubUnread} />
         {splash ? <Splash onDone={() => setSplash(false)} /> : null}
       </div>
     </div>

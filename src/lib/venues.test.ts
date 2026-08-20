@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
   DIANPING_VENUES,
+  catchesForVenue,
+  filterVenues,
   formatVenueFee,
+  nearbyVenues,
   parseDianpingShopSnippet,
   venueAvatar,
   venueCaptionHtml,
@@ -14,7 +17,7 @@ import {
   searchVenues,
 } from './venues';
 import seedReviews from '../data/spot-reviews.json';
-import type { FishingVenue } from '../types';
+import type { CatchReport, FishingVenue, SpotReview } from '../types';
 
 describe('formatVenueFee', () => {
   it('有人均则写成 ¥N/人', () => {
@@ -86,19 +89,6 @@ describe('searchVenues', () => {
   });
 });
 
-describe('spot review seed', () => {
-  it('每个钓场都有虚拟反馈，且用网上公开照片当头像', () => {
-    const byVenue = new Map<string, number>();
-    for (const row of seedReviews.reviews) {
-      byVenue.set(row.venueId, (byVenue.get(row.venueId) ?? 0) + 1);
-    }
-    for (const venue of DIANPING_VENUES) {
-      expect(byVenue.get(venue.id) ?? 0).toBeGreaterThanOrEqual(1);
-    }
-    expect(seedReviews.reviews.some((row) => row.imageUrl?.startsWith('/spot-photos/'))).toBe(true);
-  });
-});
-
 const sample: FishingVenue = {
   id: 'dy-pe',
   shopId: '242217',
@@ -115,6 +105,72 @@ const sample: FishingVenue = {
   lat: 30.905,
   url: 'https://m.diaoyu.com/diaochang/shanghai/242217.html',
 };
+
+describe('filterVenues', () => {
+  const pond: FishingVenue = { ...sample, id: 'pond-1', name: '庆丰垂钓园', kind: '垂钓园', status: 'open', lat: 31.22, lon: 121.46 };
+  const sea: FishingVenue = { ...sample, id: 'sea-1', name: '金蟹海钓场', kind: '海钓场', status: 'paused', lat: 31.02, lon: 121.64 };
+  const lure: FishingVenue = { ...sample, id: 'lure-1', name: '上海PE路亚营地', kind: '路亚营地', status: 'open', lat: 30.905, lon: 121.392 };
+  const rows = [pond, sea, lure];
+  const reviews: SpotReview[] = [];
+
+  it('按路亚/池塘/海钓和营业中过滤', () => {
+    expect(filterVenues(rows, reviews, { kind: 'pond' }).map((row) => row.id)).toEqual(['pond-1']);
+    expect(filterVenues(rows, reviews, { kind: 'sea' }).map((row) => row.id)).toEqual(['sea-1']);
+    expect(filterVenues(rows, reviews, { openOnly: true }).map((row) => row.id)).toEqual(['pond-1', 'lure-1']);
+  });
+
+  it('离我近按距离排，不改渔见分名次计算用的全量顺序', () => {
+    const near = filterVenues(rows, reviews, {
+      sort: 'near',
+      from: { lat: 31.23, lon: 121.47 },
+    });
+    expect(near[0].id).toBe('pond-1');
+    expect(near.map((row) => row.id).sort()).toEqual(['lure-1', 'pond-1', 'sea-1']);
+  });
+});
+
+describe('nearbyVenues', () => {
+  it('按当前店坐标取最近 3 场，不含自己', () => {
+    const here = DIANPING_VENUES.find((row) => row.id === 'dy-pe');
+    expect(here).toBeTruthy();
+    const near = nearbyVenues(here!, DIANPING_VENUES, 3);
+    expect(near).toHaveLength(3);
+    expect(near.some((row) => row.id === 'dy-pe')).toBe(false);
+    expect(near[0].id).not.toBe(near[1].id);
+  });
+});
+
+describe('catchesForVenue', () => {
+  it('用简称或路名匹配渔获钓点', () => {
+    const venue = DIANPING_VENUES.find((row) => row.name.includes('荷风'))!;
+    const hit: CatchReport = {
+      id: 'c1',
+      author: '阿周',
+      fish: '鲈鱼',
+      spotName: '荷风',
+      lon: 121,
+      lat: 31,
+      caughtAt: '2026-08-19T00:00:00.000Z',
+      source: 'user',
+    };
+    const miss: CatchReport = { ...hit, id: 'c2', spotName: '滴水湖' };
+    const road: CatchReport = { ...hit, id: 'c3', spotName: venue.addressHint };
+    expect(catchesForVenue(venue, [hit, miss, road]).map((row) => row.id)).toEqual(['c1', 'c3']);
+  });
+});
+
+describe('spot review seed', () => {
+  it('每个钓场都有虚拟反馈，且用网上公开照片当头像', () => {
+    const byVenue = new Map<string, number>();
+    for (const row of seedReviews.reviews) {
+      byVenue.set(row.venueId, (byVenue.get(row.venueId) ?? 0) + 1);
+    }
+    for (const venue of DIANPING_VENUES) {
+      expect(byVenue.get(venue.id) ?? 0).toBeGreaterThanOrEqual(1);
+    }
+    expect(seedReviews.reviews.some((row) => row.imageUrl?.startsWith('/spot-photos/'))).toBe(true);
+  });
+});
 
 describe('venue map markup', () => {
   it('标点是分类铭牌，含店名、区县收费与五星，无照片用 Logo', () => {

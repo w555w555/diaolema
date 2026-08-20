@@ -1,5 +1,28 @@
-import { describe, expect, it } from 'vitest';
-import { COVER_RATIOS, coverRatio, likeCount, seedLikeCount, toggleId } from './shareSocial';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { COVER_RATIOS, applyFollows, applyLikes, coverRatio, hydrateShareSocial, likeCount, seedLikeCount, toggleId } from './shareSocial';
+
+const mem = new Map<string, string>();
+const memoryStorage = {
+  getItem: (key: string) => mem.get(key) ?? null,
+  setItem: (key: string, value: string) => {
+    mem.set(key, value);
+  },
+  removeItem: (key: string) => {
+    mem.delete(key);
+  },
+  clear: () => mem.clear(),
+  key: () => null,
+  get length() {
+    return mem.size;
+  },
+} as Storage;
+
+beforeEach(() => {
+  mem.clear();
+  Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: memoryStorage });
+  hydrateShareSocial();
+});
+afterEach(() => mem.clear());
 
 describe('shareSocial', () => {
   it('点赞在种子数上 +1，取消回到种子数', () => {
@@ -22,5 +45,12 @@ describe('shareSocial', () => {
     expect(new Set(ratios).size).toBeGreaterThan(1);
     expect(ratios.every((ratio) => (COVER_RATIOS as readonly string[]).includes(ratio))).toBe(true);
     expect(COVER_RATIOS.every((ratio) => !ratio.startsWith('3/'))).toBe(true);
+  });
+
+  it('云端点赞关注与本机并集', () => {
+    applyLikes(['a']);
+    expect(applyLikes(['b']).likes).toEqual(['a', 'b']);
+    applyFollows(['路亚阿周']);
+    expect(applyFollows(['南汇小路']).follows).toEqual(['路亚阿周', '南汇小路']);
   });
 });

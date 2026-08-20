@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 800" role="img" aria-label="鲫鱼 示例">
+  <rect width="640" height="800" fill="#0b1413"/>
+  <circle cx="320" cy="310" r="170" fill="#69bba7" opacity="0.28"/>
+  <circle cx="200" cy="520" r="90" fill="#e8b24a" opacity="0.16"/>
+  <text x="320" y="330" text-anchor="middle" fill="#e8b24a" font-size="64" font-family="system-ui,Segoe UI,sans-serif" font-weight="700">鲫鱼</text>
+  <text x="320" y="720" text-anchor="middle" fill="#69bba7" font-size="22" font-family="system-ui,Segoe UI,sans-serif">渔见 · 示例</text>
+</svg>

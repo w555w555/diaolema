@@ -21,6 +21,29 @@ const GEO_OPTIONS: PositionOptions = {
   maximumAge: 30000,
 };
 
+const EARTH_KM = 6371;
+
+function toRad(deg: number): number {
+  return (deg * Math.PI) / 180;
+}
+
+export function distanceKm(a: GeoFix, b: GeoFix): number {
+  const dLat = toRad(b.lat - a.lat);
+  const dLon = toRad(b.lon - a.lon);
+  const lat1 = toRad(a.lat);
+  const lat2 = toRad(b.lat);
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
+  return 2 * EARTH_KM * Math.asin(Math.min(1, Math.sqrt(h)));
+}
+
+export function formatDistanceKm(km: number): string {
+  if (!Number.isFinite(km) || km < 0) return '';
+  if (km < 0.05) return '附近';
+  if (km < 1) return `${Math.round(km * 1000)}米`;
+  const rounded = Math.round(km * 10) / 10;
+  return Number.isInteger(rounded) ? `${rounded}公里` : `${rounded.toFixed(1)}公里`;
+}
+
 export function requestCurrentPosition(): Promise<GeoFix> {
   const supported = typeof navigator !== 'undefined' && Boolean(navigator.geolocation);
   const secure = typeof window === 'undefined' ? true : window.isSecureContext;

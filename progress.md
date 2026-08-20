@@ -61,5 +61,26 @@
 - 登录后资料/渔获/点赞关注/想买/评测写入 Supabase；需再跑 `supabase/user_data.sql`。
 - 粉丝互关私聊：粉丝名单可开关「允许私聊」；互关且双方打开后出现「私聊」。消息表 `dm_messages`；需在 SQL Editor 跑 `supabase/dm.sql` 全文。`directChat.test.ts` 4 passed。
 - 注册/登录只填邮箱密码。项目地址由部署环境或 `/api/public-config` 提供，不再让用户填。
+- 登录成功回到「我的」首页；群聊带头像/名片/@/主页。
+- 内容互动：渔获评论、转发到主题群或复制文案、关注列表随操作变化、点作者进主页。
+- 粉丝名单每条常显「私聊」；去掉菜单里重复的「我的粉丝」。群聊头像/关注/@更明显，输入栏不再撑满屏幕。
+
+## 2026-08-19
+
+- 群聊/私聊转发改为渔获卡片：正文带 `#yj:id`，点卡片打开原详情；无 id 的旧转发按作者+钓点+鱼种匹配。路亚夜聊加一条示例转发。
+- 修复转发进群不可见：转发始终写入本机，群聊把本机用户消息与公网消息合并显示。
+- 钓场排行加深：类型芯片、营业中、离我近与距离；详情附近 3 场与更稳的渔获匹配。地图仍只显示营地钉。
+- 举报/拉黑：按作者名本机生效；今日渔获、评论、群气泡与私信会话隐藏；「我的 → 已拉黑」可解除。约钓/支付本轮不做。
+- 今日渔获支持最多 9 张图与一条 15 秒短视频；封面用第一张，多图/视频有角标；详情可滑图或播放。报渔获相册可多选。data URL 不写飞书。
+- 登录后短视频上传到 Supabase Storage（公开桶 `yj-media`）；群聊/私聊写 `media_url`，渔获写 `video_url`。未登录仍本机预览。须在 SQL Editor 再跑一遍 `supabase/social.sql`。`npx vitest run` 225 passed；`npx tsc --noEmit` 通过。
+- 群聊/私聊可引用回复；消息页可搜会话，群内可搜口讯并跳转；再次进入有未读时出现「以下为新消息」。不做群已读回执。`npx vitest run` 233 passed。
+
+## 2026-08-19
+
+- 登录后拉回点赞、关注、想买、评测、拉黑、私聊开关与评论，与本机并集，不覆盖离线写入。渔获详情评论写入 `share_comments`。粉丝名单用 `canOpenFanChat`，不为非示例粉丝自动打开允许。私信订 `dm_messages` Realtime，历史读双方 thread。示例封面落到 `public/shares/` 与 `public/spot-photos/`。须再跑一遍 `supabase/social.sql`（或 `dm.sql`）以打开私信双向可读与 Realtime。`npx vitest run` 250 passed；`npx tsc --noEmit` 通过。
+
+## 2026-08-20
+
+- 今日方案加「理由」打开已有 AdvicePanel。地图选点同时改天气坐标并重算方案。登录后渔获多图与聊天图片上传 `yj-media`，行只存 HTTPS。须再跑 `supabase/social.sql` 加上 `image_urls` 与图片 MIME。`npx vitest run` 253 passed。
 
 - 写入 FR-7 AI 识鱼 Spec / SDD，暂未实现代码。

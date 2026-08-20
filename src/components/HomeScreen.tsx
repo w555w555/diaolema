@@ -8,7 +8,7 @@ import { windowCountdown } from '../lib/windowCountdown';
 import logoUrl from '../assets/logo.svg?url';
 import type { CatchReport, FishStyle, FishingAdvice, FishingIndex, WeatherSnapshot } from '../types';
 
-export type HomeSheet = 'advice' | 'venues' | 'daily' | 'share' | 'weather' | 'target' | 'catch' | 'spot' | 'guide';
+export type HomeSheet = 'advice' | 'venues' | 'daily' | 'share' | 'weather' | 'target' | 'catch' | 'spot' | 'guide' | 'author';
 
 type Props = {
   weather: WeatherSnapshot | null;
@@ -102,6 +102,9 @@ export function HomeScreen({
             </button>
             <button type="button" className="fish-guide-btn" onClick={() => onOpen('guide')}>
               介绍
+            </button>
+            <button type="button" className="fish-guide-btn" onClick={() => onOpen('advice')}>
+              理由
             </button>
             <span> · {advice?.layer ?? '—'}</span>
           </h2>

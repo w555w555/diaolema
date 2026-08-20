@@ -1,4 +1,5 @@
 import type { CatchReport } from '../types';
+import { catchImages } from './catchMedia';
 
 const PALETTE: [string, string][] = [
   ['#12352f', '#2fc7a0'],
@@ -29,8 +30,8 @@ export function catchThumb(fish: string): string {
   return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg.replace(/\s+/g, ' ').trim())}`;
 }
 
-export function shareCover(report: Pick<CatchReport, 'fish' | 'imageUrl'>): string {
-  return report.imageUrl || catchThumb(report.fish);
+export function shareCover(report: Pick<CatchReport, 'fish' | 'imageUrl' | 'imageUrls'>): string {
+  return catchImages(report)[0] || catchThumb(report.fish);
 }
 
 export const HOME_SHARE_LIMIT = 12;

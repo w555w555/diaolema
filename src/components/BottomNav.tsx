@@ -8,7 +8,15 @@ const TABS: { id: TabId; label: string }[] = [
   { id: 'me', label: '我的' },
 ];
 
-export function BottomNav({ tab, onChange }: { tab: TabId; onChange: (tab: TabId) => void }) {
+export function BottomNav({
+  tab,
+  onChange,
+  hubUnread = 0,
+}: {
+  tab: TabId;
+  onChange: (tab: TabId) => void;
+  hubUnread?: number;
+}) {
   return (
     <nav className="bottom-nav" aria-label="主导航">
       {TABS.map((item) =>
@@ -35,6 +43,9 @@ export function BottomNav({ tab, onChange }: { tab: TabId; onChange: (tab: TabId
             onClick={() => onChange(item.id)}
           >
             {item.label}
+            {item.id === 'hub' && hubUnread > 0 ? (
+              <i className="nav-badge">{hubUnread > 99 ? '99+' : hubUnread}</i>
+            ) : null}
           </button>
         ),
       )}

@@ -2,10 +2,15 @@ export function packedToDataUrl(packed: { imageBase64: string; mime: string }): 
   return `data:${packed.mime};base64,${packed.imageBase64}`;
 }
 
-export function stripInlineImage<T extends { imageUrl?: string }>(row: T): T {
-  if (!row.imageUrl?.startsWith('data:')) return row;
+export function stripInlineImage<T extends { imageUrl?: string; imageUrls?: string[]; videoUrl?: string }>(row: T): T {
   const next = { ...row };
-  delete next.imageUrl;
+  if (next.imageUrl?.startsWith('data:')) delete next.imageUrl;
+  if (next.imageUrls) {
+    const urls = next.imageUrls.filter((url) => url && !url.startsWith('data:'));
+    if (urls.length) next.imageUrls = urls;
+    else delete next.imageUrls;
+  }
+  if (next.videoUrl?.startsWith('data:')) delete next.videoUrl;
   return next;
 }
 

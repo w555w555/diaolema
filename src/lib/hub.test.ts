@@ -5,8 +5,10 @@ import {
   HUB_PRODUCTS,
   HUB_ROOMS,
   loadChatMessages,
+  mergeThreadMessages,
   messagesForRoom,
   toggleWish,
+  unionWishIds,
 } from './hub';
 import { saveProfile } from './meProfile';
 
@@ -41,6 +43,13 @@ describe('toggleWish', () => {
     expect(toggleWish(productId, [])).toEqual([productId]);
     expect(toggleWish(productId, [productId])).toEqual([]);
   });
+
+  it('云端想买与本机并集', () => {
+    const a = HUB_PRODUCTS[0].id;
+    const b = HUB_PRODUCTS[1].id;
+    toggleWish(a, []);
+    expect(unionWishIds([b, a])).toEqual([a, b]);
+  });
 });
 
 describe('messagesForRoom', () => {
@@ -70,5 +79,38 @@ describe('appendChatMessage', () => {
         (row) => row.body === '明天滴水湖见' && row.source === 'user' && row.author === '阿周',
       ),
     ).toBe(true);
+  });
+});
+
+describe('mergeThreadMessages', () => {
+  it('keeps local user forwards that are not already in the cloud list', () => {
+    const cloud = [
+      {
+        ...createChatMessage({ roomId: 'room-lure', body: '云端旧口讯', author: '别人' }),
+        id: 'cloud-1',
+        source: 'user' as const,
+      },
+    ];
+    const local = [
+      {
+        ...createChatMessage({
+          roomId: 'room-lure',
+          body: '转发 · 路亚阿周 在滴水湖 钓到鲈鱼 #yj:xhs-dishui',
+          author: '我',
+        }),
+        id: 'local-1',
+        source: 'user' as const,
+      },
+    ];
+    expect(mergeThreadMessages(cloud, local).map((row) => row.body)).toEqual([
+      '云端旧口讯',
+      '转发 · 路亚阿周 在滴水湖 钓到鲈鱼 #yj:xhs-dishui',
+    ]);
+  });
+
+  it('skips a local copy with the same body and author', () => {
+    const row = createChatMessage({ roomId: 'room-lure', body: '转发 · 路亚阿周 在滴水湖 钓到鲈鱼 #yj:r1', author: '阿周' });
+    const copy = { ...row, id: 'other' };
+    expect(mergeThreadMessages([row], [copy])).toEqual([row]);
   });
 });

@@ -1,5 +1,8 @@
+import { unionNames } from './cloudMerge';
+
 const LIKE_KEY = 'diaolema.share.likes.v1';
 const FOLLOW_KEY = 'diaolema.share.follows.v1';
+const FAN_KEY = 'diaolema.share.fans.v1';
 
 export const COVER_RATIOS = ['1/1', '5/4', '4/5'] as const;
 export type CoverRatio = (typeof COVER_RATIOS)[number];
@@ -47,9 +50,10 @@ function writeList(key: string, values: string[]): void {
 export type ShareSocialState = {
   likes: string[];
   follows: string[];
+  fans: string[];
 };
 
-let state: ShareSocialState = { likes: [], follows: [] };
+let state: ShareSocialState = { likes: [], follows: [], fans: [] };
 const listeners = new Set<() => void>();
 
 function emit(): void {
@@ -57,7 +61,7 @@ function emit(): void {
 }
 
 export function hydrateShareSocial(): ShareSocialState {
-  state = { likes: readList(LIKE_KEY), follows: readList(FOLLOW_KEY) };
+  state = { likes: readList(LIKE_KEY), follows: readList(FOLLOW_KEY), fans: readList(FAN_KEY) };
   emit();
   return state;
 }
@@ -77,6 +81,20 @@ export function subscribeShareSocial(listener: () => void): () => void {
   };
 }
 
+export function applyLikes(ids: Iterable<string>): ShareSocialState {
+  state = { ...state, likes: unionNames(state.likes, ids) };
+  writeList(LIKE_KEY, state.likes);
+  emit();
+  return state;
+}
+
+export function applyFollows(names: Iterable<string>): ShareSocialState {
+  state = { ...state, follows: unionNames(state.follows, names) };
+  writeList(FOLLOW_KEY, state.follows);
+  emit();
+  return state;
+}
+
 export function toggleLike(id: string): ShareSocialState {
   state = { ...state, likes: toggleId(id, state.likes) };
   writeList(LIKE_KEY, state.likes);
@@ -87,6 +105,14 @@ export function toggleLike(id: string): ShareSocialState {
 export function toggleFollow(author: string): ShareSocialState {
   state = { ...state, follows: toggleId(author, state.follows) };
   writeList(FOLLOW_KEY, state.follows);
+  emit();
+  return state;
+}
+
+export function setFans(names: string[]): ShareSocialState {
+  const fans = [...new Set(names.map((name) => name.trim()).filter(Boolean))];
+  state = { ...state, fans };
+  writeList(FAN_KEY, fans);
   emit();
   return state;
 }

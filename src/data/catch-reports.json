@@ -9,7 +9,7 @@
     "hoursAgo": 1,
     "source": "news",
     "title": "镜天湖一层银白，瓜子亮片连口",
-    "imageUrl": "/shares/share-baitiao.png",
+    "imageUrl": "/shares/share-baitiao.svg",
     "note": "五点刚过，世纪公园镜天湖已经有人在遛弯。浅层有细碎水花，我换上 2g 瓜子亮片，贴着水草边快收。第一口是追着亮片到脚边才咬，摘钩时手还是湿的。半小时十来尾，最大不过两指宽。示例短文，仅供界面演示。"
   },
   {
@@ -22,7 +22,8 @@
     "hoursAgo": 2,
     "source": "xiaohongshu",
     "title": "防波堤侧风岸，7 克米诺碰到花鲈",
-    "imageUrl": "/shares/share-luyu.png",
+    "imageUrl": "/shares/share-luyu.svg",
+    "imageUrls": ["/shares/share-qiaozui.svg", "/shares/share-ji.svg"],
     "note": "滴水湖东岸风有点偏，我改走侧风的防波堤。清水用银白浅层米诺，抽两下停一下。第二竿在桥墩乱石前被拽走，个体不大，但斑点清楚、背鳍扎手。回放时感觉口发生在停顿那一下。示例短文，仅供界面演示。"
   },
   {
@@ -35,7 +36,7 @@
     "hoursAgo": 4,
     "source": "xiaohongshu",
     "title": "夜钓金海，蚯蚓贴底全是嘎鱼",
-    "imageUrl": "/shares/share-huangsang.png",
+    "imageUrl": "/shares/share-huangsang.svg",
     "note": "天黑透了才下竿。金海湿地近岸障碍多，我用蚯蚓守底，铅坠找实。口很死，铃响基本就不跑。摘钩要小心刺，今晚最大一条掌心长。旁边钓友用鸡肝，频率差不多。示例短文，仅供界面演示。"
   },
   {
@@ -48,7 +49,7 @@
     "hoursAgo": 5,
     "source": "douyin",
     "title": "湖湾凹岸拉饵，鲫鱼口轻但不断",
-    "imageUrl": "/shares/share-ji.png",
+    "imageUrl": "/shares/share-ji.svg",
     "note": "淀山湖这侧湖湾风小。香腥拉饵，浮漂调四钓二，草边凹岸下竿。口很轻，下顿一目就打。个头均匀，半斤上下。中午太阳出来后口停了，收竿时饵盘还是湿的。示例短文，仅供界面演示。"
   },
   {
@@ -61,7 +62,8 @@
     "hoursAgo": 6,
     "source": "douyin",
     "title": "大莲湖深浅交界，斜切亮片搜到翘嘴",
-    "imageUrl": "/shares/share-qiaozui.png",
+    "imageUrl": "/shares/share-qiaozui.svg",
+    "imageUrls": ["/shares/share-heiyu.svg"],
     "note": "傍晚前赶到大莲湖，选深浅交界抛 10g 斜切亮片。匀速收、间停两秒，第三竿被猛地拽弯。下颌明显上翘，银白带红尾。后来又追了两口没中，可能是亮片收太快。示例短文，仅供界面演示。"
   },
   {
@@ -98,7 +100,7 @@
     "hoursAgo": 9,
     "source": "xiaohongshu",
     "title": "北湖凸岸玉米，鲤鱼把漂拖走",
-    "imageUrl": "/shares/share-li.png",
+    "imageUrl": "/shares/share-li.svg",
     "note": "崇明北湖选凸岸缓坡亮水，玉米守底。等了四十分钟，漂先点两下再斜走。个体有点分量，溜的时候鳞片反光很亮。旁边草边有人连鲫，我这边就这一口。示例短文，仅供界面演示。"
   },
   {
@@ -111,7 +113,7 @@
     "hoursAgo": 11,
     "source": "xiaohongshu",
     "title": "草洞里的一声炸水",
-    "imageUrl": "/shares/share-heiyu.png",
+    "imageUrl": "/shares/share-heiyu.svg",
     "note": "杨浦滨江一段浮萍留了几个亮洞。雷蛙抛到洞口前方的草上，轻跳停顿。第三次停的时候水面炸开，默数两秒再抽。嘴很硬，控鱼要快。示例短文，仅供界面演示。"
   },
   {

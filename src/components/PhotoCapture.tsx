@@ -4,24 +4,33 @@ import { snapshotVideo, stopStream } from '../lib/photo';
 
 type Props = {
   onPick: (file: File) => void;
+  onPickMany?: (files: File[]) => void;
   cameraLabel?: string;
   albumLabel?: string;
   showAlbum?: boolean;
   cameraClassName?: string;
+  multiple?: boolean;
 };
 
-function pickFile(input: HTMLInputElement, onPick: (file: File) => void) {
-  const file = input.files?.[0];
+function pickFiles(input: HTMLInputElement, onOne: (file: File) => void, onMany?: (files: File[]) => void) {
+  const files = [...(input.files ?? [])];
   input.value = '';
-  if (file) onPick(file);
+  if (!files.length) return;
+  if (onMany && files.length > 1) {
+    onMany(files);
+    return;
+  }
+  onOne(files[0]);
 }
 
 export function PhotoCapture({
   onPick,
+  onPickMany,
   cameraLabel = '拍照',
   albumLabel = '相册',
   showAlbum = true,
   cameraClassName,
+  multiple = false,
 }: Props) {
   const cameraRef = useRef<HTMLInputElement>(null);
   const albumRef = useRef<HTMLInputElement>(null);
@@ -96,15 +105,16 @@ export function PhotoCapture({
         hidden
         onChange={(e) => {
           closeLive();
-          pickFile(e.currentTarget, onPick);
+          pickFiles(e.currentTarget, onPick, onPickMany);
         }}
       />
       <input
         ref={albumRef}
         type="file"
         accept="image/*"
+        multiple={multiple}
         hidden
-        onChange={(e) => pickFile(e.currentTarget, onPick)}
+        onChange={(e) => pickFiles(e.currentTarget, onPick, onPickMany)}
       />
       {stream && host
         ? createPortal(
