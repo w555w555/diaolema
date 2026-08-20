@@ -39,6 +39,7 @@
 | 32. 登录拉回 + 评论上云 + 私聊 Realtime + 示例图 | complete | 点赞/关注/想买/评测/拉黑/私聊开关登录合并；share_comments；FanList 用 canOpenFanChat；DM Realtime；public/shares 与 spot-photos |
 | 33. 理由入口 + 选点天气 + 图上云 | complete | 方案「理由」；选点改天气；渔获/聊天图上传 Storage |
 | 34. 预报 + 头像语音上云 + 收藏 + 渔获改删 | complete | 天气 24h/7d；头像/语音 HTTPS；venue_favs；自己的渔获可改删；不做地图渔获钉 |
+| 35. OLED 仪器盘 UI | complete | 金青绿存档 `_archive/ui-gold-green/`；策略页指数环+气象短卡+今日怎么钓；今日渔获迁渔圈 |
 
 ## Decisions
 

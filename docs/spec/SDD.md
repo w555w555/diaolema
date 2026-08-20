@@ -386,16 +386,16 @@ src/App.tsx
 ```
 [天气] → buildAdvice + buildFishingIndex
               ↓
-        HomeScreen（策略：天气条 / 最佳方案 / 钓友分享）
+        HomeScreen（策略：指数环 / 气象短卡 / 今日怎么钓）
               ↓ 底栏
         钓点：CatchMap 常驻 visibility
         识鱼（底栏金色「AI 识鱼」）：FishIdPanel + ReportForm（均可拍照；进入时定位）
-        渔圈：HubScreen（商城 / 赛事 / 技巧 / 评测 / 群聊）
+        渔圈：HubScreen（发现入口 / 今日渔获 / 主题群 / 赛事）
         我的：MeScreen 个人中心（资料 / 菜单 / 渔获记录）
         抽屉：VenueList / AdvicePanel / DailyReport / ShareImport / 词表换鱼
 ```
 
-桌面端 `.phone` 列宽 430px、圆角 44px、深底金青绿。产品名「渔见」。首页品牌行用 `public/logo.svg` + `.brand-name`（MiSans/苹方/Noto 栈、字色 `#EAF5EF–#B9CAC3`、辅文 `#69BBA7`）。启动时 `Splash` 盖住手机壳：深底金青绿光晕与水纹，Logo 淡入上浮，点按或 2.4s 后淡出，随后请求定位。切到钓点时 `CatchMap` 不卸载。AI 识鱼在底栏中间金色按钮（文案「AI 识鱼」，无 + 号、无下方小字），不占首页。地图选点时强制切到钓点 Tab。风力用 `windScaleLabel` 转成几级；出钓文案用 `outingLabel` 映射指数档位。天气条用 `windowCountdown` 显示晨昏窗口倒计时。方案格只放味形/拟饵与标点；点鱼名换目标鱼（列表按当前钓法筛选）；点「理由」打开 `AdvicePanel`；点天气条开天气抽屉。地图选点写入同一套天气坐标（`setCoords` + `setPick`），指数与方案立刻重算。首页 `.home-main` 只放天气与今日方案，可内部滚动。下半 `CatchShareFeed` 独立滑动。拍照取景左上角「‹ 返回」。区头「今日渔获 · N / 全部 ›」带细金线。双列卡片封面限高 108px，图下露出钓点名与点赞，不必滑完一张图。`coverRatio` 仍按 id 变化（1/1、5/4、4/5）。图上鱼种胶囊、示例黑底白字；多图/短视频角标；图下标题、钓点、点赞与评论数。`shareSocial`：点赞/关注/额外粉丝名存 localStorage，种子赞数由 id 哈希，点赞 +1 / 取消还原；关注按作者名切换。`shareComments` 评论本机存储，示例帖带种子评论并标明示例。`CatchShareDetail` 同步同一状态，顶图叠作者/时间，多图可滑、有视频则播放，可评论、转发到主题群或复制文案（群内以 `#yj:id` 卡片展示，点开同一详情），「去钓点」全宽青绿。点作者打开 `AuthorProfile`。不把策略顶出屏幕。`shareCover`：`catchImages` 第一张，否则 `catchThumb` 深色底 + 鱼名。`catchMedia`：最多 9 图、视频 15 秒。点卡片打开全文，再去地图。不展示未测的溶氧与水温。首页不堆常用工具与目标鱼说明卡。不写飞书粉丝关系、无私信。
+桌面端 `.phone` 列宽 430px、圆角 44px、OLED 深底 `#05070a`。产品名「渔见」。首页品牌行用 `public/logo.svg` + `.brand-name`（Noto/苹方栈）。启动时 `Splash` 盖住手机壳：深底绿环与「进入」，点按或 2.4s 后淡出，随后请求定位。切到钓点时 `CatchMap` 不卸载。AI 识鱼在底栏中间绿钮（文案「AI 识鱼」，无 + 号、无下方小字），不占首页。地图选点时强制切到钓点 Tab。风力用 `windScaleLabel` 转成几级；出钓文案用 `outingLabel` 映射指数档位。气象短卡点开天气抽屉；作钓窗口倒计时在今日方案卡内。方案区写水层柱、守底/主攻理由、味形滑条、饵料与标点；点鱼名换目标鱼（列表按当前钓法筛选）；「介绍」打开鱼类说明；完整依据仍可打开 `AdvicePanel`。地图选点写入同一套天气坐标（`setCoords` + `setPick`），指数与方案立刻重算。首页 `.home-main` 只放指数、气象与今日方案，可内部滚动。`CatchShareFeed` 放在渔圈首页。拍照取景左上角「‹ 返回」。区头「今日渔获」加条数。双列卡片封面限高约 108px，图下露出钓点名与点赞。`coverRatio` 仍按 id 变化（1/1、5/4、4/5）。图上鱼种胶囊、示例黑底白字；多图/短视频角标；图下标题、钓点、点赞与评论数。`shareSocial`：点赞/关注/额外粉丝名存 localStorage，种子赞数由 id 哈希，点赞 +1 / 取消还原；关注按作者名切换。`shareComments` 评论本机存储，示例帖带种子评论并标明示例。`CatchShareDetail` 同步同一状态，顶图叠作者/时间，多图可滑、有视频则播放，可评论、转发到主题群或复制文案（群内以 `#yj:id` 卡片展示，点开同一详情），「去钓点」全宽青绿。点作者打开 `AuthorProfile`。不展示未测的溶氧与水温。首页不堆常用工具与目标鱼说明卡。不写飞书粉丝关系、无私信。上一版金青绿界面存档 `_archive/ui-gold-green/`。
 
 ## 13. Zeabur 部署
 
