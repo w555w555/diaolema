@@ -1,4 +1,5 @@
 import type { FishingIndex, FishingIndexLabel, WeatherSnapshot } from '../types';
+import { shanghaiHour, shanghaiMonth } from './shanghaiTime';
 
 export function indexBand(score: number): FishingIndexLabel {
   if (score >= 80) return '很高';
@@ -18,8 +19,8 @@ function isLightRain(code: number, precip: number): boolean {
 }
 
 export function buildFishingIndex(weather: WeatherSnapshot, at: Date = new Date()): FishingIndex {
-  const month = at.getMonth() + 1;
-  const hour = at.getHours();
+  const month = shanghaiMonth(at);
+  const hour = shanghaiHour(at);
   const summer = month >= 6 && month <= 9;
   const hotNoon = summer && weather.temperatureC >= 30 && hour >= 10 && hour <= 16;
   const falling = weather.pressureDelta3h <= -1.5;

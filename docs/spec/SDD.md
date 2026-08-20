@@ -189,7 +189,7 @@ type HubChatMessage = { id: string; roomId: string; author: string; body: string
 
 ## 4c. 窗口期倒计时（FR-8）
 
-纯函数 `windowCountdown(at)`，与 `climateFlags.prime` 同一套钟点：
+纯函数 `windowCountdown(at)`，与 `climateFlags.prime` 同一套钟点。盛夏正午、晨昏窗口、预报小时一律按 **Asia/Shanghai**，不跟运行环境本地时区：
 
 - 晨间窗口：当日 05:00 ≤ t < 08:00
 - 黄昏窗口：当日 17:00 ≤ t < 20:00
@@ -212,7 +212,7 @@ type HubChatMessage = { id: string; roomId: string; author: string; body: string
 
 Query：`latitude, longitude, timezone=Asia/Shanghai, current=…, hourly=temperature_2m,weather_code,precipitation,wind_speed_10m,wind_direction_10m,pressure_msl,relative_humidity_2m, daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max,wind_direction_10m_dominant,pressure_msl_mean,relative_humidity_2m_mean, past_hours=6, forecast_days=7`
 
-`pressureDelta3h`：用 hourly `pressure_msl` 中最接近 3 小时前的点计算 `current - past`。`fetchWeatherBundle` 一次拉回当前快照、逐时、逐日；`pickUpcomingHours` 取当前时刻起约 24 条；`snapshotFromDaily` 用日均气温、日降水、日最大风、日均气压构建快照再 `buildFishingIndex`（`pressureDelta3h=0`）。不编造水温溶氧。
+`pressureDelta3h`：用 hourly `pressure_msl` 中最接近 3 小时前的点计算 `current - past`。`fetchWeatherBundle` 一次拉回当前快照、逐时、逐日；`pickUpcomingHours` 取当前时刻起约 24 条（无时区的 Open-Meteo 时间串按东八区读）；`snapshotFromDaily` 用日均气温、日降水、日最大风、日均气压构建快照再 `buildFishingIndex`（`pressureDelta3h=0`）。不编造水温溶氧。
 
 定位：`src/lib/geo.ts` 的 `requestCurrentPosition` / `geoErrorMessage`。开屏结束后、进入钓点、进入「+」调用 `navigator.geolocation`（`enableHighAccuracy`）。非安全上下文、拒绝、超时映射中文原因，坐标回落 `SHANGHAI_CENTER`。开发服务器 `host: true`，桌面启动绑定 `0.0.0.0`，手机可用局域网 IP 打开；定位与实时取景需 HTTPS 或 localhost。`distanceKm` 用球面距离（可单测）；`formatDistanceKm` 写成「N米」或「N公里」。
 
@@ -311,7 +311,8 @@ src/App.tsx
 - `buildAdvice`：高温正午、气压急降找氧口差、高压宜守底、低压口差、降水修正。
 - `planFlavor` / `planSpot` / `planWindow`：低温大腥、低压清淡带果酸、鲫草边、雨天进水口、路亚黑鱼草洞；窗口写走低口差 / 回升 / 高压宜守底。
 - `buildFishingIndex`：气压急降压分、升压/高压稳加分、低压压分、盛夏正午压分、雷暴不宜、结果夹紧 0–100。
-- `windowCountdown`：晨间/黄昏窗口倒计时文案。
+- `windowCountdown`：晨间/黄昏窗口倒计时文案；钟点按 Asia/Shanghai。
+- `shanghaiHour` / `parseShanghaiClock`：盛夏正午与预报小时不跟机器本地时区。
 - `fishGuide`：目标鱼介绍与技巧；词表外回落通用说明。
 - `formatCatchCaption`：分钟 / 小时 / 昨天。
 - `buildAmapNavUrl`：高德导航 URI。

@@ -39,7 +39,7 @@
 | 32. 登录拉回 + 评论上云 + 私聊 Realtime + 示例图 | complete | 点赞/关注/想买/评测/拉黑/私聊开关登录合并；share_comments；FanList 用 canOpenFanChat；DM Realtime；public/shares 与 spot-photos |
 | 33. 理由入口 + 选点天气 + 图上云 | complete | 方案「理由」；选点改天气；渔获/聊天图上传 Storage |
 | 34. 预报 + 头像语音上云 + 收藏 + 渔获改删 | complete | 天气 24h/7d；头像/语音 HTTPS；venue_favs；自己的渔获可改删；不做地图渔获钉 |
-| 35. 建议引擎改国内淡水口径 | in_progress | 升压/稳压好钓、走低口差；塘鲈=加州鲈；不用欧美降压抢食 |
+| 35. 建议引擎改国内淡水口径 | complete | 升压/稳压好钓、走低口差；塘鲈=加州鲈；东八区钟点；不用欧美降压抢食 |
 
 ## Decisions
 
@@ -51,4 +51,4 @@
 
 | Error | Attempt | Resolution |
 |-------|---------|------------|
-| | | |
+| vitest 在 UTC 环境把 `+08:00` 晨昏窗算成夜里 | 1 | 盛夏正午、窗口倒计时、预报小时一律按 Asia/Shanghai |

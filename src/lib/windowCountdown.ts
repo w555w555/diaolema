@@ -1,7 +1,8 @@
 /**
  * 晨昏窗口倒计时，与 climateFlags.prime 同一套钟点。
- * 晨间窗口 05:00–08:00，黄昏窗口 17:00–20:00。运行时不联网。
+ * 晨间窗口 05:00–08:00，黄昏窗口 17:00–20:00。按上海东八区，运行时不联网。
  */
+import { shanghaiWallDate } from './shanghaiTime';
 
 export type WindowName = '晨间窗口' | '黄昏窗口';
 export type WindowPhase = 'in' | 'wait';
@@ -15,10 +16,7 @@ export type WindowCountdown = {
 };
 
 function atHour(base: Date, hour: number, dayOffset = 0): Date {
-  const d = new Date(base.getTime());
-  d.setDate(d.getDate() + dayOffset);
-  d.setHours(hour, 0, 0, 0);
-  return d;
+  return shanghaiWallDate(base, hour, dayOffset);
 }
 
 export function formatRemain(ms: number): string {

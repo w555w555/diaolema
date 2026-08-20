@@ -8,6 +8,7 @@
  * 上海路亚塘「鲈」按大口黑鲈（加州鲈）给结构软虫，不是欧美降压抢食。
  */
 import type { FishStyle, WeatherSnapshot } from '../types';
+import { shanghaiHour, shanghaiMonth } from './shanghaiTime';
 
 export type ClimateFlags = {
   temp: number;
@@ -26,8 +27,8 @@ export type ClimateFlags = {
 };
 
 export function climateFlags(weather: WeatherSnapshot, at: Date): ClimateFlags {
-  const month = at.getMonth() + 1;
-  const hour = at.getHours();
+  const month = shanghaiMonth(at);
+  const hour = shanghaiHour(at);
   const summer = month >= 6 && month <= 9;
   return {
     temp: weather.temperatureC,
