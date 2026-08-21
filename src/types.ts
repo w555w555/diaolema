@@ -1,4 +1,6 @@
 export type WaterLayer = '上层' | '中上层' | '中下层' | '底层';
+export type WaterTint = '偏清' | '微浑' | '浑浊';
+export type SightedWater = '清澈' | '微浑' | '浑浊' | '肥水';
 
 export type CatchSource = 'user' | 'xiaohongshu' | 'douyin' | 'weibo' | 'wechat' | 'bilibili' | 'tieba' | 'zhihu' | 'news' | 'public' | 'seed';
 
@@ -16,6 +18,13 @@ export type WeatherSnapshot = {
   precipitationMm: number;
   weatherCode: number;
   cloudPct: number;
+  visibilityM?: number | null;
+  uvIndex?: number | null;
+  dewPointC?: number | null;
+  windGustKmh?: number | null;
+  precip6hMm?: number;
+  precip24hMm?: number;
+  waterTint?: WaterTint;
 };
 
 export type FishingAdvice = {
@@ -31,6 +40,10 @@ export type FishingAdvice = {
   spot: string;
   lure: string;
   lureNote: string;
+  lureScent?: string;
+  lureScentClass?: 'hard' | 'salt-pvc' | 'powerbait-like' | 'gulp-like';
+  lureColors?: { family: string; score: number; swatch: string }[];
+  lureColorWhy?: string;
   window: string;
 };
 

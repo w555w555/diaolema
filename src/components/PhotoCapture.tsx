@@ -29,7 +29,7 @@ export function PhotoCapture({
   cameraLabel = '拍照',
   albumLabel = '相册',
   showAlbum = true,
-  cameraClassName,
+  cameraClassName = 'primary',
   multiple = false,
 }: Props) {
   const cameraRef = useRef<HTMLInputElement>(null);

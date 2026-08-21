@@ -3,9 +3,15 @@
  * 台钓：渔钓者冬春主腥、夏主清淡；龙国钓鱼频道低压口差加果酸。
  * 路亚克数与操法：渔夫者/钓鱼007 翘嘴冬春 12–20g、夏 7–12g、夜钓 7–10g；
  * 渔钓者黑鱼雷蛙走走停停；酷钓鱼铅头钩 5–7g 溪流 / 7–10g 湖库；
- * 酷米网白条瓜子亮片 1.5–3g。清水银白、浊水红头金。
+ * 酷米网白条瓜子亮片 1.5–3g。饵色见 lureColor.ts（清水银白、浊水红头金）。
+ * 软饵诱鱼剂：对标贝克力缸测，主效是含饵更久，不是远诱开口。
  */
-import type { FishStyle, WeatherSnapshot } from '../types';
+import type { FishStyle, SightedWater, WaterTint, WeatherSnapshot } from '../types';
+import { inferWaterTint } from './waterTint';
+import { isSoftLure, planLureScent } from './lureScent';
+import { paintByFamily, topLureColorFamily, type LureColorFamily } from './lureColor';
+
+export { isSoftLure, planLureScent };
 
 export type ClimateFlags = {
   temp: number;
@@ -20,9 +26,25 @@ export type ClimateFlags = {
   windy: boolean;
   prime: boolean;
   night: boolean;
+  waterTint: WaterTint;
+  sightedWater: SightedWater | null;
 };
 
-export function climateFlags(weather: WeatherSnapshot, at: Date): ClimateFlags {
+export function resolveWaterTint(weather: WeatherSnapshot): WaterTint {
+  if (weather.waterTint) return weather.waterTint;
+  return inferWaterTint({
+    precipNowMm: weather.precipitationMm,
+    precip6hMm: weather.precip6hMm ?? 0,
+    precip24hMm: weather.precip24hMm ?? 0,
+    weatherCode: weather.weatherCode,
+  }).tint;
+}
+
+export function climateFlags(
+  weather: WeatherSnapshot,
+  at: Date,
+  extra: { sightedWater?: SightedWater | null } = {},
+): ClimateFlags {
   const month = at.getMonth() + 1;
   const hour = at.getHours();
   const summer = month >= 6 && month <= 9;
@@ -43,6 +65,8 @@ export function climateFlags(weather: WeatherSnapshot, at: Date): ClimateFlags {
     windy: weather.windKmh >= 25,
     prime: (hour >= 5 && hour <= 7) || (hour >= 17 && hour <= 19),
     night: hour < 6 || hour >= 19,
+    waterTint: resolveWaterTint(weather),
+    sightedWater: extra.sightedWater ?? null,
   };
 }
 
@@ -57,14 +81,23 @@ export function planFlavor(flags: ClimateFlags): string {
   if (flags.highStable && flags.temp >= 22 && flavor !== '大腥') flavor = '清香';
   if (flags.lowPressure && flavor === '本味清淡') flavor = '清淡带果酸';
   if (flags.falling && flags.temp < 28 && (flavor === '清香' || flavor === '本味清淡')) flavor = '香腥';
+  if (!flags.sightedWater && flags.waterTint === '浑浊' && flavor === '清香') flavor = '香腥';
+  if (flags.sightedWater === '清澈' && flavor === '香腥') flavor = '清香';
+  if (flags.sightedWater === '浑浊' && flavor === '清香') flavor = '香腥';
+  if (flags.sightedWater === '微浑' && flavor === '清香') flavor = '香腥';
+  if (flags.sightedWater === '肥水' && flavor !== '大腥') {
+    flavor = flags.hotNoon || flags.temp >= 30 ? '本味清淡' : '清淡带果酸';
+  }
   return flavor;
 }
 
 export function planForm(fish: string, flags: ClimateFlags, style: FishStyle): string {
   if (style === '路亚') return '拟饵';
   if (['黄颡鱼', '鲶鱼', '塘鲺'].includes(fish)) return '虫饵';
-  if (['鲤鱼', '草鱼', '青鱼'].includes(fish) || flags.highStable || flags.windy) return '搓饵';
+  if (fish === '白条') return '拉饵';
   if (['草鱼', '鳊鱼'].includes(fish) && flags.temp >= 26) return '颗粒/玉米';
+  if (fish === '鳊鱼') return '拉饵';
+  if (['鲤鱼', '草鱼', '青鱼'].includes(fish) || flags.highStable || flags.windy) return '搓饵';
   return '拉饵';
 }
 
@@ -103,21 +136,38 @@ export type LurePick = {
   retrieve: string;
 };
 
-function lureColor(flags: ClimateFlags, nightDark: boolean): string {
-  if (flags.raining) return '红头/金色';
-  if (flags.night) return nightDark ? '橙红暗色' : '微光银';
-  return '银白自然色';
+function colorFamily(fish: string, flags: ClimateFlags): LureColorFamily {
+  return topLureColorFamily({
+    fish,
+    sighted: flags.sightedWater,
+    rainTint: flags.waterTint,
+    night: flags.night,
+  });
+}
+
+function fishColor(
+  fish: string,
+  flags: ClimateFlags,
+  labels: { clear: string; stained: string; green?: string; dark?: string; glow?: string },
+): string {
+  return paintByFamily(colorFamily(fish, flags), labels);
 }
 
 export function planLurePick(fish: string, flags: ClimateFlags): LurePick {
-  const color = lureColor(flags, true);
   const winterFar = flags.temp < 15 || flags.month <= 3 || flags.month === 12;
+  const silverGold = {
+    clear: '银白自然色',
+    stained: '红头/金色',
+    green: '草黄/图表绿',
+    dark: '暗色',
+    glow: '橙红暗色',
+  };
 
   if (fish === '翘嘴' || fish === '红鳍鲌') {
     if (flags.prime && !flags.hotNoon && !flags.night) {
       return {
         name: '波扒 / 浮水铅笔',
-        color: flags.raining ? '红头白身' : '银白',
+        color: fishColor(fish, flags, { clear: '银白', stained: '红头白身', green: '草黄/图表绿' }),
         size: '7–9cm',
         retrieve: '压稍匀速，轻抽一停仿逃窜',
       };
@@ -125,7 +175,7 @@ export function planLurePick(fish: string, flags: ClimateFlags): LurePick {
     if (flags.night) {
       return {
         name: '勺型亮片',
-        color: '暗色/微光',
+        color: fishColor(fish, flags, { ...silverGold, dark: '暗色/微光', glow: '暗色/微光' }),
         size: '7–10g',
         retrieve: '匀速小摆，靠水波诱口',
       };
@@ -133,14 +183,14 @@ export function planLurePick(fish: string, flags: ClimateFlags): LurePick {
     if (flags.hotNoon || flags.temp < 12) {
       return {
         name: '深潜米诺 / 亮片搜底',
-        color: flags.raining ? '金色' : '银白',
+        color: fishColor(fish, flags, { clear: '银白', stained: '金色', green: '草黄/图表绿' }),
         size: winterFar ? '12–20g' : '7–12g',
         retrieve: '读秒下沉后慢收，偶作停顿',
       };
     }
     return {
       name: '斜切亮片（带红羽更好）',
-      color,
+      color: fishColor(fish, flags, silverGold),
       size: flags.summer ? '7–12g' : winterFar ? '12–20g' : '7–10g',
       retrieve: '匀速收，间停两秒仿伤鱼',
     };
@@ -149,7 +199,7 @@ export function planLurePick(fish: string, flags: ClimateFlags): LurePick {
   if (fish === '白条') {
     return {
       name: '瓜子亮片',
-      color: flags.night ? '橙红' : '银白',
+      color: fishColor(fish, flags, { clear: '银白', stained: '红头金', green: '草黄', glow: '橙红' }),
       size: '1.5–3g',
       retrieve: '微物快收搜上层',
     };
@@ -159,14 +209,19 @@ export function planLurePick(fish: string, flags: ClimateFlags): LurePick {
     if (flags.hotNoon) {
       return {
         name: '深潜米诺 / 小胖子',
-        color: '自然色',
+        color: fishColor(fish, flags, { clear: '自然色', stained: '红头金', green: '草黄/图表绿', dark: '自然色' }),
         size: '7–10cm',
         retrieve: '沿草边光水慢搜；密草仍换雷蛙',
       };
     }
     return {
       name: '雷蛙',
-      color: flags.raining ? '黄白亮色' : '黑绿蛙色',
+      color: fishColor(fish, flags, {
+        clear: '黑绿蛙色',
+        stained: '黄白亮色',
+        green: '草黄/图表绿',
+        dark: '黑绿蛙色',
+      }),
       size: '10–14g',
       retrieve: '草上轻跳停顿，对齐攻击节奏',
     };
@@ -176,14 +231,14 @@ export function planLurePick(fish: string, flags: ClimateFlags): LurePick {
     if (flags.prime && !flags.hotNoon) {
       return {
         name: '浅层米诺',
-        color: flags.raining ? '艳色' : '银白青背',
+        color: fishColor(fish, flags, { clear: '银白青背', stained: '红头金', green: '草黄/图表绿' }),
         size: '7–10cm',
         retrieve: '抽停搜坝头乱石',
       };
     }
     return {
       name: '铅头钩软虫',
-      color: flags.raining ? '艳色' : '青背/虾色',
+      color: fishColor(fish, flags, { clear: '青背/虾色', stained: '红头金', green: '草黄/图表绿', dark: '暗色虾型' }),
       size: '3–5寸',
       retrieve: '跳底贴结构',
     };
@@ -191,11 +246,16 @@ export function planLurePick(fish: string, flags: ClimateFlags): LurePick {
 
   if (fish === '鳜鱼') {
     if (flags.night) {
-      return { name: '发声VIB', color: '暗色', size: '4–6cm', retrieve: '中下层匀速，让饵发声' };
+      return {
+        name: '发声VIB',
+        color: fishColor(fish, flags, { ...silverGold, dark: '暗色', glow: '暗色' }),
+        size: '4–6cm',
+        retrieve: '中下层匀速，让饵发声',
+      };
     }
     return {
       name: '铅头钩卷尾蛆',
-      color: '暗色虾型',
+      color: fishColor(fish, flags, { clear: '暗色虾型', stained: '红头金', green: '草黄/图表绿', dark: '暗色虾型' }),
       size: flags.hour >= 9 && flags.hour <= 17 ? '7–10g' : '5–7g',
       retrieve: '贴底慢跳，遇障碍停顿',
     };
@@ -204,27 +264,42 @@ export function planLurePick(fish: string, flags: ClimateFlags): LurePick {
   if (fish === '鲶鱼' || fish === '塘鲺') {
     return {
       name: '胡须佬 / 德州软虫',
-      color: '暗色',
+      color: fishColor(fish, flags, { ...silverGold, dark: '暗色' }),
       size: '铅头 5–10g',
       retrieve: '贴底慢拖或跳底',
     };
   }
 
   if (fish === '黄颡鱼') {
-    return { name: '小型软虫', color: '暗色', size: '铅头 3–5g', retrieve: '近岸障碍慢跳' };
+    return {
+      name: '小型软虫',
+      color: fishColor(fish, flags, { ...silverGold, dark: '暗色' }),
+      size: '铅头 3–5g',
+      retrieve: '近岸障碍慢跳',
+    };
   }
 
   if (fish === '罗非鱼') {
-    return { name: '小亮片', color: '银白', size: '3–5g', retrieve: '浅滩匀速' };
+    return {
+      name: '小亮片',
+      color: fishColor(fish, flags, silverGold),
+      size: '3–5g',
+      retrieve: '浅滩匀速',
+    };
   }
 
   if (fish === '鳡鱼') {
-    return { name: '波扒 / 大米诺', color: '银白', size: '10cm+', retrieve: '水面系快抽' };
+    return {
+      name: '波扒 / 大米诺',
+      color: fishColor(fish, flags, silverGold),
+      size: '10cm+',
+      retrieve: '水面系快抽',
+    };
   }
 
   return {
     name: '小亮片（路亚效率偏低）',
-    color: '银白',
+    color: fishColor(fish, flags, silverGold),
     size: '3–7g',
     retrieve: '搜浅层，更建议改台钓',
   };
@@ -259,8 +334,8 @@ export function planSpot(fish: string, flags: ClimateFlags, style: FishStyle): s
 export function planWindow(flags: ClimateFlags): string {
   if (flags.hotNoon) return '避开正午';
   if (flags.prime) return '早晚优先';
-  if (flags.falling) return '气压下降窗口';
-  return '按气压择时';
+  if (flags.falling) return '经验急降窗口';
+  return '按气温与时段';
 }
 
 export function baitLabel(flavor: string, form: string, style: FishStyle, lure: string): string {

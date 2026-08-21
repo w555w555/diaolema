@@ -1,15 +1,36 @@
 import type { FishStyle } from '../types';
 import { FISH_CATALOG, FISH_METHODS, type CatalogFish } from './fishId/catalog';
+import { clampLayerToHabit, habitLayerFloor, handbookOf } from './fishHandbook';
+
+export { clampLayerToHabit, habitLayerFloor };
 
 export type FishGuide = {
   name: string;
   aliases: string;
   intro: string;
   habitat: string;
+  habitLayer: string;
+  layerFloor: string | null;
+  methods: FishStyle[];
+  season: string;
+  baitHint: string;
+  look: string;
+  diet: string;
+  size: string;
+  shanghai: string;
+  caution: string;
+  sources: string[];
   tips: { style: FishStyle; items: string[] }[];
 };
 
-const GUIDES: Record<CatalogFish, Omit<FishGuide, 'name'>> = {
+type GuideBody = {
+  aliases: string;
+  intro: string;
+  habitat: string;
+  tips: { style: FishStyle; items: string[] }[];
+};
+
+const GUIDES: Record<CatalogFish, GuideBody> = {
   鲫鱼: {
     aliases: '鲫瓜、喜头',
     intro: '上海公园湖与河道最常见的底层鱼。口轻、喜群居，气压稳定、水温不太极端时靠边觅食。不依赖溶氧或水温实测数字。',
@@ -242,7 +263,10 @@ const GUIDES: Record<CatalogFish, Omit<FishGuide, 'name'>> = {
   },
 };
 
-const FALLBACK: Omit<FishGuide, 'name'> = {
+const FALLBACK: Omit<
+  FishGuide,
+  'name' | 'methods' | 'habitLayer' | 'layerFloor' | 'season' | 'baitHint' | 'look' | 'diet' | 'size' | 'shanghai' | 'caution' | 'sources'
+> = {
   aliases: '词表外对象',
   intro: '暂无专条。请改选词表内鱼种，或按今日方案的味形/拟饵与标点作钓。不编造溶氧或水温。',
   habitat: '按当前标点建议选择结构。',
@@ -252,15 +276,195 @@ const FALLBACK: Omit<FishGuide, 'name'> = {
   ],
 };
 
+const FISH_FACTS: Record<
+  CatalogFish,
+  { season: string; look: string; diet: string; size: string; shanghai: string; caution: string }
+> = {
+  鲫鱼: {
+    season: '四季，春秋更稳',
+    look: '体侧扁、青灰或金黄，无须。口小下位。',
+    diet: '杂食，刮底泥里的有机碎屑、虫、藻。',
+    size: '野河常见一掌长，坑塘可更大。',
+    shanghai: '公园湖、河道、收费塘都常见，上海入门对象。',
+    caution: '口轻，别把气压读数当成开口保证。不编造溶氧。',
+  },
+  鲤鱼: {
+    season: '春末到秋',
+    look: '体延长、口有短须，鳞大。',
+    diet: '拱泥杂食，谷物、螺蚌、底栖昆虫。',
+    size: '河道常见斤级，塘里可更大。',
+    shanghai: '收费塘与苏州河、黄浦支流都有。',
+    caution: '警觉，大风或乱人声时口差。',
+  },
+  草鱼: {
+    season: '夏秋',
+    look: '圆筒形、青灰，下咽齿发达。',
+    diet: '成鱼以水草、藻类为主，也吃颗粒。',
+    size: '河湖常见数斤级。',
+    shanghai: '水草区、进水口漂浮物下更常见。',
+    caution: '正午亮水少待，跟着鱼层走。',
+  },
+  青鱼: {
+    season: '夏秋',
+    look: '体色青黑，头比草鱼钝。',
+    diet: '螺蛳、蚌类，成鱼偏肉食底栖。',
+    size: '大型，线组要结实。',
+    shanghai: '深潭、桥墩、螺底。',
+    caution: '口少就守，不要频繁换点。',
+  },
+  鳊鱼: {
+    season: '夏秋',
+    look: '体高侧扁，俗称武昌鱼。',
+    diet: '水草、碎屑、小型无脊椎。',
+    size: '河道常见半斤到斤级。',
+    shanghai: '草边中层、缓流。',
+    caution: '口快可加快抛频，亮水中央不如草边。',
+  },
+  鲮鱼: {
+    season: '夏秋（上海坑塘）',
+    look: '体延长、下位口，南方常见。',
+    diet: '刮食藻类与底栖有机物。',
+    size: '塘里常见半斤上下。',
+    shanghai: '部分坑塘放养，野河少。',
+    caution: '水温偏低时口差，钩要小。',
+  },
+  黄颡鱼: {
+    season: '夜钓更常见',
+    look: '黄褐有斑，胸鳍硬棘。',
+    diet: '底栖肉食，小鱼虾、昆虫。',
+    size: '常见一两到半斤。',
+    shanghai: '桥墩、乱石、缓流底，夜口好。',
+    caution: '摘钩防刺。',
+  },
+  黄鱼: {
+    season: '看潮，河口',
+    look: '金黄、下位口，偏海水鱼。',
+    diet: '底栖虾蟹、小鱼。',
+    size: '岸抛多为小个体。',
+    shanghai: '河口、防波堤偶见。',
+    caution: '看潮不看编造水温。',
+  },
+  鲻鱼: {
+    season: '滨江闸口',
+    look: '银白、脂眼，广盐性。',
+    diet: '刮食藻与有机碎屑。',
+    size: '闸口可见斤级。',
+    shanghai: '滨江缓流、闸口进出水。',
+    caution: '路亚效果差，手竿更对路。',
+  },
+  鲈鱼: {
+    season: '晨昏窗口',
+    look: '体侧有斑，口裂大。',
+    diet: '掠食小鱼、虾。',
+    size: '坝头常见斤级到数斤。',
+    shanghai: '坝头乱石、桥墩、急流边。',
+    caution: '贴结构搜索，不要空收亮水。',
+  },
+  翘嘴: {
+    season: '晨昏追小鱼',
+    look: '体侧银白、下颌上翘。',
+    diet: '掠食上层小鱼。',
+    size: '公园湖常见半斤到数斤。',
+    shanghai: '公园湖与河道主力路亚对象。',
+    caution: '清水偏银白，浊水可用红头金。不是实时大数据。',
+  },
+  黑鱼: {
+    season: '夏季草区',
+    look: '圆筒、头平、口大。',
+    diet: '伏击鱼、蛙。',
+    size: '荷塘常见斤级以上。',
+    shanghai: '荷塘、芦苇边。',
+    caution: '中鱼压竿，障碍区加强线组。',
+  },
+  鳜鱼: {
+    season: '春秋结构区',
+    look: '斑纹、口裂斜裂。',
+    diet: '伏击小鱼。',
+    size: '桥墩常见半斤到两斤。',
+    shanghai: '桥墩、石缝、缓流坎。',
+    caution: '贴底跳、慢拖，阴处结构优先。',
+  },
+  鳡鱼: {
+    season: '夏秋远投',
+    look: '细长、口裂大。',
+    diet: '大型掠食。',
+    size: '开放水域偶见大个体。',
+    shanghai: '开阔水面少见但有记录。',
+    caution: '冲劲大，控方向。',
+  },
+  红鳍鲌: {
+    season: '与翘嘴相近',
+    look: '鲌亚科，鳍常带红。',
+    diet: '小鱼、水面昆虫。',
+    size: '常比翘嘴略小。',
+    shanghai: '河道可兼钓。',
+    caution: '饵可以更小，沿回流搜。',
+  },
+  白条: {
+    season: '几乎全年',
+    look: '细长银白，俗称餐条。',
+    diet: '浮游、水面碎屑、小虫。',
+    size: '常见一指长。',
+    shanghai: '几乎所有水面都有。',
+    caution: '袖钩或微物，打频率。',
+  },
+  罗非鱼: {
+    season: '夏天或温室塘',
+    look: '侧扁、长背鳍。',
+    diet: '杂食，刮藻也吃商品饵。',
+    size: '塘里常见半斤。',
+    shanghai: '温室塘或夏天野河偶见。',
+    caution: '向阳浅滩更好。',
+  },
+  鲶鱼: {
+    season: '夜钓',
+    look: '无鳞、口须明显。',
+    diet: '夜行肉食。',
+    size: '桥洞可见斤级。',
+    shanghai: '桥洞、倒树、深坑。',
+    caution: '夜口更好，慢拖停顿。',
+  },
+  塘鲺: {
+    season: '夜口更好',
+    look: '似鲶，头扁有须。',
+    diet: '底层肉食。',
+    size: '坑塘放养多见。',
+    shanghai: '塘角、进出水。',
+    caution: '手法接近鲶，跳底要慢。',
+  },
+};
+
 export function fishGuide(name: string): FishGuide {
   const key = FISH_CATALOG.find((row) => row === name);
   const body = key ? GUIDES[key] : FALLBACK;
-  const methods = key ? FISH_METHODS[key] : (['台钓', '路亚'] as const);
+  const methods = key ? [...FISH_METHODS[key]] : (['台钓', '路亚'] as FishStyle[]);
+  const book = handbookOf(name);
+  const facts = key
+    ? FISH_FACTS[key]
+    : {
+        season: '—',
+        look: '词表外，待公开百科补充。',
+        diet: '—',
+        size: '—',
+        shanghai: '上海水域未建专条。',
+        caution: '不编造溶氧或水温。',
+      };
   return {
     name: key ?? name,
     aliases: body.aliases,
     intro: body.intro,
     habitat: body.habitat,
-    tips: body.tips.filter((row) => (methods as readonly string[]).includes(row.style)),
+    habitLayer: book?.habitLayer ?? '按今日方案',
+    layerFloor: book?.layerFloor ?? null,
+    methods,
+    season: facts.season,
+    baitHint: book?.baitHint ?? '按今日方案味形/拟饵',
+    look: facts.look,
+    diet: facts.diet,
+    size: facts.size,
+    shanghai: facts.shanghai,
+    caution: facts.caution,
+    sources: book?.sources ?? [],
+    tips: body.tips.filter((row) => methods.includes(row.style)),
   };
 }

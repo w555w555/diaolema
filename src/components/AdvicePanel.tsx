@@ -14,7 +14,7 @@ export function AdvicePanel({ advice }: { advice: FishingAdvice | null }) {
     <section className="panel advice-panel">
       <h2>今日怎么钓</h2>
       <p className="layer">
-        鱼多半在<strong>{advice.layer}</strong>
+        经验主攻<strong>{advice.layer}</strong>
       </p>
       <p className="targets">对象鱼：{advice.targetFish.join('、')}</p>
       <dl>
@@ -22,6 +22,12 @@ export function AdvicePanel({ advice }: { advice: FishingAdvice | null }) {
           <dt>{advice.lureNote ? '拟饵' : '味形'}</dt>
           <dd>{advice.baitLabel}</dd>
         </div>
+        {advice.lureColorWhy ? (
+          <div>
+            <dt>饵色</dt>
+            <dd>{advice.lureColorWhy}</dd>
+          </div>
+        ) : null}
         {advice.lureNote ? (
           <div>
             <dt>操法</dt>

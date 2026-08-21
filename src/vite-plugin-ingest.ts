@@ -9,6 +9,7 @@ import type { PostStore } from './lib/ingest/types';
 import { loadScoutConfig, saveExtraManualLink, scoutPaths, toIngestConfig } from './lib/scout/loadConfig';
 import { readTodayReport, runDailyScout } from './lib/scout/runDaily';
 import { fishIdAgentUrl, fishIdConfigured, identifyFishFromImage } from './lib/fishId/server';
+import { lookupFishPublic } from './lib/fishLookup';
 import { readAmapConfig } from './lib/mapConfig';
 import { publicConfigFromEnv } from './lib/supabaseConfig';
 import type { CatchReport } from './types';
@@ -129,6 +130,20 @@ async function handle(req: IncomingMessage, res: ServerResponse, next: () => voi
   }
   if (req.method === 'GET' && url === '/api/map-config') {
     sendJson(res, 200, readAmapConfig(appEnv()));
+    return;
+  }
+  if (req.method === 'GET' && url === '/api/fish-guide') {
+    const name = new URL(req.url ?? '', 'http://localhost').searchParams.get('name')?.trim() ?? '';
+    if (!name) {
+      sendJson(res, 400, { error: '请提供鱼名' });
+      return;
+    }
+    try {
+      const note = await lookupFishPublic(name);
+      sendJson(res, 200, { note, error: note ? null : '公开条目暂缺' });
+    } catch (error) {
+      sendJson(res, 200, { note: null, error: error instanceof Error ? error.message : '公开检索失败' });
+    }
     return;
   }
   if (req.method === 'GET' && url === '/api/fish-id') {

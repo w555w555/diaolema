@@ -3,20 +3,30 @@ import { catalogForStyle, coerceFishForStyle } from '../lib/fishId/catalog';
 import { hourLabel, type HourlyForecast } from '../lib/forecast';
 import { outingLabel } from '../lib/fishingIndex';
 import { fishGuide } from '../lib/fishGuide';
+import { auditFishStyle } from '../lib/fishHandbookAudit';
+import type { FishPublicNote } from '../lib/fishLookup';
 import {
+  baitWhyRows,
   flavorSliderPct,
+  homeIndexTags,
   hourBarHeights,
   indexRingOffset,
   layerBand,
+  layerLead,
+  layerMarkerPct,
   layerStance,
+  layerWhyRows,
+  outingShort,
   precipWetDry,
   pressureTrend,
   windowNowPct,
   INDEX_RING_LEN,
+  type LayerBand,
 } from '../lib/homeView';
 import { weatherLabel, windDirLabel, windScaleLabel } from '../lib/weather';
+import { SIGHTED_WATER, sightedWaterHow } from '../lib/sightedWater';
 import { windowCountdown } from '../lib/windowCountdown';
-import type { FishStyle, FishingAdvice, FishingIndex, WeatherSnapshot } from '../types';
+import type { FishStyle, FishingAdvice, FishingIndex, SightedWater, WeatherSnapshot } from '../types';
 
 export type HomeSheet = 'advice' | 'venues' | 'daily' | 'share' | 'weather' | 'target' | 'catch' | 'spot' | 'guide' | 'author';
 
@@ -32,10 +42,12 @@ type Props = {
   targetFish: string;
   style: FishStyle;
   onStyleChange: (style: FishStyle) => void;
+  sightedWater: SightedWater | null;
+  onSightedWaterChange: (value: SightedWater | null) => void;
   locating?: boolean;
 };
 
-const LAYER_COPY: Record<'上' | '中' | '底', { idle: string; active: string }> = {
+const LAYER_COPY: Record<LayerBand, { idle: string; active: string }> = {
   上: { idle: '急降才去', active: '今日主攻' },
   中: { idle: '口轻再探', active: '今日主攻' },
   底: { idle: '贴底守口', active: '今日主攻' },
@@ -53,14 +65,16 @@ export function HomeScreen({
   targetFish,
   style,
   onStyleChange,
+  sightedWater,
+  onSightedWaterChange,
   locating,
 }: Props) {
   const fish = coerceFishForStyle(targetFish || advice?.targetFish[0] || '', style);
   const bait = advice ? (style === '路亚' ? advice.lure : advice.baitLabel) : '—';
   const spot = advice?.spot ?? '—';
-  const outing = index ? outingLabel(index.label) : loading ? '读取中' : '—';
+  const outing = index ? outingShort(index.label) : loading ? '读取中' : outingLabel('一般');
   const band = advice ? layerBand(advice.layer) : null;
-  const stance = advice ? layerStance(advice.layer) : '—';
+  const stance = advice ? layerStance(advice.layer, style) : '—';
   const precip = weather ? precipWetDry(weather.precipitationMm, weather.weatherCode) : '—';
   const hours = hourly.slice(0, 6);
   const bars = hourBarHeights(hours.map((row) => row.temperatureC));
@@ -71,6 +85,36 @@ export function HomeScreen({
   const delta = weather?.pressureDelta3h ?? 0;
   const trend = weather ? pressureTrend(delta) : '—';
   const locLabel = locating ? '定位中' : '上海';
+  const guide = fishGuide(fish);
+  const whyLayer = layerWhyRows({
+    fish,
+    habitat: guide.habitat,
+    layer: advice?.layer ?? '—',
+    pressureHpa: weather?.pressureHpa ?? null,
+    deltaHpa: weather?.pressureDelta3h ?? null,
+    trend,
+    precip: precip === '—' ? '干' : precip,
+    sightedWater,
+  });
+  const whyBait = baitWhyRows({
+    style,
+    flavor: advice?.flavor ?? '—',
+    form: advice?.form ?? '—',
+    lure: advice?.lure ?? '—',
+    lureNote: advice?.lureNote ?? '',
+    method: advice?.method ?? '—',
+    tempC: weather?.temperatureC ?? null,
+    lureColorWhy: advice?.lureColorWhy,
+  });
+  const tags = index
+    ? homeIndexTags({
+        score,
+        label: index.label,
+        reasons: index.reasons,
+        precip: precip === '—' ? '干' : precip,
+        wind: weather ? windScaleLabel(weather.windKmh) : '—',
+      })
+    : [];
 
   return (
     <div className="home">
@@ -118,6 +162,7 @@ export function HomeScreen({
           <div className="wx-top">
             <span className="cond">天气 {weather ? weatherLabel(weather.weatherCode) : loading ? '读取中' : '—'}</span>
             <span className="wx-wind">
+              <i className="compass" aria-hidden />
               风向 {weather ? `${windDirLabel(weather.windDirDeg)} ${windScaleLabel(weather.windKmh)}` : '—'}
             </span>
             <span className="dry">降水 {precip}</span>
@@ -168,6 +213,7 @@ export function HomeScreen({
                     strokeWidth="6"
                     strokeLinecap="round"
                   />
+                  <line x1="60" y1="30" x2="84" y2="10" stroke="#f4f7fb" strokeWidth="2" />
                 </svg>
               </div>
               <span className="hint">
@@ -187,10 +233,43 @@ export function HomeScreen({
               路亚
             </button>
           </div>
+          <div className="water-opts-block">
+            <div className="water-opts-head">
+              <h3>塘边水色</h3>
+              <p>肉眼看塘能不能见底，点了改饵色。不是天气预报。</p>
+            </div>
+            <div className="seg water-picks" role="listbox" aria-label="塘边目测水色">
+              <button type="button" className={!sightedWater ? 'on' : undefined} onClick={() => onSightedWaterChange(null)}>
+                <i className="swatch swatch-none" aria-hidden="true" />
+                <strong>未目测</strong>
+              </button>
+              {SIGHTED_WATER.map((row) => (
+                <button
+                  key={row.id}
+                  type="button"
+                  className={sightedWater === row.id ? 'on' : undefined}
+                  onClick={() => onSightedWaterChange(row.id)}
+                >
+                  <i className="swatch" style={{ background: row.swatch }} aria-hidden="true" />
+                  <strong>{row.id}</strong>
+                </button>
+              ))}
+            </div>
+            <p className="water-how">
+              {sightedWater
+                ? `怎么认：${sightedWaterHow(sightedWater)}`
+                : '怎么认：清澈=见底；微浑=有色看不清底；浑浊=黄泥浆几乎不透光；肥水=草绿或酱油色。'}
+            </p>
+          </div>
           <div className="plan-core-head">
-            <h2>
-              {fish} · 今日怎么钓
-            </h2>
+            <div>
+              <h2>
+                {fish} · 今日怎么钓
+              </h2>
+              <button type="button" className="fish-intro" onClick={() => onOpen('guide')}>
+                鱼类介绍
+              </button>
+            </div>
             <button type="button" className="ghost" onClick={() => onOpen('target')}>
               换鱼
             </button>
@@ -204,16 +283,16 @@ export function HomeScreen({
                   <em>{band === key ? LAYER_COPY[key].active : LAYER_COPY[key].idle}</em>
                 </span>
               ))}
+              {advice ? <i className="col-tick" style={{ top: `${layerMarkerPct(advice.layer)}%` }} /> : null}
             </div>
             <div className="plan">
               <h3>{stance}</h3>
               <p className="sub">水层 · {advice?.layer ?? '—'}</p>
-              <p>{advice?.tip ?? (loading ? '正在计算今日方案' : '天气到位后给出水层与饵料。')}</p>
+              <p>{advice ? layerLead(fish, stance, advice.layer, advice.tip) : '等天气到位后再给出水层。'}</p>
               <div className="chips">
-                {index ? <span className="tag idx">钓鱼推荐指数 {score} {index.label}</span> : null}
-                {index?.reasons.slice(0, 3).map((row) => (
-                  <span key={row} className="tag">
-                    {row}
+                {tags.map((tag) => (
+                  <span key={tag.text} className={`tag${tag.kind ? ` ${tag.kind}` : ''}`}>
+                    {tag.text}
                   </span>
                 ))}
               </div>
@@ -224,13 +303,16 @@ export function HomeScreen({
             <article>
               <h4>为什么{stance}</h4>
               <ol>
-                {(advice?.reasons ?? ['等待气象后给出水层依据']).map((row) => (
-                  <li key={row}>{row}</li>
+                {whyLayer.map((row) => (
+                  <li key={row.k}>
+                    <b>{row.k}</b>
+                    {row.v}
+                  </li>
                 ))}
               </ol>
             </article>
             <article>
-              <h4>为什么{style === '路亚' ? bait : `${advice?.flavor ?? ''}${advice?.form ?? ''}` || '这款饵'}</h4>
+              <h4>为什么{style === '路亚' ? bait : advice?.flavor ? `${advice.flavor}${advice.form}` : '这款饵'}</h4>
               {style === '台钓' && advice?.flavor ? (
                 <div className="flavor" aria-label={`味型：${advice.flavor}`}>
                   <span>大腥</span>
@@ -241,16 +323,13 @@ export function HomeScreen({
                 </div>
               ) : null}
               <ol>
-                {style === '路亚' && advice?.lureNote ? <li>{advice.lureNote}</li> : null}
-                {advice?.method ? <li>{advice.method}</li> : null}
-                {advice?.tip ? <li>{advice.tip}</li> : null}
+                {whyBait.map((row) => (
+                  <li key={row.k}>
+                    <b>{row.k}</b>
+                    {row.v}
+                  </li>
+                ))}
               </ol>
-              <button type="button" className="ghost fish-guide-btn" onClick={() => onOpen('guide')}>
-                介绍
-              </button>
-              <button type="button" className="ghost fish-guide-btn" onClick={() => onOpen('advice')}>
-                完整依据
-              </button>
             </article>
           </div>
 
@@ -260,16 +339,30 @@ export function HomeScreen({
               <div>
                 <h4>{bait}</h4>
                 <small>{style === '路亚' ? '拟饵 · 路亚' : '味形 · 台钓'}</small>
-                <p>{style === '路亚' ? advice?.lureNote ?? advice?.tip : `${advice?.flavor ?? ''}，${advice?.form ?? ''}到底找口。`}</p>
+                <p>{style === '路亚' ? advice?.lureNote ?? '—' : advice?.tip ?? '—'}</p>
+                {style === '路亚' && advice?.lureColors?.length ? (
+                  <>
+                    <ol className="lure-color-ranks">
+                      {advice.lureColors.map((row, i) => (
+                        <li key={row.family} className={i === 0 ? 'is-top' : undefined}>
+                          <i style={{ background: row.swatch }} />
+                          <span>{row.family}</span>
+                          <em>{row.score}</em>
+                        </li>
+                      ))}
+                    </ol>
+                    {advice.lureColorWhy ? <p className="lure-color-why">{advice.lureColorWhy}</p> : null}
+                  </>
+                ) : null}
               </div>
-              <b>{band === '底' ? '沉底' : band === '中' ? '离底' : '搜层'}</b>
+              <b>{style === '路亚' ? '搜索' : '沉底'}</b>
             </div>
             <div className="move">
               <span className="dot ok" />
               <div>
                 <h4>{spot}</h4>
-                <small>标点</small>
-                <p>{advice?.window ? `窗口：${advice.window}` : '按对象鱼与风向选岸。'}</p>
+                <small>标点 · 可抛</small>
+                <p>{advice?.method ?? '按对象鱼与风向选岸'}</p>
               </div>
               <b>近岸</b>
             </div>
@@ -279,9 +372,6 @@ export function HomeScreen({
         </section>
 
         <div className="home-actions">
-          <button type="button" onClick={onRefresh}>
-            刷新方案
-          </button>
           <button type="button" className="ghost" onClick={() => onOpen('weather')}>
             气象详情
           </button>
@@ -325,15 +415,101 @@ function WindowTrack() {
 
 export function FishGuidePanel({ fish, style }: { fish: string; style: FishStyle }) {
   const guide = fishGuide(fish);
+  const auditRows = auditFishStyle(fish, style);
+  const auditFailed = auditRows.filter((row) => !row.ok);
+  const [note, setNote] = useState<FishPublicNote | null>(null);
+  const [publicErr, setPublicErr] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    const cacheKey = `diaolema.fishWiki.${fish}`;
+    try {
+      const cached = sessionStorage.getItem(cacheKey);
+      if (cached) {
+        const parsed = JSON.parse(cached) as FishPublicNote;
+        if (parsed?.summary) {
+          setNote(parsed);
+          setLoading(false);
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+    setPublicErr(null);
+    setLoading(true);
+    void fetch(`/api/fish-guide?name=${encodeURIComponent(fish)}`)
+      .then(async (res) => {
+        const data = (await res.json()) as { note?: FishPublicNote | null; error?: string | null };
+        if (cancelled) return;
+        if (data.note?.summary) {
+          setNote(data.note);
+          try {
+            sessionStorage.setItem(cacheKey, JSON.stringify(data.note));
+          } catch {
+            /* ignore */
+          }
+          setPublicErr(null);
+        } else {
+          setPublicErr(data.error || '公开条目暂缺');
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setPublicErr('公开检索暂时不可用');
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [fish]);
+
   return (
     <article className="fish-guide">
       <p className="share-kicker">
         {guide.aliases} · 当前{style}
       </p>
       <h3>{guide.name}</h3>
+      <dl className="fish-facts">
+        <div>
+          <dt>习性水层</dt>
+          <dd>{guide.habitLayer}</dd>
+        </div>
+        <div>
+          <dt>水层下限</dt>
+          <dd>{guide.layerFloor ? `不低于${guide.layerFloor}` : '按气象手册'}</dd>
+        </div>
+        <div>
+          <dt>常用钓法</dt>
+          <dd>{guide.methods.join(' / ')}</dd>
+        </div>
+        <div>
+          <dt>时节</dt>
+          <dd>{guide.season}</dd>
+        </div>
+        <div>
+          <dt>常用饵</dt>
+          <dd>{guide.baitHint}</dd>
+        </div>
+        <div>
+          <dt>体型</dt>
+          <dd>{guide.size}</dd>
+        </div>
+        <div>
+          <dt>食性</dt>
+          <dd>{guide.diet}</dd>
+        </div>
+      </dl>
+      <h4>外形</h4>
+      <p>{guide.look}</p>
+      <h4>上海水域</h4>
+      <p>{guide.shanghai}</p>
       <p className="fish-guide-intro">{guide.intro}</p>
       <h4>栖息与标点</h4>
       <p>{guide.habitat}</p>
+      <h4>注意</h4>
+      <p>{guide.caution}</p>
       {guide.tips.map((row) => (
         <section key={row.style} data-current={row.style === style ? 'true' : 'false'}>
           <h4>{row.style}技巧推荐</h4>
@@ -344,7 +520,47 @@ export function FishGuidePanel({ fish, style }: { fish: string; style: FishStyle
           </ul>
         </section>
       ))}
-      <p className="muted">整理自公开垂钓经验，运行时不联网，不编造溶氧与水温。</p>
+      <h4>手册来源</h4>
+      {guide.sources.length ? (
+        <ul>
+          {guide.sources.map((item) => (
+            <li key={item}>{item}</li>
+          ))}
+        </ul>
+      ) : (
+        <p className="muted">词表外，暂无编译手册。</p>
+      )}
+      {auditRows.length ? (
+        <section className="fish-audit" data-ok={auditFailed.length === 0 ? 'true' : 'false'}>
+          <h4>引擎核验</h4>
+          <p>
+            {style} × {auditRows.length} 个气象键，{auditFailed.length === 0 ? '全部与手册相符' : `${auditFailed.length} 条不符`}
+            。对照习性下限与饵/拟饵关键词，不是塘边实测。
+          </p>
+          <ul>
+            {auditRows.map((row) => (
+              <li key={row.caseId}>
+                {row.ok ? '相符' : '不符'} · {row.caseId} · {row.stance} · {row.layer}
+                {row.mismatches.length ? ` · ${row.mismatches.join('；')}` : ''}
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+      <section className="fish-public">
+        <h4>公开百科补充</h4>
+        {loading ? <p className="muted">正在检索公开条目…</p> : null}
+        {note ? (
+          <>
+            <p>{note.summary}</p>
+            <a href={note.url} target="_blank" rel="noreferrer">
+              来源：{note.source}
+            </a>
+          </>
+        ) : null}
+        {!loading && publicErr && !note ? <p className="muted">{publicErr}</p> : null}
+        <p className="muted">公开摘录不是塘边实测，不编造溶氧与水温。</p>
+      </section>
     </article>
   );
 }
@@ -372,4 +588,3 @@ export function TargetFishSheet({
     </div>
   );
 }
-

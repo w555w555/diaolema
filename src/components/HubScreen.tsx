@@ -213,7 +213,7 @@ export function HubScreen({
           <div className="hub-brand">
             <div>
               <h2>渔圈</h2>
-              <p>发现 · 今日渔获 · 主题群 · 赛事</p>
+              <p>渔获 · 群聊 · 赛事</p>
             </div>
             <em>{wish.length ? `想买 ${wish.length}` : '示例'}</em>
           </div>
@@ -360,12 +360,11 @@ function HubHome({
   onOpenShare?: (report: CatchReport) => void;
   onOpenInbox?: () => void;
 }) {
+  const [lane, setLane] = useState<'catch' | 'rooms' | 'events'>('catch');
+  const unread = inbox.reduce((sum, row) => sum + row.unread, 0);
   return (
     <>
       <section className="hub-block">
-        <header className="hub-sec">
-          <h3>发现</h3>
-        </header>
         <nav className="hub-nav" aria-label="发现">
           {DOCK.map((tile) => (
             <button key={tile.view} type="button" data-kind={tile.view} onClick={() => onOpen(tile.view)}>
@@ -379,56 +378,72 @@ function HubHome({
         </nav>
       </section>
 
-      {onOpenShare && onOpenInbox ? (
-        <CatchShareFeed reports={reports} onOpenAll={onOpenInbox} onOpenDetail={onOpenShare} />
+      <div className="seg hub-lanes" role="tablist" aria-label="渔圈分区">
+        <button type="button" className={lane === 'catch' ? 'on' : undefined} onClick={() => setLane('catch')}>
+          渔获
+        </button>
+        <button type="button" className={lane === 'rooms' ? 'on' : undefined} onClick={() => setLane('rooms')}>
+          群聊{unread ? ` ${unread}` : ''}
+        </button>
+        <button type="button" className={lane === 'events' ? 'on' : undefined} onClick={() => setLane('events')}>
+          赛事
+        </button>
+      </div>
+
+      {lane === 'catch' && onOpenShare && onOpenInbox ? (
+        <CatchShareFeed reports={reports} onOpenAll={onOpenInbox} onOpenDetail={onOpenShare} showFollow={false} limit={8} />
       ) : null}
 
-      <section className="hub-block">
-        <header className="hub-sec">
-          <h3>
-            主题群<em>{inbox.reduce((sum, row) => sum + row.unread, 0)}</em>
-          </h3>
-          <button type="button" className="share-more" onClick={() => onOpen('community')}>
-            全部 ›
-          </button>
-        </header>
-        <InboxList rows={inbox} onOpen={onOpenThread} />
-      </section>
+      {lane === 'rooms' ? (
+        <section className="hub-block">
+          <header className="hub-sec">
+            <h3>
+              主题群<em>{unread}</em>
+            </h3>
+            <button type="button" className="share-more" onClick={() => onOpen('community')}>
+              全部 ›
+            </button>
+          </header>
+          <InboxList rows={inbox.slice(0, 6)} onOpen={onOpenThread} />
+        </section>
+      ) : null}
 
-      <section className="hub-block">
-        <header className="hub-sec">
-          <h3>
-            近期赛事<em>{HUB_EVENTS.length}</em>
-          </h3>
-          <button type="button" className="share-more" onClick={() => onOpen('events')}>
-            全部 ›
-          </button>
-        </header>
-        <ul className="hub-cards is-events">
-          {HUB_EVENTS.slice(0, 2).map((item) => {
-            const date = eventDate(item.when);
-            return (
-              <li key={item.id}>
-                <button type="button" className="hub-card hub-event-row hub-open" onClick={() => onOpen('events')}>
-                  <time>
-                    <b>{date.month}</b>
-                    <strong>{date.day}</strong>
-                  </time>
-                  <div>
-                    <p className="share-kicker">
-                      {item.kind} · {date.clock} · 示例
-                    </p>
-                    <strong>{item.title}</strong>
-                    <span>
-                      {item.place} · {item.blurb}
-                    </span>
-                  </div>
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-      </section>
+      {lane === 'events' ? (
+        <section className="hub-block">
+          <header className="hub-sec">
+            <h3>
+              近期赛事<em>{HUB_EVENTS.length}</em>
+            </h3>
+            <button type="button" className="share-more" onClick={() => onOpen('events')}>
+              全部 ›
+            </button>
+          </header>
+          <ul className="hub-cards is-events">
+            {HUB_EVENTS.slice(0, 4).map((item) => {
+              const date = eventDate(item.when);
+              return (
+                <li key={item.id}>
+                  <button type="button" className="hub-card hub-event-row hub-open" onClick={() => onOpen('events')}>
+                    <time>
+                      <b>{date.month}</b>
+                      <strong>{date.day}</strong>
+                    </time>
+                    <div>
+                      <p className="share-kicker">
+                        {item.kind} · {date.clock} · 示例
+                      </p>
+                      <strong>{item.title}</strong>
+                      <span>
+                        {item.place} · {item.blurb}
+                      </span>
+                    </div>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      ) : null}
 
       <p className="hub-foot">{HUB_DISCLAIMER}</p>
     </>

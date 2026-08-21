@@ -27,6 +27,8 @@ type Props = {
   reports: CatchReport[];
   onOpenAll: () => void;
   onOpenDetail: (report: CatchReport) => void;
+  showFollow?: boolean;
+  limit?: number;
 };
 
 function useShareSocial() {
@@ -37,12 +39,12 @@ function useSafety() {
   return useSyncExternalStore(subscribeSafety, getSafety, getSafety);
 }
 
-export function CatchShareFeed({ reports, onOpenAll, onOpenDetail }: Props) {
+export function CatchShareFeed({ reports, onOpenAll, onOpenDetail, showFollow = true, limit = HOME_SHARE_LIMIT }: Props) {
   const social = useShareSocial();
   const safety = useSafety();
   const items = hideByAuthor([...reports], safety.blocks)
     .sort((a, b) => new Date(b.caughtAt).getTime() - new Date(a.caughtAt).getTime())
-    .slice(0, HOME_SHARE_LIMIT);
+    .slice(0, limit);
 
   return (
     <section className="share-feed">
@@ -78,17 +80,19 @@ export function CatchShareFeed({ reports, onOpenAll, onOpenDetail }: Props) {
                 </button>
                 <div className="share-foot">
                   <span className="share-spot">{report.spotName}</span>
-                  <button
-                    type="button"
-                    className="share-follow"
-                    data-on={following ? 'true' : 'false'}
-                    onClick={() => {
-                      const next = toggleFollow(report.author);
-                      cloudWrite(pushFollow(report.author, next.follows.includes(report.author)));
-                    }}
-                  >
-                    {following ? '已关注' : '关注'}
-                  </button>
+                  {showFollow ? (
+                    <button
+                      type="button"
+                      className="share-follow"
+                      data-on={following ? 'true' : 'false'}
+                      onClick={() => {
+                        const next = toggleFollow(report.author);
+                        cloudWrite(pushFollow(report.author, next.follows.includes(report.author)));
+                      }}
+                    >
+                      {following ? '已关注' : '关注'}
+                    </button>
+                  ) : null}
                   <button
                     type="button"
                     className="share-like"

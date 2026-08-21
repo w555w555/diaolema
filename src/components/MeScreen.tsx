@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import logoUrl from '../assets/logo.svg?url';
+import { BRAND_NAME, MANIFESTO } from '../lib/brand';
 import { formatCatchCaption, sourceLabel } from '../lib/caption';
 import { mergeFanList } from '../lib/authorProfile';
 import {
@@ -885,8 +886,12 @@ function AboutYujian() {
   return (
     <article className="me-about">
       <img src={logoUrl} alt="" width={64} height={64} />
-      <h3>渔见</h3>
+      <h3>{BRAND_NAME}</h3>
       <p>FISHING INSIGHT</p>
+      <blockquote className="me-manifesto">
+        <p>{MANIFESTO[0]}</p>
+        <p>{MANIFESTO[1]}</p>
+      </blockquote>
       <span>邮箱注册 / 登录 / 退出</span>
       <p className="muted">天气、渔获与群聊都留在本机。粉丝为示例名单，不接私信。</p>
     </article>

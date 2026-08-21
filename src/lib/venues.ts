@@ -107,8 +107,7 @@ export function venueAvatar(photoUrl?: string): string {
 export function venueMarkerTone(kind: string): SpotMarkerTone {
   if (kind.includes('海钓')) return 'sea';
   if (kind.includes('路亚')) return 'lure';
-  if (/垂钓园|垂钓中心|鱼塘|生态园|钓虾/.test(kind)) return 'pond';
-  return 'lure';
+  return 'pond';
 }
 
 export function venueMarkerKindLabel(tone: SpotMarkerTone): string {
@@ -183,6 +182,19 @@ export function nearbyVenues(current: FishingVenue, all: FishingVenue[], limit =
   return [...all]
     .filter((row) => row.id !== current.id)
     .sort((a, b) => distanceKm(current, a) - distanceKm(current, b))
+    .slice(0, Math.max(0, limit));
+}
+
+export const NEARBY_POND_LIMIT = 8;
+
+export function nearbyPonds(
+  from: { lat: number; lon: number },
+  venues: FishingVenue[],
+  limit = NEARBY_POND_LIMIT,
+): FishingVenue[] {
+  return [...venues]
+    .filter((row) => venueMarkerTone(row.kind) === 'pond')
+    .sort((a, b) => distanceKm(from, a) - distanceKm(from, b))
     .slice(0, Math.max(0, limit));
 }
 

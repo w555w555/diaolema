@@ -1,5 +1,6 @@
 import type { WeatherSnapshot } from '../types';
 import { buildFishingIndex } from './fishingIndex';
+import { inferWaterTint } from './waterTint';
 
 export type HourlyForecast = {
   at: string;
@@ -32,6 +33,10 @@ export type OpenMeteoHourly = {
   wind_direction_10m?: number[];
   pressure_msl?: number[];
   relative_humidity_2m?: number[];
+  visibility?: number[];
+  uv_index?: number[];
+  dew_point_2m?: number[];
+  wind_gusts_10m?: number[];
 };
 
 export type OpenMeteoDaily = {
@@ -44,6 +49,7 @@ export type OpenMeteoDaily = {
   wind_direction_10m_dominant?: number[];
   pressure_msl_mean?: number[];
   relative_humidity_2m_mean?: number[];
+  uv_index_max?: number[];
 };
 
 function num(value: number | undefined, fallback = 0): number {
@@ -112,6 +118,33 @@ export function enrichDailyFromHourly(days: DailyForecast[], hours: HourlyForeca
   });
 }
 
+export function nearestHourlyNumber(times: string[] | undefined, series: number[] | undefined, nowIso: string): number | null {
+  if (!times?.length || !series?.length) return null;
+  const now = new Date(nowIso).getTime();
+  let best: number | null = null;
+  let bestDiff = Infinity;
+  times.forEach((at, i) => {
+    const value = series[i];
+    if (typeof value !== 'number' || !Number.isFinite(value)) return;
+    const diff = Math.abs(new Date(at).getTime() - now);
+    if (diff < bestDiff) {
+      bestDiff = diff;
+      best = value;
+    }
+  });
+  return best;
+}
+
+export function sumHourlyPrecip(hours: HourlyForecast[], nowIso: string, windowHours: number): number {
+  const now = new Date(nowIso).getTime();
+  const start = now - windowHours * 60 * 60 * 1000;
+  return hours.reduce((sum, row) => {
+    const t = new Date(row.at).getTime();
+    if (t >= start && t <= now + 30 * 60 * 1000) return sum + row.precipitationMm;
+    return sum;
+  }, 0);
+}
+
 export function snapshotFromDaily(
   day: DailyForecast,
   loc: { lat: number; lon: number },
@@ -131,6 +164,14 @@ export function snapshotFromDaily(
     precipitationMm: day.precipitationMm,
     weatherCode: day.weatherCode,
     cloudPct: 0,
+    precip6hMm: 0,
+    precip24hMm: day.precipitationMm,
+    waterTint: inferWaterTint({
+      precipNowMm: day.precipitationMm,
+      precip6hMm: 0,
+      precip24hMm: day.precipitationMm,
+      weatherCode: day.weatherCode,
+    }).tint,
   };
 }
 

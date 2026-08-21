@@ -22,10 +22,11 @@ function escapeXml(text: string): string {
 
 export function catchThumb(fish: string): string {
   const [bg, accent] = PALETTE[hashFish(fish) % PALETTE.length];
-  const size = fish.length <= 2 ? 32 : fish.length === 3 ? 26 : 22;
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" width="160" height="160">
-    <rect width="160" height="160" fill="${bg}"/>
-    <text x="80" y="92" text-anchor="middle" font-size="${size}" font-weight="700" fill="${accent}" font-family="Noto Sans SC, sans-serif">${escapeXml(fish)}</text>
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 120" width="160" height="120">
+    <rect width="160" height="120" fill="${bg}"/>
+    <path d="M0 78 Q40 68 80 78 T160 78 V120 H0 Z" fill="${accent}" fill-opacity="0.12"/>
+    <path d="M0 54 Q40 46 80 54 T160 54" fill="none" stroke="${accent}" stroke-opacity="0.28" stroke-width="1.4"/>
+    <text x="12" y="104" font-size="13" font-weight="700" fill="${accent}" font-family="Noto Sans SC, sans-serif">${escapeXml(fish)}</text>
   </svg>`;
   return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg.replace(/\s+/g, ' ').trim())}`;
 }

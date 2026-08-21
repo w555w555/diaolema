@@ -1,5 +1,6 @@
 import { dailyFishingIndex, hourLabel, shanghaiDate, weekdayLabel, type DailyForecast, type HourlyForecast } from '../lib/forecast';
 import { weatherLabel, windDirLabel, windScaleLabel } from '../lib/weather';
+import { inferWaterTint, uvLabel, visibilityLabel } from '../lib/waterTint';
 import type { WeatherSnapshot } from '../types';
 
 type Props = {
@@ -20,6 +21,14 @@ function trend(delta: number): string {
 
 export function WeatherPanel({ weather, hourly, daily, loading, error, onRetry, onLocate }: Props) {
   const today = weather ? shanghaiDate(weather.at) : shanghaiDate(new Date());
+  const tint = weather
+    ? inferWaterTint({
+        precipNowMm: weather.precipitationMm,
+        precip6hMm: weather.precip6hMm ?? 0,
+        precip24hMm: weather.precip24hMm ?? 0,
+        weatherCode: weather.weatherCode,
+      })
+    : null;
   return (
     <section className="panel weather-panel">
       <header>
@@ -32,7 +41,7 @@ export function WeatherPanel({ weather, hourly, daily, loading, error, onRetry, 
       {error && (
         <p className="error">
           {error}{' '}
-          <button type="button" onClick={onRetry}>
+          <button type="button" className="ghost" onClick={onRetry}>
             重试
           </button>
         </p>
@@ -45,14 +54,14 @@ export function WeatherPanel({ weather, hourly, daily, loading, error, onRetry, 
           </p>
           <ul className="metrics">
             <li>
-              <span>气压</span>
+              <span>海平面气压</span>
               <strong>{weather.pressureHpa.toFixed(1)} hPa</strong>
-              <small>3小时 {trend(weather.pressureDelta3h)}</small>
+              <small>模式网格，不是水体 · 3小时 {trend(weather.pressureDelta3h)}</small>
             </li>
             <li>
               <span>湿度</span>
               <strong>{weather.humidityPct.toFixed(0)}%</strong>
-              <small>体感 {weather.apparentC.toFixed(1)}°</small>
+              <small>不代表溶氧 · 体感 {weather.apparentC.toFixed(1)}°</small>
             </li>
             <li>
               <span>风</span>
@@ -62,6 +71,33 @@ export function WeatherPanel({ weather, hourly, daily, loading, error, onRetry, 
             <li>
               <span>降水</span>
               <strong>{weather.precipitationMm.toFixed(1)} mm</strong>
+              <small>
+                近6小时 {(weather.precip6hMm ?? 0).toFixed(1)} mm · 近24小时 {(weather.precip24hMm ?? 0).toFixed(1)} mm
+              </small>
+            </li>
+            <li>
+              <span>水色推演</span>
+              <strong>{tint?.tint ?? '—'}</strong>
+              <small>近时降水浊度，不是塘边所见。请到策略页点选目测。</small>
+            </li>
+            <li>
+              <span>能见度</span>
+              <strong>{visibilityLabel(weather.visibilityM)}</strong>
+              <small>空气视程，不是水下</small>
+            </li>
+            <li>
+              <span>紫外</span>
+              <strong>{uvLabel(weather.uvIndex)}</strong>
+              <small>出门防晒，不是鱼口</small>
+            </li>
+            <li>
+              <span>露点</span>
+              <strong>{weather.dewPointC != null ? `${weather.dewPointC.toFixed(1)}°` : '—'}</strong>
+              <small>空气露点，不是水温</small>
+            </li>
+            <li>
+              <span>阵风</span>
+              <strong>{weather.windGustKmh != null ? `${weather.windGustKmh.toFixed(0)} km/h` : '—'}</strong>
               <small>云量 {weather.cloudPct}%</small>
             </li>
           </ul>
@@ -107,7 +143,7 @@ export function WeatherPanel({ weather, hourly, daily, loading, error, onRetry, 
                   );
                 })}
               </ul>
-              <p className="muted">日指数用当日气温、气压、风和降水估算，不是溶氧或水温实测。</p>
+              <p className="muted">日指数用当日气温、风和降水估算，不是溶氧或水温实测。水色由近时降水推演，不是测站。</p>
             </>
           ) : null}
         </>

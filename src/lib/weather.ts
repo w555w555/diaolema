@@ -3,12 +3,15 @@ import {
   enrichDailyFromHourly,
   mapDailyForecast,
   mapHourlyForecast,
+  nearestHourlyNumber,
   pickUpcomingHours,
+  sumHourlyPrecip,
   type DailyForecast,
   type HourlyForecast,
   type OpenMeteoDaily,
   type OpenMeteoHourly,
 } from './forecast';
+import { inferWaterTint } from './waterTint';
 
 const OPEN_METEO = 'https://api.open-meteo.com/v1/forecast';
 
@@ -65,6 +68,11 @@ type OpenMeteoResponse = {
   daily?: OpenMeteoDaily;
 };
 
+const HOURLY_VARS =
+  'temperature_2m,weather_code,precipitation,wind_speed_10m,wind_direction_10m,pressure_msl,relative_humidity_2m,visibility,uv_index,dew_point_2m,wind_gusts_10m';
+const DAILY_VARS =
+  'weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max,wind_direction_10m_dominant,uv_index_max';
+
 const CURRENT_VARS = [
   'temperature_2m',
   'relative_humidity_2m',
@@ -95,6 +103,24 @@ function pressureThreeHoursAgo(hourly: { time: string[]; pressure_msl?: number[]
 
 function snapshotFromCurrent(data: OpenMeteoResponse, lat: number, lon: number): WeatherSnapshot {
   const c = data.current;
+  const hours = mapHourlyForecast(data.hourly);
+  const precip6hMm = Number(sumHourlyPrecip(hours, c.time, 6).toFixed(2));
+  const precip24hMm = Number(sumHourlyPrecip(hours, c.time, 24).toFixed(2));
+  const visibilityM = nearestHourlyNumber(data.hourly.time, data.hourly.visibility, c.time);
+  const dewPointC = nearestHourlyNumber(data.hourly.time, data.hourly.dew_point_2m, c.time);
+  const windGustKmh = nearestHourlyNumber(data.hourly.time, data.hourly.wind_gusts_10m, c.time);
+  const uvHourly = nearestHourlyNumber(data.hourly.time, data.hourly.uv_index, c.time);
+  const today = c.time.slice(0, 10);
+  const dayIndex = data.daily?.time?.findIndex((date) => date === today) ?? -1;
+  const uvDaily = dayIndex >= 0 ? data.daily?.uv_index_max?.[dayIndex] : undefined;
+  const uvIndex =
+    uvHourly ?? (typeof uvDaily === 'number' && Number.isFinite(uvDaily) ? uvDaily : null);
+  const waterTint = inferWaterTint({
+    precipNowMm: c.precipitation,
+    precip6hMm,
+    precip24hMm,
+    weatherCode: c.weather_code,
+  }).tint;
   return {
     at: c.time,
     lat,
@@ -102,6 +128,7 @@ function snapshotFromCurrent(data: OpenMeteoResponse, lat: number, lon: number):
     temperatureC: c.temperature_2m,
     apparentC: c.apparent_temperature,
     humidityPct: c.relative_humidity_2m,
+    // 模式海平面气压，网格点上空，不是水体、不是溶氧
     pressureHpa: c.pressure_msl,
     pressureDelta3h: pressureThreeHoursAgo(data.hourly, c.time, c.pressure_msl),
     windKmh: c.wind_speed_10m,
@@ -109,6 +136,13 @@ function snapshotFromCurrent(data: OpenMeteoResponse, lat: number, lon: number):
     precipitationMm: c.precipitation,
     weatherCode: c.weather_code,
     cloudPct: c.cloud_cover,
+    visibilityM,
+    uvIndex,
+    dewPointC,
+    windGustKmh,
+    precip6hMm,
+    precip24hMm,
+    waterTint,
   };
 }
 
@@ -133,9 +167,9 @@ export async function fetchWeatherBundle(lat: number, lon: number, signal?: Abor
   };
   const full = new URLSearchParams({
     ...shared,
-    hourly: 'temperature_2m,weather_code,precipitation,wind_speed_10m,wind_direction_10m,pressure_msl,relative_humidity_2m',
-    daily: 'weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max,wind_direction_10m_dominant',
-    past_hours: '6',
+    hourly: HOURLY_VARS,
+    daily: DAILY_VARS,
+    past_hours: '24',
     forecast_days: '7',
   });
   let data: OpenMeteoResponse;

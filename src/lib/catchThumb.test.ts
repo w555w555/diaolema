@@ -2,10 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { catchThumb, shareBody, shareCover, shareExcerpt } from './catchThumb';
 
 describe('shareCover', () => {
-  it('无实拍时用深色底加大号鱼名', () => {
+  it('无实拍时用浅纹底加底部小字鱼名', () => {
     const url = shareCover({ fish: '鲈鱼' });
     expect(url.startsWith('data:image/svg+xml')).toBe(true);
     expect(decodeURIComponent(url)).toContain('鲈鱼');
+    expect(decodeURIComponent(url)).not.toContain('font-size="32"');
     expect(catchThumb('鲈鱼')).not.toBe(catchThumb('鲫鱼'));
   });
 

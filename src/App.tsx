@@ -29,8 +29,9 @@ import { HUB_ROOMS, loadChatMessages } from './lib/hub';
 import { buildInbox, inboxUnreadTotal, loadPreviews, loadReads, subscribeInbox } from './lib/chatInbox';
 import { DEMO_FANS } from './lib/meProfile';
 import { fetchWeatherBundle } from './lib/weather';
+import { loadSightedWater, persistSightedWater } from './lib/sightedWater';
 import { getSafety, hideByAuthor, hideInboxFromBlocked } from './lib/userSafety';
-import { SHANGHAI_CENTER, type CatchReport, type FishStyle, type FishingVenue, type HubChatMessage, type SpotReview, type WeatherSnapshot } from './types';
+import { SHANGHAI_CENTER, type CatchReport, type FishStyle, type FishingVenue, type HubChatMessage, type SightedWater, type SpotReview, type WeatherSnapshot } from './types';
 import type { DailyForecast, HourlyForecast } from './lib/forecast';
 import './index.css';
 import './theme-oled.css';
@@ -86,14 +87,17 @@ export function App() {
   const [picking, setPicking] = useState(false);
   const [pick, setPick] = useState(SHANGHAI_CENTER);
   const [navTarget, setNavTarget] = useState<{ lon: number; lat: number; name: string } | null>(null);
+  const [navMap, setNavMap] = useState(false);
+  const [navVenue, setNavVenue] = useState<FishingVenue | null>(null);
+  const [navLabel, setNavLabel] = useState('导航');
   const [focusVenue, setFocusVenue] = useState<FishingVenue | null>(null);
   const [targetFish, setTargetFish] = useState('');
   const [style, setStyle] = useState<FishStyle>('台钓');
+  const [sightedWater, setSightedWater] = useState<SightedWater | null>(() => loadSightedWater());
   const [share, setShare] = useState<CatchReport | null>(null);
   const [authorName, setAuthorName] = useState<string | null>(null);
   const [splash, setSplash] = useState(true);
   const [spotReviews, setSpotReviews] = useState<SpotReview[]>(() => loadSpotReviews());
-  const [spotVisit, setSpotVisit] = useState(0);
   const [locating, setLocating] = useState(false);
   const [spotVenue, setSpotVenue] = useState<FishingVenue | null>(null);
   const [meStart, setMeStart] = useState<'home' | 'catches' | 'auth'>('home');
@@ -133,9 +137,10 @@ export function App() {
         ? buildAdvice(weather, new Date(), {
             targetFish: targetFish || undefined,
             style,
+            sightedWater,
           })
         : null,
-    [weather, targetFish, style],
+    [weather, targetFish, style, sightedWater],
   );
   const index = useMemo(() => (weather ? buildFishingIndex(weather) : null), [weather]);
 
@@ -216,10 +221,12 @@ export function App() {
 
   const changeTab = (next: TabId) => {
     setSheet(null);
-    if (next !== 'spots') setPicking(false);
+    if (next !== 'spots') {
+      setPicking(false);
+      setNavMap(false);
+    }
     if (next === 'spots') {
       locate('map');
-      setSpotVisit((n) => n + 1);
     }
     if (next === 'publish') {
       locate('weather');
@@ -229,20 +236,41 @@ export function App() {
     setTab(next);
   };
 
+  const openNavMap = (place: { lon: number; lat: number; name: string }, venue?: FishingVenue | null) => {
+    setSheet(null);
+    setSpotBack(null);
+    setNavVenue(venue ?? null);
+    setNavLabel(place.name);
+    setNavTarget(place);
+    setNavMap(true);
+    setTab('spots');
+  };
+
+  const showSpotMap = tab === 'spots' && (navMap || picking);
+
   return (
     <div className="app-shell">
       <div className="phone">
         <div className="stage">
-          <div className="map-stage" data-hidden={tab !== 'spots' ? 'true' : 'false'}>
+          <div className="map-stage" data-hidden={showSpotMap ? 'false' : 'true'} data-mode="nav">
+            {showSpotMap && !picking ? (
+              <div className="map-nav-head">
+                <button type="button" className="ghost" onClick={() => setNavMap(false)}>
+                  ‹ 返回列表
+                </button>
+                <strong>{navLabel}</strong>
+              </div>
+            ) : null}
             <CatchMap
-              venues={DIANPING_VENUES}
+              venues={picking ? DIANPING_VENUES : navVenue ? [navVenue] : []}
               reviews={spotReviews}
               lat={coords.lat}
               lon={coords.lon}
-              locateVisit={spotVisit}
-              locating={tab === 'spots' && locating}
-              visible={tab === 'spots'}
+              locating={showSpotMap && locating}
+              visible={showSpotMap}
               picking={picking}
+              hideSearch
+              lockView={navMap && !picking}
               navigateTo={navTarget}
               onNavigateDone={() => setNavTarget(null)}
               focusVenue={focusVenue}
@@ -252,17 +280,27 @@ export function App() {
                 setSpotBack(null);
                 setSheet('spot');
               }}
-              onOpenList={() => {
-                setSpotBack(null);
-                setSheet('venues');
-              }}
               onPick={(lat, lon) => {
                 const next = { lat, lon };
                 setPick(next);
                 setCoords(next);
                 setPicking(false);
+                setNavMap(false);
                 setTab('publish');
               }}
+            />
+          </div>
+          <div className="spots-feed" data-hidden={tab === 'spots' && !showSpotMap ? 'false' : 'true'}>
+            <VenueList
+              reviews={spotReviews}
+              fromLat={coords.lat}
+              fromLon={coords.lon}
+              onOpen={(venue) => {
+                setSpotVenue(venue);
+                setSpotBack(null);
+                setSheet('spot');
+              }}
+              onNavigate={(venue) => openNavMap({ lon: venue.lon, lat: venue.lat, name: venue.name }, venue)}
             />
           </div>
 
@@ -281,6 +319,8 @@ export function App() {
                 setStyle(next);
                 setTargetFish((cur) => coerceFishForStyle(cur, next));
               }}
+              sightedWater={sightedWater}
+              onSightedWaterChange={(next) => setSightedWater(persistSightedWater(next))}
               onRefresh={() => void load()}
               onOpen={setSheet}
             />
@@ -354,8 +394,7 @@ export function App() {
                 cloudWrite(pushCatch(report));
               }}
               onNavigateCatch={(report) => {
-                setNavTarget({ lon: report.lon, lat: report.lat, name: report.spotName });
-                setTab('spots');
+                openNavMap({ lon: report.lon, lat: report.lat, name: report.spotName });
               }}
               onEditCatch={(report) => {
                 setEditing(report);
@@ -403,6 +442,7 @@ export function App() {
             {sheet === 'advice' && <AdvicePanel advice={advice} />}
             {sheet === 'venues' && (
               <VenueList
+                mode="rank"
                 reviews={spotReviews}
                 fromLat={coords.lat}
                 fromLon={coords.lon}
@@ -411,13 +451,7 @@ export function App() {
                   setSpotBack('venues');
                   setSheet('spot');
                 }}
-                onFocus={(venue) => {
-                  setSpotVenue(venue);
-                  setFocusVenue(venue);
-                  setSpotBack(null);
-                  setTab('spots');
-                  setSheet('spot');
-                }}
+                onNavigate={(venue) => openNavMap({ lon: venue.lon, lat: venue.lat, name: venue.name }, venue)}
               />
             )}
             {sheet === 'daily' && (
@@ -464,9 +498,7 @@ export function App() {
               <CatchShareDetail
                 report={share}
                 onGoSpot={() => {
-                  setSheet(null);
-                  setNavTarget({ lon: share.lon, lat: share.lat, name: share.spotName });
-                  setTab('spots');
+                  openNavMap({ lon: share.lon, lat: share.lat, name: share.spotName });
                 }}
                 onOpenAuthor={(name) => {
                   setAuthorName(name);
@@ -497,9 +529,7 @@ export function App() {
                 fromLon={coords.lon}
                 onReviewsChange={setSpotReviews}
                 onPreviewRoute={() => {
-                  setNavTarget({ lon: spotVenue.lon, lat: spotVenue.lat, name: spotVenue.name });
-                  setSheet(null);
-                  setTab('spots');
+                  openNavMap({ lon: spotVenue.lon, lat: spotVenue.lat, name: spotVenue.name }, spotVenue);
                 }}
                 onOpenVenue={(venue) => {
                   setSpotVenue(venue);

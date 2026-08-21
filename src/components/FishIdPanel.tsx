@@ -97,9 +97,11 @@ export function FishIdPanel({
       <p className="muted legal">拍照或从相册选图，识别词表内鱼种。</p>
       {configured === false && <p className="muted">还没配置识鱼密钥，可先手选鱼种。</p>}
       <div className="fish-id-actions">
-        <PhotoCapture onPick={(file) => void runIdentify(file)} />
+        <PhotoCapture cameraClassName="primary" onPick={(file) => void runIdentify(file)} />
       </div>
-      {preview && <img className="fish-id-preview" src={preview} alt="渔获预览" />}
+      <div className="fish-id-stage">
+        {preview ? <img src={preview} alt="渔获预览" /> : <span className="fish-id-stage-empty">取景</span>}
+      </div>
       {error && <p className="error">{error}</p>}
       {result && (
         <div className="fish-id-result">
@@ -148,6 +150,7 @@ export function FishIdPanel({
       <p className="muted coords">{locating ? '正在定位…' : `${lat.toFixed(5)}, ${lon.toFixed(5)}`}</p>
       <button
         type="button"
+        className="primary"
         disabled={!fishName || fishName === UNCERTAIN}
         onClick={() => {
           onReport({

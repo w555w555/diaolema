@@ -36,6 +36,8 @@ type Props = {
   onFocusDone?: () => void;
   onOpenVenue?: (venue: FishingVenue) => void;
   onOpenList?: () => void;
+  hideSearch?: boolean;
+  lockView?: boolean;
 };
 
 type NavApi = {
@@ -45,6 +47,7 @@ type NavApi = {
 
 type ViewApi = {
   setNearby: (lat: number, lon: number) => void;
+  resize: () => void;
 };
 
 export function CatchMap({
@@ -63,6 +66,8 @@ export function CatchMap({
   onFocusDone,
   onOpenVenue,
   onOpenList,
+  hideSearch = false,
+  lockView = false,
 }: Props) {
   const rootRef = useRef<HTMLDivElement>(null);
   const pickRef = useRef({ picking, onPick });
@@ -162,7 +167,7 @@ export function CatchMap({
                 new AMap.Geolocation({
                   enableHighAccuracy: true,
                   timeout: 10000,
-                  buttonPosition: 'RB',
+                  buttonPosition: 'LT',
                   showButton: true,
                   showMarker: true,
                   showCircle: true,
@@ -237,13 +242,15 @@ export function CatchMap({
           focusApi.current = (venue) => {
             map.setZoom(NEARBY_MAP_ZOOM);
             map.setCenter([venue.lon, venue.lat]);
-            openVenueRef.current?.(venue);
           };
           viewApi.current = {
             setNearby(nextLat, nextLon) {
               map.resize();
               map.setZoom(NEARBY_MAP_ZOOM);
               map.setCenter([nextLon, nextLat]);
+            },
+            resize() {
+              map.resize();
             },
           };
 
@@ -345,12 +352,14 @@ export function CatchMap({
       navApi.current = api;
       focusApi.current = (venue) => {
         map.setView([venue.lat, venue.lon], NEARBY_MAP_ZOOM);
-        openVenueRef.current?.(venue);
       };
       viewApi.current = {
         setNearby(nextLat, nextLon) {
           map.invalidateSize();
           map.setView([nextLat, nextLon], NEARBY_MAP_ZOOM);
+        },
+        resize() {
+          map.invalidateSize();
         },
       };
       const leafletMarkers: { venue: FishingVenue; marker: L.Marker }[] = [];
@@ -408,7 +417,7 @@ export function CatchMap({
     if (!navigateTo || !navApi.current) return;
     navApi.current.preview(navigateTo, 'car');
     onNavigateDone?.();
-  }, [navigateTo, onNavigateDone]);
+  }, [navigateTo, onNavigateDone, engine]);
 
   useEffect(() => {
     if (!focusVenue || engine === 'loading' || !focusApi.current) return;
@@ -417,19 +426,31 @@ export function CatchMap({
   }, [focusVenue, engine, onFocusDone]);
 
   useEffect(() => {
+    if (lockView) return;
     if (!visible || engine === 'loading' || !viewApi.current) return;
     const id = window.setTimeout(() => viewApi.current?.setNearby(lat, lon), 120);
     return () => window.clearTimeout(id);
-  }, [visible, engine, lat, lon]);
+  }, [visible, engine, lat, lon, lockView]);
 
   useEffect(() => {
+    if (!visible || engine === 'loading') return;
+    const el = rootRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(() => viewApi.current?.resize());
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [visible, engine, hideSearch]);
+
+  useEffect(() => {
+    if (lockView) return;
     if (!locateVisit || engine === 'loading' || !viewApi.current) return;
     viewApi.current.setNearby(lat, lon);
-  }, [locateVisit, lat, lon, engine]);
+  }, [locateVisit, lat, lon, engine, lockView]);
 
   return (
     <div className="map-wrap">
       <div ref={rootRef} className="map-canvas" />
+      {!hideSearch ? (
       <div className="map-search-wrap">
         <input
           className="map-search"
@@ -445,8 +466,8 @@ export function CatchMap({
                   type="button"
                   onClick={() => {
                     setQuery('');
-                    if (focusApi.current) focusApi.current(venue);
-                    else onOpenVenue?.(venue);
+                    focusApi.current?.(venue);
+                    onOpenVenue?.(venue);
                   }}
                 >
                   <strong>{venue.name}</strong>
@@ -461,6 +482,7 @@ export function CatchMap({
         ) : null}
         {query.trim() && hits.length === 0 ? <p className="map-search-empty">没有匹配的钓场</p> : null}
       </div>
+      ) : null}
       <div className={`map-status ${engine}`}>
         {engine === 'loading' && '正在加载地图…'}
         {engine === 'amap' && (locating ? '正在定位附近钓场…' : '高德已开启 · 已对准附近钓场')}

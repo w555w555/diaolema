@@ -64,6 +64,9 @@ HubScreen → getSupabase() → chat_messages SELECT / INSERT
 ## 3. 核心类型
 
 ```ts
+type WaterTint = '偏清' | '微浑' | '浑浊'; // 降水推演浊度
+type SightedWater = '清澈' | '微浑' | '浑浊' | '肥水';
+
 type WeatherSnapshot = {
   at: string;
   lat: number;
@@ -78,6 +81,13 @@ type WeatherSnapshot = {
   precipitationMm: number;
   weatherCode: number;
   cloudPct: number;
+  visibilityM?: number | null; // 空气能见度，不是水下
+  uvIndex?: number | null;
+  dewPointC?: number | null;
+  windGustKmh?: number | null;
+  precip6hMm?: number;
+  precip24hMm?: number;
+  waterTint?: WaterTint; // 近时降水推演，不是测站
 };
 
 type WaterLayer = '上层' | '中上层' | '中下层' | '底层';
@@ -95,6 +105,8 @@ type FishingAdvice = {
   spot: string;
   lure: string;
   lureNote: string;
+  lureScent?: string;
+  lureScentClass?: 'hard' | 'salt-pvc' | 'powerbait-like' | 'gulp-like';
   window: string;
 };
 
@@ -139,19 +151,30 @@ type HubChatMessage = { id: string; roomId: string; author: string; body: string
 
 ## 4. 建议引擎（FR-2）
 
-纯函数 `buildAdvice(weather, at = Date)`。优先级从高到低：
+纯函数 `buildAdvice(weather, at = Date)`。这是**公开经验手册检索**，不是今日鱼口/溶氧/水温实测。气压急降 / 高低压只作检索键；`tip` / `reasons` 必须以「经验」起句，禁止「鱼易开口」「上浮抢食」「低压氧薄」等因果句。`AdvicePanel` 写「经验主攻 {层}」，不写「鱼多半在」。
 
-1. **盛夏正午高温**（月∈{6,7,8,9} 且气温≥30 且小时∈[10,16]）→ 底层；清淡底饵；建议荫凉/夜钓。
-2. **气压急降**（3h ΔP ≤ -1.5 hPa）→ 中上层；腥香雾化饵或活饵；台钓加快抛频 / 路亚搜上层。
+优先级从高到低：
+
+1. **盛夏正午高温**（月∈{6,7,8,9} 且气温≥30 且小时∈[10,16]）→ 底层；清淡底饵；建议荫凉/夜钓。理由写空气温度，不写水温。
+2. **气压急降**（3h ΔP ≤ -1.5 hPa）→ 中上层；腥香雾化饵或活饵；台钓加快抛频 / 路亚搜上层。文案标明经验倾向、方向有争议。
 3. **高气压稳定**（气压 ≥ 1022 且 |ΔP| < 1）→ 底层；蚯蚓红虫小钩细线；守底少动。
-4. **低气压**（气压 ≤ 1008）→ 中上层；轻质 commerical 饵或表层路亚。
+4. **低气压**（气压 ≤ 1008）→ 中上层；轻质 commercial 饵或表层路亚。禁止「氧薄」。
 5. **默认** → 中下层；香腥各一；台钓找底后略离底。
+
+选了目标鱼之后，用 `clampLayerToHabit` 把水层夹到该鱼习性下限：白条不低于中上层；翘嘴/红鳍鲌/鳡/鳊/黑鱼不低于中下层。盛夏正午的底层守底只留给鲫鲤青等底栖对象。层已不在底层时，方法文案不得再写「守底」。路亚 `layerStance`：底层写「搜底层」，不写「守底」。
+
+词表手册：`src/data/fish-handbook.json`（习性水层、下限、饵/拟饵关键词、公开来源）。`src/lib/fishHandbook.ts` 载入该表；`fishGuide` 的水层与常用饵只读这份数据。`src/lib/fishHandbookAudit.ts` 对每种鱼 × 其钓法 × 气象键跑 `buildAdvice`，对照手册。鱼类介绍展示来源、水层下限与核验条数。
 
 附加修正：
 
 - 降水中：偏腥、靠近进水口，层略升一档（底层→中下层，中下层→中上层）。
 - 风 ≥ 25 km/h：饵加重、抗风钓组；路亚改侧风岸。
 - 小时 ∈ [5,7]∪[17,19]：可并列推荐浅层对象鱼（白条/翘嘴）。
+- **降水推演浊度**（`inferWaterTint`）：近 6/24 小时降水 → 偏清 / 微浑 / 浑浊。只作文气参考。
+- **塘边目测**（`SightedWater`）：策略页点选，抬头「塘边水色」+ 怎么认。本机 `diaolema.sightedWater.v2`（旧七档读入时黄泥/乳白/黑浑→浑浊，藻绿/茶褐→肥水）。未选则 `sightedWater=null`，方案用降水推演并写「未目测」。已选则目测优先：清澈银白/本味；微浑香腥；浑浊红头金；肥水果酸+草黄。文案必须区分「目测」与「降水推演」。水色不计出钓适宜度分数。
+- **水层柱**：三档 上 / 中 / 底。主攻档亮青绿渐变。`.col-tick` 细线按 `layerMarkerPct` 滑动，无鱼形 Logo。
+- **鱼类详情**：标题下「鱼类介绍」打开 `FishGuidePanel`。本机 `fishGuide` 为词表库；缺外形/百科时请求 `/api/fish-guide`（维基摘要，失败则公开 SERP）。文案标公开来源，不编造溶氧与水温。
+- 不渲染「同步方案」；钓法、水色、换鱼即时重算 `buildAdvice`。刷新天气走定位芯片。
 
 对象鱼池（上海）：鲫、鲤、草、鳊、黄颡、白条、翘嘴、鲈、黑鱼。
 
@@ -160,32 +183,29 @@ type HubChatMessage = { id: string; roomId: string; author: string; body: string
 `buildAdvice(weather, at, { targetFish, style })`。`src/lib/plan.ts` 给出味型、饵形、标点：
 
 - 味型：气温＜12 大腥；12–18 腥香；18–26 香腥；≥26 清香；盛夏正午或≥30 本味清淡。低压清淡改「清淡带果酸」。来源：公开台钓饵料文（冬春主腥、夏主清淡）。
-- 饵形：鲫/鳊/白条偏拉饵；鲤/草/青或高气压/大风偏搓饵；黄颡/鲶用虫饵；路亚为拟饵。
+- 饵形：鲫/鳊/白条偏拉饵（高压也不改搓饵）；鲤/草/青或高气压/大风偏搓饵；草/鳊高温可颗粒玉米；黄颡/鲶用虫饵；路亚为拟饵。
 - 台钓标点：鲫→草边凹岸/草洞；鲤→凸岸缓坡亮水；草→草边；青→深潭桥墩；翘嘴/白条→深浅交界；黑鱼→草洞。雨天加进水口缓流；正午改荫凉桥洞；晨昏近岸浅滩。
-- 路亚拟饵（`planLurePick`）：按对象鱼 + 气温/时段/降水。翘嘴夏 7–12g 斜切亮片、冬春 12–20g 远投、晨昏波扒、夜钓勺型 7–10g；黑鱼草区 10–14g 雷蛙、光水深潜米诺；鳜铅头钩卷尾 7–10g（晨昏 5–7g）/夜 VIB；鲈结构软虫或浅层米诺；白条瓜子亮片 1.5–3g；鲶胡须佬贴底。清水银白、浊水红头金、夜钓橙红。来源：渔夫者/钓鱼007、渔钓者、酷钓鱼、酷米网。运行时不联网。
+- 路亚拟饵（`planLurePick`）：按对象鱼 + 气温/时段/降水。饵色词表 `src/data/lure-colors.json`，Postgres `public.lure_color_weights`（`supabase/lure_colors.sql`）同源。`recommendLureColors` 运行时只读 JSON。主色写入拟饵卡、`reasons[0]` 与 tip「饵色优先」。清水银白、浊水红头金、肥水草黄、夜钓橙红/暗色。不是上海渔获统计。
+- 路亚诱鱼剂（`src/lib/lureScent.ts` → `pickLureScent` / `planLureScent`）：编译表 `BERKLEY_SCENT_BENCH` / `SCENT_MECHANISM` / `SCENT_HOLD_BARS` 锁住厂方数字（吐饵 0.25s、无味含 1s、表面加香 3s、PowerBait 含约 18s、Gulp 扩散宣称 400×、MaxScent 自称 +45%、油性喷剂不可闻）。`buildAdvice` 在路亚时写入 `lureScent` 与 `lureScentClass`，供方案引擎与单测，**不渲染到策略首页**。用户文案不把 400× / 45% 写成开口保证。Jones 缸测硬饵加香翻倍攻击不采纳为产品规则。运行时不联网。
 
 运行时不联网。
 
-## 4b. 钓鱼指数（FR-8）
+## 4b. 出钓适宜度（FR-8）
 
-纯函数 `buildFishingIndex(weather, at = Date)`，起点 62 分，再按与建议引擎相同的气象信号加减，最后夹紧到 0–100。
+纯函数 `buildFishingIndex(weather, at = Date)`。界面文案「出钓适宜度」，不是鱼口预测。起点 62 分，只按出门条件加减，最后夹紧到 0–100。**`pressureHpa` 与 `pressureDelta3h` 不参与计分**（模式海平面气压、网格点不在水里、小 ΔP 几乎不改溶氧、经验方向有争议）。气压仍出现在气象短卡。
 
 | 信号 | 加减 |
 |------|------|
-| 气压急降（3h ΔP ≤ -1.5） | +16 |
-| 气压缓降（-1.5 < ΔP ≤ -0.5） | +8 |
-| 气压急升（ΔP ≥ 1.5） | -10 |
-| 高气压稳定 | -12 |
-| 低气压（≤ 1008） | +8 |
 | 盛夏正午高温 | -18 |
-| 气温 18–26°C | +8 |
+| 气温 18–26°C 且非正午高温 | +8 |
 | 气温 < 8°C 或 ≥ 35°C | -18 / -14 |
 | 风 ≥ 25 km/h | -12 |
 | 轻降水 | +6 |
 | 大雨/雷暴（降水 ≥ 5 mm 或天气代码 ≥ 95） | -30 |
 | 晨昏窗口且非正午高温 | +8 |
+| 紫外指数 ≥ 8 且小时 ∈ [10,16] | -6 |
 
-档位：≥80 很高，≥65 较高，≥50 一般，≥35 偏低，否则不宜。理由 2–4 条，用气压/气温/风/降水解释。
+档位：≥80 很高，≥65 较高，≥50 一般，≥35 偏低，否则不宜。理由 2–4 条，只用气温/风/降水/时段/紫外防晒解释，不写开口、贴底、溶氧。禁止用湿度凑条数冒充溶氧；不够两条时用体感温度补。同一气温/风/降水/时段下，改变气压或 ΔP，分数必须相同。水色倾向不计分。
 
 ## 4c. 窗口期倒计时（FR-8）
 
@@ -194,11 +214,11 @@ type HubChatMessage = { id: string; roomId: string; author: string; body: string
 - 晨间窗口：当日 05:00 ≤ t < 08:00
 - 黄昏窗口：当日 17:00 ≤ t < 20:00
 
-窗口内 `phase=in`，倒计时到该窗结束；窗外 `phase=wait`，倒计时到下一窗开始（20:00 之后算次日晨间窗口）。文案：`晨间窗口剩余` / `黄昏窗口剩余` / `距晨间窗口` / `距黄昏窗口`。剩余时间格式 `HH:MM:SS`。首页天气条每秒刷新；不调模型、不联网。`fishGuide(name)` 返回习性介绍与技巧条目，词表外回落通用说明。
+窗口内 `phase=in`，倒计时到该窗结束；窗外 `phase=wait`，倒计时到下一窗开始（20:00 之后算次日晨间窗口）。文案：`晨间窗口剩余` / `黄昏窗口剩余` / `距晨间窗口` / `距黄昏窗口`。剩余时间格式 `HH:MM:SS`。首页天气条每秒刷新；不调模型、不联网。`fishGuide(name)` 返回习性介绍、水层/钓法/时节/常用饵与技巧条目，词表外回落通用说明。
 
 ## 4d. 渔圈（FR-9）
 
-`HubScreen` 挂在底栏 `hub`（文案「渔圈」）。首页不是五块空磁贴：顶栏 + 五入口条，下接赛事、装备、群聊、技巧预览，点预览进入对应列表。`src/data/hub.json` 静态示例：商品、赛事、技巧、评测、群；种子消息仅无云端时演示。`src/lib/hub.ts`：`toggleWish`、`messagesForRoom`、`persistGearReview` 可单测。想买 / 装备评测仍写 localStorage。商城无结算。
+`HubScreen` 挂在底栏 `hub`（文案「渔圈」）。首页：发现四入口 + 分段「渔获 / 群聊 / 赛事」（默认渔获，不同时堆三块）。无实拍封面为浅纹底+底部小字鱼名。`src/data/hub.json` 静态示例：商品、赛事、技巧、评测、群；种子消息仅无云端时演示。`src/lib/hub.ts`：`toggleWish`、`messagesForRoom`、`persistGearReview` 可单测。想买 / 装备评测仍写 localStorage。商城无结算。
 
 **公网群聊（已配 `getSupabase()`）**：表 `public.chat_messages`（`id, room_id, user_id, author, body, created_at`）。`room_id` 仅 `room-lure` / `room-ji` / `room-gear` / `room-match`。RLS：`SELECT` 匿名可读；`INSERT` 仅登录且 `user_id = auth.uid()`，`body` 1–200 字、`author` 1–12 字；无 UPDATE/DELETE。进入房间拉最近 200 条，Realtime 订该 `room_id` 的 INSERT。发送用资料昵称；未登录禁用输入并提示去「我的」。失败则提示并保留草稿。不写 `diaolema.hub.chat.v1`。未配 Supabase 时 `appendChatMessage` 仍走 localStorage。气泡左右分栏（自己靠右、不显示昵称），头像可点开名片：`toggleFollow`、把 `@昵称` 写入输入框、打开作者主页、**拉黑/举报**。按日插入「今天/昨天/日期」分隔。普通气泡点按复制正文。渔获转发正文为 `转发 · 作者 在钓点 钓到鱼种 #yj:报告id`（≤200 字）；`shareRepost.parseRepostBody` / `resolveRepost` 解析，先按 id 再按作者+钓点+鱼种匹配本机 `CatchReport`。`ChatLog` 把这类消息画成封面卡片，点开 `CatchShareDetail`；匹配失败则卡片标明「原分享已不在」。输入栏可发表情包（本机贴纸表，正文为短 glyph）、短语音（`MediaRecorder`，≤15s；正文为 `[语音 N″]`；登录后 `prepareChatVoice` 上传，公网 `media_url` 为 HTTPS）、图片（相册，压到最长边 720 的 JPEG；正文 `[图片]`）与**短视频**（≤15s、≤8MB；正文 `[视频]`）。未登录时语音/图片 data URL 留在本机；登录后图/语音/短视频都 `uploadUserMedia` 进公开桶。`fetchRoomMessages` 须选出 `kind, duration_ms, media_url`。公网行 `kind` 可为 `voice` / `sticker` / `share` / `image` / `video`，未跑 `supabase/social.sql` 时退回纯文本标记。`chatInbox`：按主题群 + `dm:` 私信线程建会话列表，预览用 `previewLine`（引用为「回复 · 正文」），未读为 `createdAt` 晚于 `lastRead` 且非自己的条数；进入会话 `markThreadRead`。再次进入且仍有未读时，`firstUnreadId` 在该条前插入「以下为新消息」并滚过去。`searchInbox` / `searchMessages` 按标题、作者、预览过滤。**引用回复**：`chatQuote.makeQuote` 生成 `{id, author, preview}`；点气泡旁「回复」写入输入栏引用条；发出去后气泡上方显示被引摘要，点摘要滚到原句。公网列 `reply_to_id` / `reply_author` / `reply_preview`；未跑 SQL 时正文前缀 `#yjq:id|作者|摘要`。底栏渔圈红点 = 未读合计。一对一私信仍走粉丝互关，也可从会话列表进入；私聊同样走表情、语音、图片、短视频、引用、搜索与转发卡片。`userSafety.hideByAuthor` 从群消息去掉已拉黑作者；`hideInboxFromBlocked` 去掉对方私信会话。配好云端后 `subscribeDmMessages` 订 `dm_messages` INSERT（与群聊 Realtime 同套路）；拉历史时同时读 `dm:{我}:{对方}` 与 `dm:{对方}:{我}`（须 RLS 允许双向 SELECT）。详情见 `docs/superpowers/specs/2026-08-18-public-chat-design.md`。
 
@@ -210,9 +230,9 @@ type HubChatMessage = { id: string; roomId: string; author: string; body: string
 
 `GET https://api.open-meteo.com/v1/forecast`
 
-Query：`latitude, longitude, timezone=Asia/Shanghai, current=…, hourly=temperature_2m,weather_code,precipitation,wind_speed_10m,wind_direction_10m,pressure_msl,relative_humidity_2m, daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max,wind_direction_10m_dominant,pressure_msl_mean,relative_humidity_2m_mean, past_hours=6, forecast_days=7`
+Query：`latitude, longitude, timezone=Asia/Shanghai, current=…, hourly=temperature_2m,weather_code,precipitation,wind_speed_10m,wind_direction_10m,pressure_msl,relative_humidity_2m,visibility,uv_index,dew_point_2m,wind_gusts_10m, daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max,wind_direction_10m_dominant,pressure_msl_mean,relative_humidity_2m_mean,uv_index_max, past_hours=24, forecast_days=7`
 
-`pressureDelta3h`：用 hourly `pressure_msl` 中最接近 3 小时前的点计算 `current - past`。`fetchWeatherBundle` 一次拉回当前快照、逐时、逐日；`pickUpcomingHours` 取当前时刻起约 24 条；`snapshotFromDaily` 用日均气温、日降水、日最大风、日均气压构建快照再 `buildFishingIndex`（`pressureDelta3h=0`）。不编造水温溶氧。
+`pressureDelta3h`：用 hourly `pressure_msl` 中最接近 3 小时前的点计算 `current - past`。`pressure_msl` 是模式海平面气压，坐标是网格点（默认人民广场或用户选点），**不是水体测点**。`precip6hMm` / `precip24hMm` 由 hourly `precipitation` 对当前时刻向前累计。`visibilityM` / `uvIndex` / `dewPointC` / `windGustKmh` 取最接近当前时刻的 hourly 点（缺测为 `null`）。`waterTint` 由 `inferWaterTint` 推演。`fetchWeatherBundle` 一次拉回当前快照、逐时、逐日；新字段请求失败时回落到旧查询，水色仍可用当前降水推。`pickUpcomingHours` 取当前时刻起约 24 条；`snapshotFromDaily` 用日均气温、日降水、日最大风、日均气压构建快照再 `buildFishingIndex`（`pressureDelta3h=0`，且气压本就不计分）。不编造水温溶氧；不用海洋 API 的海表温度冒充湖塘水温。`weatherPointNote(lat, lon)` 给出「模式海平面 · 网格点不是水体」。`planWindow`：避开正午 / 早晚优先 / 经验急降窗口 / 按气温与时段。
 
 定位：`src/lib/geo.ts` 的 `requestCurrentPosition` / `geoErrorMessage`。开屏结束后、进入钓点、进入「+」调用 `navigator.geolocation`（`enableHighAccuracy`）。非安全上下文、拒绝、超时映射中文原因，坐标回落 `SHANGHAI_CENTER`。开发服务器 `host: true`，桌面启动绑定 `0.0.0.0`，手机可用局域网 IP 打开；定位与实时取景需 HTTPS 或 localhost。`distanceKm` 用球面距离（可单测）；`formatDistanceKm` 写成「N米」或「N公里」。
 
@@ -236,7 +256,7 @@ Query：`latitude, longitude, timezone=Asia/Shanghai, current=…, hourly=temper
   - 原始发现写入 `fish_scout_data/discovery/YYYY-MM-DD.json`，再 `save_post` 入库，最后生成日报并可做 AI 综述。
   - Agent skill：`.cursor/skills/baidu-search`、`.cursor/skills/multi-search-engine`、`.cursor/skills/defuddle`。禁止使用小红书登录抓取类 skill。
 - 导航 URL：`src/lib/navigation.ts` 的 `buildAmapNavUrl`。
-- 上海路亚/钓鱼营地：`src/data/dianping-venues.json` 静态目录。`CatchMap` 高德 `mapStyle` 为 `amap://styles/normal`，`setFeatures(['bg','road','building'])`。底栏进入钓点时 `locateVisit` 触发定位，视野 `NEARBY_MAP_ZOOM`（14）对准当前位置。`zoom < SPOT_PLATE_MIN_ZOOM` 用 `venueDotHtml` 小头像钉，靠近后用 `venuePinHtml` 铭牌。`searchVenues` 按店名/区县/路名/类型过滤；`filterVenues` 叠加类型芯片（`venueMarkerTone`：路亚/池塘/海钓）、营业中、`rankVenues` 或按 `distanceKm` 离我近。名次仍取全量排行。`nearbyVenues` 按当前店坐标取最近 3 场。`catchesForVenue` 用店名、去括号简称、路名匹配渔获 `spotName`。地图仅一个「钓场」入口，`VenueList` 默认排行 + 搜索 + 芯片，每条展示距离与 `reviewsForVenue` 条数。点条目 `onOpen` 打开本机 `VenueDetail`，列表与详情不以 `venue.url` 作为进入入口。从排行进详情后关闭回到排行。头像优先客户反馈图，否则 `/logo.svg`。客户反馈在 `src/data/spot-reviews.json` + localStorage；演示图在 `public/spot-photos/`（须真实存在、标明示例）；今日渔获示例封面在 `public/shares/`。`averageScore` 可单测。点钉打开 `VenueDetail`。不把点评星级直接当渔见分。不登录点评/钓鱼人 APP。渔获气泡不叠在钓点地图上。
+- 上海路亚/钓鱼营地：`src/data/dianping-venues.json` 静态目录。`CatchMap` 高德 `mapStyle` 为 `amap://styles/normal`，`setFeatures(['bg','road','building'])`。底栏进入钓点时仍定位（只给列表距离）。钓点 Tab 默认全屏 `VenueList`；`.map-stage` 仅在点「导航」/「看路线」/「去钓点」或识鱼选点时显示，画驾车路线，顶栏可返回列表。`CatchMap` 第一次打开导航后再加载 SDK，切走钓点不卸载。`zoom < SPOT_PLATE_MIN_ZOOM` 用 `venueDotHtml` 小头像钉，靠近后用 `venuePinHtml` 铭牌。`searchVenues` 按店名/区县/路名/类型过滤；`filterVenues` 叠加类型芯片（`venueMarkerTone`：含海钓→海钓，含路亚→路亚，其余垂钓园/鱼塘/钓鱼营地→池塘）、营业中、`rankVenues` 或按 `distanceKm` 离我近。`nearbyPonds(from, venues, limit)` 取当前位置最近的池塘。`nearbyVenues` 按当前店坐标取最近 3 场。`catchesForVenue` 用店名、去括号简称、路名匹配渔获 `spotName`。`VenueList` 默认 `kind=pond`、`sort=near`，卡片为点评式（封面、店名、五星、收费、距离、标签），顶部横滑附近鱼塘。点条目 `onOpen` 打开本机 `VenueDetail`，列表与详情不以 `venue.url` 作为进入入口。从附近列表进详情后关闭回到钓点页。头像优先客户反馈图，否则 `/logo.svg`。客户反馈在 `src/data/spot-reviews.json` + localStorage；演示图在 `public/spot-photos/`（须真实存在、标明示例）；今日渔获示例封面在 `public/shares/`。`averageScore` 可单测。点钉打开 `VenueDetail`。不把点评星级直接当渔见分。不登录点评/钓鱼人 APP。渔获气泡不叠在钓点地图上。
 - 桌面入口：`启动钓了嘛.bat` → `desktop/start.mjs`（Vite 端口 5174 + 应用窗口）。
 
 ## 7. 目录
@@ -308,18 +328,21 @@ src/App.tsx
 
 ## 9. 测试
 
-- `buildAdvice`：高温正午、气压急降、高气压、低气压、降水修正。
+- `buildAdvice`：高温正午、气压急降、高气压、低气压、降水修正；文案含「经验」、不含氧薄/开口。`clampLayerToHabit`：翘嘴正午不落到守底。`auditHandbook`：词表每种鱼 × 钓法 × 气象键与手册相符。
+- `inferWaterTint`：少雨偏清、有雨微浑、大雨浑浊；文案含「不是测站」。
+- `SIGHTED_WATER`：清澈/微浑/浑浊/肥水；未选回落降水推演；肥水改果酸，浑浊改红头金。水层柱上/中/底，鱼标按 `layerMarkerPct` 滑动。
 - `planFlavor` / `planSpot`：低温大腥、鲫草边、雨天进水口、路亚黑鱼草洞。
-- `buildFishingIndex`：气压急降抬分、盛夏正午压分、雷暴不宜、结果夹紧 0–100。
+- `buildFishingIndex`：气压不计分、盛夏正午压分、雷暴不宜、紫外防晒扣分、结果夹紧 0–100。
 - `windowCountdown`：晨间/黄昏窗口倒计时文案。
-- `fishGuide`：目标鱼介绍与技巧；词表外回落通用说明。
+- `fishGuide`：目标鱼外形/食性/体型/上海水域/技巧；词表外回落通用说明。
+- `lookupFishPublic`：维基摘要，失败则公开搜索摘录。
 - `formatCatchCaption`：分钟 / 小时 / 昨天。
 - `buildAmapNavUrl`：高德导航 URI。
 - `detectPlatform` / `extractInfo` / `mergeRuleAndAi`：入库识别与 AI 补空。
 - `hitMatchesQuerySite` / `parseBaiduHtml` / `parseSogouWeixinHtml` / `parseBaiduApiResponse`：公开发现按查询站点过滤。
 - `fetchPageTextWithDefuddle`：登录墙不抽正文。
 - `formatVenueFee` / `parseDianpingShopSnippet`：点评公开人均与状态。
-- `searchVenues` / `filterVenues` / `nearbyVenues` / `catchesForVenue` / `rankVenues` / `reviewCountLabel`：钓场列表整合为排行 + 搜索 + 类型/营业中芯片（均分高到低，无分最后；筛选保留原名次；离我近按球面距离）。排行展示距离与反馈条数。点条目打开本机 `VenueDetail`，不跳转钓鱼之家网页。`venuePinHtml` / `venueDotHtml` / `showSpotPlate`：进入先定位；拉远小钉、靠近铭牌。无照片用渔见 Logo。不展示数字分。点钉打开 `VenueDetail`。渔获气泡不叠在钓点地图上。
+- `searchVenues` / `filterVenues` / `nearbyPonds` / `nearbyVenues` / `catchesForVenue` / `rankVenues` / `reviewCountLabel`：钓点页为点评附近卡片（默认池塘 + 离我近）；搜索 + 类型/营业中芯片；离我近按球面距离；`nearbyPonds` 只含池塘且由近到远。点条目打开本机 `VenueDetail`，不跳转钓鱼之家网页。点「导航」才打开全屏 `CatchMap` 并画驾车路线。`venuePinHtml` / `venueDotHtml` / `showSpotPlate`：导航地图拉远小钉、靠近铭牌。无照片用渔见 Logo。不展示数字分。渔获气泡不叠在钓点地图上。`venueMarkerTone`：海钓 / 路亚优先，其余为池塘。
 - `distanceKm` / `formatDistanceKm`：钓场距离。
 - `userSafety`：拉黑按作者名；举报须选原因；`hideByAuthor` / `hideInboxFromBlocked`；不能拉黑自己。
 - `canOpenFanChat`：已拉黑不可私聊；FanList 用此开关，不为非示例粉丝自动打开允许。
@@ -386,16 +409,16 @@ src/App.tsx
 ```
 [天气] → buildAdvice + buildFishingIndex
               ↓
-        HomeScreen（策略：指数环 / 气象短卡 / 今日怎么钓）
+        HomeScreen（策略：出钓适宜度环 / 气象短卡 / 今日怎么钓）
               ↓ 底栏
-        钓点：CatchMap 常驻 visibility
+        钓点：VenueList 点评附近卡片（默认附近鱼塘）；CatchMap 仅导航/选点时全屏
         识鱼（底栏金色「AI 识鱼」）：FishIdPanel + ReportForm（均可拍照；进入时定位）
-        渔圈：HubScreen（发现入口 / 今日渔获 / 主题群 / 赛事）
+        渔圈：HubScreen（发现入口 + 渔获/群聊/赛事分段）
         我的：MeScreen 个人中心（资料 / 菜单 / 渔获记录）
-        抽屉：VenueList / AdvicePanel / DailyReport / ShareImport / 词表换鱼
+        抽屉：AdvicePanel / DailyReport / ShareImport / 词表换鱼 / VenueDetail
 ```
 
-桌面端 `.phone` 列宽 430px、圆角 44px、OLED 深底 `#05070a`。产品名「渔见」。首页品牌行用 `public/logo.svg` + `.brand-name`（Noto/苹方栈）。启动时 `Splash` 盖住手机壳：深底绿环与「进入」，点按或 2.4s 后淡出，随后请求定位。切到钓点时 `CatchMap` 不卸载。AI 识鱼在底栏中间绿钮（文案「AI 识鱼」，无 + 号、无下方小字），不占首页。地图选点时强制切到钓点 Tab。风力用 `windScaleLabel` 转成几级；出钓文案用 `outingLabel` 映射指数档位。气象短卡点开天气抽屉；作钓窗口倒计时在今日方案卡内。方案区写水层柱、守底/主攻理由、味形滑条、饵料与标点；点鱼名换目标鱼（列表按当前钓法筛选）；「介绍」打开鱼类说明；完整依据仍可打开 `AdvicePanel`。地图选点写入同一套天气坐标（`setCoords` + `setPick`），指数与方案立刻重算。首页 `.home-main` 只放指数、气象与今日方案，可内部滚动。`CatchShareFeed` 放在渔圈首页。拍照取景左上角「‹ 返回」。区头「今日渔获」加条数。双列卡片封面限高约 108px，图下露出钓点名与点赞。`coverRatio` 仍按 id 变化（1/1、5/4、4/5）。图上鱼种胶囊、示例黑底白字；多图/短视频角标；图下标题、钓点、点赞与评论数。`shareSocial`：点赞/关注/额外粉丝名存 localStorage，种子赞数由 id 哈希，点赞 +1 / 取消还原；关注按作者名切换。`shareComments` 评论本机存储，示例帖带种子评论并标明示例。`CatchShareDetail` 同步同一状态，顶图叠作者/时间，多图可滑、有视频则播放，可评论、转发到主题群或复制文案（群内以 `#yj:id` 卡片展示，点开同一详情），「去钓点」全宽青绿。点作者打开 `AuthorProfile`。不展示未测的溶氧与水温。首页不堆常用工具与目标鱼说明卡。不写飞书粉丝关系、无私信。上一版金青绿界面存档 `_archive/ui-gold-green/`。
+桌面端 `.phone` 居中一列（约 430–480px）、高度铺满视口；**手机网页全宽、去掉大圆角**，避免切字。`html/body` `overflow-x: clip`。钓点 `.spots-feed` 底部留白避开底栏。产品名「渔见」。首页品牌行用 `public/logo.svg` + `.brand-name`（Noto/苹方栈）。启动时 `Splash` 盖住手机壳：Logo、渔见、宣言两句、绿钮「进入」；点按或 4.2s 后淡出，随后请求定位。宣言原文见 `src/lib/brand.ts`，「关于渔见」页同样展示。切到钓点时默认列表；`CatchMap` 首次导航后不卸载。AI 识鱼在底栏中间绿钮（文案「AI 识鱼」，无 + 号、无下方小字），不占首页。地图选点时强制切到钓点 Tab。风力用 `windScaleLabel` 转成几级；出钓文案用 `outingLabel` 映射指数档位。气象短卡点开天气抽屉。方案区锁仪器盘：`.board` 水层柱 + `.logic` 为什么 + `.moves` 味形与标点。水色只在钓法下点选，立刻重算 `buildAdvice`。不展示诱鱼剂。点「换鱼」换目标鱼；标题下「鱼类介绍」打开详情。无「同步方案」。作钓窗口倒计时在方案卡下。`CatchShareFeed` 放在渔圈首页渔获分段。拍照取景左上角「‹ 返回」。区头「今日渔获」加条数。双列网格封面限高约 108px，无实拍不用巨大居中鱼名。图下露出钓点名与点赞，卡片上不放关注。`shareSocial`：点赞/关注/额外粉丝名存 localStorage，种子赞数由 id 哈希，点赞 +1 / 取消还原；关注按作者名切换。`shareComments` 评论本机存储，示例帖带种子评论并标明示例。`CatchShareDetail` 同步同一状态，顶图叠作者/时间，多图可滑、有视频则播放，可评论、转发到主题群或复制文案（群内以 `#yj:id` 卡片展示，点开同一详情），「去钓点」全宽青绿。点作者打开 `AuthorProfile`。不展示未测的溶氧与水温。首页不堆常用工具与目标鱼说明卡。不写飞书粉丝关系、无私信。上一版金青绿界面存档 `_archive/ui-gold-green/`。
 
 ## 13. Zeabur 部署
 

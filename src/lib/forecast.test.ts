@@ -7,6 +7,7 @@ import {
   pickUpcomingHours,
   shanghaiDate,
   snapshotFromDaily,
+  sumHourlyPrecip,
   weekdayLabel,
 } from './forecast';
 
@@ -53,12 +54,25 @@ describe('hourLabel / weekdayLabel', () => {
   });
 });
 
+describe('sumHourlyPrecip', () => {
+  it('只累计当前时刻往前窗口内的降水', () => {
+    const rows = [
+      { at: '2026-08-20T10:00', temperatureC: 28, weatherCode: 1, precipitationMm: 2, windKmh: 8, pressureHpa: 1012, humidityPct: 70 },
+      { at: '2026-08-20T12:00', temperatureC: 30, weatherCode: 61, precipitationMm: 1, windKmh: 8, pressureHpa: 1012, humidityPct: 70 },
+      { at: '2026-08-20T13:00', temperatureC: 31, weatherCode: 2, precipitationMm: 4, windKmh: 8, pressureHpa: 1012, humidityPct: 70 },
+    ];
+    expect(sumHourlyPrecip(rows, '2026-08-20T13:00:00+08:00', 6)).toBe(7);
+    expect(sumHourlyPrecip(rows, '2026-08-20T13:00:00+08:00', 1)).toBe(5);
+  });
+});
+
 describe('snapshotFromDaily', () => {
   it('用日均气温且气压变化为 0，不编造水温', () => {
     const snap = snapshotFromDaily(daily[0], { lat: 31.23, lon: 121.47 });
     expect(snap.temperatureC).toBe(29);
     expect(snap.pressureDelta3h).toBe(0);
     expect(snap.precipitationMm).toBe(4);
+    expect(snap.waterTint).toBe('微浑');
     expect(snap).not.toHaveProperty('waterTemp');
   });
 });

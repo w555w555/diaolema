@@ -17,16 +17,12 @@ function isLightRain(code: number, precip: number): boolean {
   return precip > 0.2 || (code >= 51 && code <= 67) || (code >= 80 && code <= 82);
 }
 
+/** 出钓适宜度：只评出门条件。气压/ΔP 不计分。 */
 export function buildFishingIndex(weather: WeatherSnapshot, at: Date = new Date()): FishingIndex {
   const month = at.getMonth() + 1;
   const hour = at.getHours();
   const summer = month >= 6 && month <= 9;
   const hotNoon = summer && weather.temperatureC >= 30 && hour >= 10 && hour <= 16;
-  const falling = weather.pressureDelta3h <= -1.5;
-  const mildFall = !falling && weather.pressureDelta3h <= -0.5;
-  const rising = weather.pressureDelta3h >= 1.5;
-  const highStable = weather.pressureHpa >= 1022 && Math.abs(weather.pressureDelta3h) < 1;
-  const lowPressure = weather.pressureHpa <= 1008;
   const windy = weather.windKmh >= 25;
   const prime = (hour >= 5 && hour <= 7) || (hour >= 17 && hour <= 19);
   const storm = isStorm(weather.weatherCode, weather.precipitationMm);
@@ -35,33 +31,14 @@ export function buildFishingIndex(weather: WeatherSnapshot, at: Date = new Date(
   let score = 62;
   const reasons: string[] = [];
 
-  if (falling) {
-    score += 16;
-    reasons.push(`近 3 小时气压下降 ${Math.abs(weather.pressureDelta3h).toFixed(1)} hPa，鱼易开口`);
-  } else if (mildFall) {
-    score += 8;
-    reasons.push(`气压缓降 ${Math.abs(weather.pressureDelta3h).toFixed(1)} hPa`);
-  } else if (rising) {
-    score -= 10;
-    reasons.push(`气压上升 ${weather.pressureDelta3h.toFixed(1)} hPa，口可能变轻`);
-  }
-
-  if (highStable) {
-    score -= 12;
-    reasons.push(`高气压 ${weather.pressureHpa.toFixed(0)} hPa 且走势稳，鱼多贴底少动`);
-  } else if (lowPressure) {
-    score += 8;
-    reasons.push(`气压 ${weather.pressureHpa.toFixed(0)} hPa 偏低，中上层更活`);
-  }
-
   if (hotNoon) {
     score -= 18;
-    reasons.push(`盛夏正午 ${weather.temperatureC.toFixed(0)}°C，鱼避热下沉`);
+    reasons.push(`盛夏正午 ${weather.temperatureC.toFixed(0)}°C，出钓偏热`);
   }
 
   if (weather.temperatureC >= 18 && weather.temperatureC <= 26 && !hotNoon) {
     score += 8;
-    reasons.push(`气温 ${weather.temperatureC.toFixed(0)}°C，鱼活性合适`);
+    reasons.push(`气温 ${weather.temperatureC.toFixed(0)}°C，出门体感合适`);
   } else if (weather.temperatureC < 8) {
     score -= 18;
     reasons.push(`气温 ${weather.temperatureC.toFixed(0)}°C 过低`);
@@ -72,7 +49,7 @@ export function buildFishingIndex(weather: WeatherSnapshot, at: Date = new Date(
 
   if (windy) {
     score -= 12;
-    reasons.push(`风速 ${weather.windKmh.toFixed(0)} km/h，抛投与找口变难`);
+    reasons.push(`风速 ${weather.windKmh.toFixed(0)} km/h，抛投变难`);
   }
 
   if (storm) {
@@ -80,7 +57,7 @@ export function buildFishingIndex(weather: WeatherSnapshot, at: Date = new Date(
     reasons.push('大雨或雷暴，不宜强求出门');
   } else if (lightRain) {
     score += 6;
-    reasons.push('有轻降水，进水口附近往往更好开口');
+    reasons.push('有轻降水，岸边作业尚可');
   }
 
   if (prime && !hotNoon) {
@@ -88,9 +65,14 @@ export function buildFishingIndex(weather: WeatherSnapshot, at: Date = new Date(
     reasons.push('正值晨昏窗口');
   }
 
+  const uv = weather.uvIndex;
+  if (uv != null && uv >= 8 && hour >= 10 && hour <= 16) {
+    score -= 6;
+    reasons.push(`紫外 ${uv.toFixed(0)}，注意防晒`);
+  }
+
   score = Math.max(0, Math.min(100, Math.round(score)));
   if (reasons.length < 2) {
-    reasons.push(`湿度 ${weather.humidityPct.toFixed(0)}%`);
     reasons.push(`体感 ${weather.apparentC.toFixed(0)}°C`);
   }
 

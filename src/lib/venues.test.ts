@@ -4,6 +4,7 @@ import {
   catchesForVenue,
   filterVenues,
   formatVenueFee,
+  nearbyPonds,
   nearbyVenues,
   parseDianpingShopSnippet,
   venueAvatar,
@@ -129,6 +130,24 @@ describe('filterVenues', () => {
   });
 });
 
+describe('nearbyPonds', () => {
+  it('只取池塘并由近到远', () => {
+    const pondNear: FishingVenue = { ...sample, id: 'pond-near', name: '麓池鱼塘', kind: '钓鱼营地', lat: 31.23, lon: 121.47 };
+    const pondFar: FishingVenue = { ...sample, id: 'pond-far', name: '庆丰垂钓园', kind: '垂钓园', lat: 30.9, lon: 121.1 };
+    const lure: FishingVenue = { ...sample, id: 'lure-1', name: '上海PE路亚营地', kind: '路亚营地', lat: 31.231, lon: 121.471 };
+    const sea: FishingVenue = { ...sample, id: 'sea-1', name: '金蟹海钓场', kind: '海钓场', lat: 31.232, lon: 121.472 };
+    const rows = nearbyPonds({ lat: 31.23, lon: 121.47 }, [lure, pondFar, sea, pondNear], 8);
+    expect(rows.map((row) => row.id)).toEqual(['pond-near', 'pond-far']);
+  });
+
+  it('上海目录能列出附近鱼塘', () => {
+    const rows = nearbyPonds({ lat: 31.23, lon: 121.47 }, DIANPING_VENUES, 8);
+    expect(rows.length).toBeGreaterThan(0);
+    expect(rows.every((row) => venueMarkerTone(row.kind) === 'pond')).toBe(true);
+    expect(DIANPING_VENUES.some((row) => venueMarkerTone(row.kind) === 'pond')).toBe(true);
+  });
+});
+
 describe('nearbyVenues', () => {
   it('按当前店坐标取最近 3 场，不含自己', () => {
     const here = DIANPING_VENUES.find((row) => row.id === 'dy-pe');
@@ -222,6 +241,8 @@ describe('venue map markup', () => {
     expect(venueMarkerTone('路亚垂钓园')).toBe('lure');
     expect(venueMarkerTone('海钓场')).toBe('sea');
     expect(venueMarkerTone('垂钓园')).toBe('pond');
+    expect(venueMarkerTone('钓鱼营地')).toBe('pond');
+    expect(venueMarkerTone('麓池鱼塘')).toBe('pond');
     expect(venuePinHtml({ ...sample, kind: '海钓场' }, 5)).toContain('data-tone="sea"');
     expect(venuePinHtml({ ...sample, kind: '海钓场' }, 5)).toContain('海钓');
     expect(venuePinHtml({ ...sample, kind: '垂钓园' }, 4)).toContain('池塘');

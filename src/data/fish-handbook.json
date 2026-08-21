@@ -1,0 +1,177 @@
+{
+  "disclaimer": "编译自百科与公开垂钓文。不是溶氧、水温或今日鱼口实测。",
+  "updatedAt": "2026-08-21",
+  "fish": {
+    "鲫鱼": {
+      "habitLayer": "底层",
+      "layerFloor": null,
+      "baitHint": "香腥搓饵 / 拉饵",
+      "lureKeywords": [],
+      "baitKeywords": ["拉饵", "搓饵"],
+      "forbidStance": [],
+      "sources": ["饵料网台钓对象", "渔钓者冬春主腥、夏主清淡"]
+    },
+    "鲤鱼": {
+      "habitLayer": "底层",
+      "layerFloor": null,
+      "baitHint": "谷物香 / 螺鲤搓饵",
+      "lureKeywords": [],
+      "baitKeywords": ["搓饵", "谷物", "螺"],
+      "forbidStance": [],
+      "sources": ["饵料网台钓对象", "渔钓者凸岸缓坡"]
+    },
+    "草鱼": {
+      "habitLayer": "中上层",
+      "layerFloor": null,
+      "baitHint": "本味、玉米、草饵",
+      "lureKeywords": [],
+      "baitKeywords": ["本味", "清", "玉米", "颗粒", "搓饵"],
+      "forbidStance": [],
+      "sources": ["饵料网草鱼半水/玉米", "渔钓者水草区中层"]
+    },
+    "青鱼": {
+      "habitLayer": "底层",
+      "layerFloor": null,
+      "baitHint": "螺蛳、重窝",
+      "lureKeywords": [],
+      "baitKeywords": ["搓饵", "螺", "清", "本味"],
+      "forbidStance": [],
+      "sources": ["饵料网青鱼重窝", "渔钓者深潭桥墩"]
+    },
+    "鳊鱼": {
+      "habitLayer": "中上层",
+      "layerFloor": "中下层",
+      "baitHint": "拉饵、颗粒",
+      "lureKeywords": [],
+      "baitKeywords": ["拉饵", "颗粒", "玉米"],
+      "forbidStance": ["守底"],
+      "sources": ["饵料网鳊鱼离底", "渔钓者草边中层"]
+    },
+    "鲮鱼": {
+      "habitLayer": "底层",
+      "layerFloor": null,
+      "baitHint": "腥香拉饵",
+      "lureKeywords": [],
+      "baitKeywords": ["拉饵", "搓饵"],
+      "forbidStance": [],
+      "sources": ["饵料网鲮鱼塘底", "上海坑塘放养经验"]
+    },
+    "黄颡鱼": {
+      "habitLayer": "底层",
+      "layerFloor": null,
+      "baitHint": "蚯蚓、红虫、腥饵",
+      "lureKeywords": ["软虫"],
+      "baitKeywords": ["虫", "蚯蚓"],
+      "forbidStance": [],
+      "sources": ["钓鱼人黄颡手竿串钩", "夜钓桥墩乱石"]
+    },
+    "黄鱼": {
+      "habitLayer": "底层",
+      "layerFloor": null,
+      "baitHint": "沙蚕、虾肉",
+      "lureKeywords": [],
+      "baitKeywords": ["虫", "蚯蚓", "拉饵", "搓饵", "清", "本味"],
+      "forbidStance": [],
+      "sources": ["河口岸抛荤饵", "看潮不看编造水温"]
+    },
+    "鲻鱼": {
+      "habitLayer": "中下层",
+      "layerFloor": null,
+      "baitHint": "商品饵、虾肉",
+      "lureKeywords": [],
+      "baitKeywords": ["拉饵", "搓饵"],
+      "forbidStance": [],
+      "sources": ["酷钓鱼鲻鱼手竿商品饵、路亚效果差"]
+    },
+    "鲈鱼": {
+      "habitLayer": "中下层结构",
+      "layerFloor": null,
+      "baitHint": "米诺 / 软虫贴结构",
+      "lureKeywords": ["米诺", "软虫"],
+      "baitKeywords": [],
+      "forbidStance": ["守底"],
+      "sources": ["渔钓者/酷钓鱼鲈鱼结构", "上海坝头乱石"]
+    },
+    "翘嘴": {
+      "habitLayer": "中上层",
+      "layerFloor": "中下层",
+      "baitHint": "亮片、米诺、波扒",
+      "lureKeywords": ["亮片", "米诺", "波扒", "铅笔"],
+      "baitKeywords": [],
+      "forbidStance": ["守底"],
+      "sources": ["百度百科翘嘴鲌（科普中国）中上层", "渔夫者/钓鱼007 亮片克数", "渔钓者晨昏波扒、白天定层"]
+    },
+    "黑鱼": {
+      "habitLayer": "浅层草区",
+      "layerFloor": "中下层",
+      "baitHint": "雷蛙",
+      "lureKeywords": ["雷蛙", "米诺", "小胖子"],
+      "baitKeywords": [],
+      "forbidStance": ["守底"],
+      "sources": ["渔钓者雷蛙走走停停", "草洞荷叶伏击"]
+    },
+    "鳜鱼": {
+      "habitLayer": "底层结构",
+      "layerFloor": null,
+      "baitHint": "铅头钩卷尾 / VIB",
+      "lureKeywords": ["铅头", "VIB", "卷尾"],
+      "baitKeywords": [],
+      "forbidStance": ["守底"],
+      "sources": ["酷钓鱼铅头钩 5–7g 溪流 / 7–10g 湖库"]
+    },
+    "鳡鱼": {
+      "habitLayer": "中上层开阔水面",
+      "layerFloor": "中下层",
+      "baitHint": "大克数亮片、米诺",
+      "lureKeywords": ["亮片", "米诺", "波扒"],
+      "baitKeywords": [],
+      "forbidStance": ["守底"],
+      "sources": ["渔钓者/酷钓鱼鳡鱼远投"]
+    },
+    "红鳍鲌": {
+      "habitLayer": "中上层",
+      "layerFloor": "中下层",
+      "baitHint": "小克数亮片、波爬",
+      "lureKeywords": ["亮片", "米诺", "波扒", "波爬", "铅笔"],
+      "baitKeywords": [],
+      "forbidStance": ["守底"],
+      "sources": ["鲌亚科近翘嘴", "渔钓者小克数亮片"]
+    },
+    "白条": {
+      "habitLayer": "上层",
+      "layerFloor": "中上层",
+      "baitHint": "拉饵 / 瓜子亮片",
+      "lureKeywords": ["瓜子"],
+      "baitKeywords": ["拉饵"],
+      "forbidStance": ["守底"],
+      "sources": ["酷米网瓜子亮片 1.5–3g", "台钓袖钩打水皮"]
+    },
+    "罗非鱼": {
+      "habitLayer": "底层浅滩",
+      "layerFloor": null,
+      "baitHint": "腥香拉饵、小型软虫",
+      "lureKeywords": ["亮片", "软虫"],
+      "baitKeywords": ["拉饵", "搓饵"],
+      "forbidStance": [],
+      "sources": ["饵料网罗非台钓", "南方微物浅滩"]
+    },
+    "鲶鱼": {
+      "habitLayer": "底层障碍",
+      "layerFloor": null,
+      "baitHint": "荤饵、胡须佬",
+      "lureKeywords": ["胡须", "软虫"],
+      "baitKeywords": ["虫", "蚯蚓"],
+      "forbidStance": [],
+      "sources": ["夜钓桥洞荤饵", "路亚胡须佬贴底"]
+    },
+    "塘鲺": {
+      "habitLayer": "底层塘角",
+      "layerFloor": null,
+      "baitHint": "腥饵、小型软虫",
+      "lureKeywords": ["胡须", "软虫"],
+      "baitKeywords": ["虫", "蚯蚓"],
+      "forbidStance": [],
+      "sources": ["坑塘放养近鲶", "塘角跳底"]
+    }
+  }
+}
