@@ -112,6 +112,8 @@ export type FishingIndex = {
   score: number;
   label: FishingIndexLabel;
   reasons: string[];
+  /** 水色开口程度。未知水色为「开口未知」，不编造 NTU。 */
+  waterBite: string;
 };
 
 export const SHANGHAI_CENTER = { lon: 121.473701, lat: 31.230416 };

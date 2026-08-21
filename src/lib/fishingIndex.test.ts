@@ -122,4 +122,9 @@ describe('buildFishingIndex', () => {
     expect(outingLabel('较高')).toBe('适宜出钓');
     expect(outingLabel('不宜')).toBe('不宜出钓');
   });
+
+  it('未选水色时开口未知', () => {
+    const idx = buildFishingIndex(snap({ temperatureC: 22 }), dawn);
+    expect(idx.waterBite).toBe('开口未知');
+  });
 });

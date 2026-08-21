@@ -97,6 +97,6 @@
 
 ## 2026-08-21 水色研究
 
-- 公开检索水色与鱼类论文：池塘藻相（黄绿/茶褐好、蓝绿黑褐灰白不宜）、浊度实验（鲈视觉受损、鳜侧线补偿、鲫拱泥制造浊度）、养殖光色实验（不写进水色芯片）。已把开口程度写进 `waterColorDelta` / `waterBiteLabel`：黄绿较好 +6；泥浆按鱼种 -12/-6/-4；瘦清视觉 +4。不编造 NTU/溶氧。`npx vitest run` 305 passed；`npx tsc --noEmit` 通过。
+- 水色开口查表 `WATER_BITE_SCORE` 写进 `buildFishingIndex`（输出 `waterBite`），首页水色下显示开口程度；黄绿芯片含茶褐。不编造 NTU/溶氧。
 
 - 写入 FR-7 AI 识鱼 Spec / SDD，暂未实现代码。

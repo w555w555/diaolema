@@ -1,6 +1,6 @@
 import type { FishingIndex, FishingIndexLabel, WeatherSnapshot } from '../types';
 import { shanghaiHour, shanghaiMonth } from './shanghaiTime';
-import { applyWaterIndex, type WaterQuery } from './water';
+import { applyWaterIndex, waterBiteLabel, type WaterQuery } from './water';
 import { windScale, windScaleLabel } from './windScale';
 
 export function indexBand(score: number): FishingIndexLabel {
@@ -113,7 +113,15 @@ export function buildFishingIndex(
     ranked.push(`体感 ${weather.apparentC.toFixed(0)}°C`);
   }
 
-  return { score, label: indexBand(score), reasons: ranked.slice(0, 5) };
+  return {
+    score,
+    label: indexBand(score),
+    reasons: ranked.slice(0, 5),
+    waterBite: waterBiteLabel(water.waterColor ?? '未知', {
+      fish: water.targetFish,
+      style: water.style,
+    }),
+  };
 }
 
 export function outingLabel(label: FishingIndexLabel): string {

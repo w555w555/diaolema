@@ -17,7 +17,7 @@ import {
 import { weatherLabel, windDirLabel, windScaleLabel } from '../lib/weather';
 import { windowCountdown } from '../lib/windowCountdown';
 import type { FishStyle, FishingAdvice, FishingIndex, PondCare, WaterColor, WaterKind, WeatherSnapshot } from '../types';
-import { POND_CARE_CHIPS, WATER_COLOR_CHIPS, WATER_KIND_CHIPS, isPondWater } from '../lib/water';
+import { POND_CARE_CHIPS, WATER_COLOR_CHIPS, WATER_KIND_CHIPS, isPondWater, waterBiteLabel } from '../lib/water';
 
 export type HomeSheet = 'advice' | 'venues' | 'daily' | 'share' | 'weather' | 'target' | 'catch' | 'spot' | 'guide' | 'author';
 
@@ -69,6 +69,7 @@ export function HomeScreen({
   locating,
 }: Props) {
   const fish = coerceFishForStyle(targetFish || advice?.targetFish[0] || '', style);
+  const waterBite = index?.waterBite ?? waterBiteLabel(waterColor, { fish, style });
   const bait = advice ? (style === '路亚' ? advice.lure : advice.baitLabel) : '—';
   const spot = advice?.spot ?? '—';
   const outing = index ? outingLabel(index.label) : loading ? '读取中' : '—';
@@ -227,6 +228,7 @@ export function HomeScreen({
                 </button>
               ))}
             </div>
+            <p className="water-bite">{waterBite}</p>
             {isPondWater(waterKind) ? (
               <div className="water-row" role="toolbar" aria-label="塘保养">
                 <small>塘况</small>

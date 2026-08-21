@@ -447,6 +447,14 @@ button.splash::before,
   border-color: transparent;
 }
 
+.water-bite {
+  margin: 0;
+  padding-left: 2.6em;
+  color: var(--ok);
+  font-size: 11px;
+  font-weight: 700;
+}
+
 .plan-core-head {
   display: flex;
   align-items: center;

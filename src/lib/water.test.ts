@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { applyWaterIndex, normalizeWater, pondCareDelta, venueToWaterKind, waterBiteLabel, waterColorDelta } from './water';
+import { applyWaterIndex, normalizeWater, pondCareDelta, venueToWaterKind, waterBiteLabel, waterColorDelta, WATER_BITE_SCORE } from './water';
 import { buildFishingIndex } from './fishingIndex';
 import { buildAdvice } from './advice';
 import { climateFlags, planFlavor, planForm, planLure, planSpot, planWindow } from './plan';
@@ -58,6 +58,11 @@ describe('水色独立算法', () => {
     expect(waterBiteLabel('泥浆', { fish: '鲫鱼' })).toBe('开口尚可');
     expect(waterBiteLabel('泥浆', { fish: '鳜鱼' })).toBe('开口一般');
     expect(waterBiteLabel('黄绿')).toBe('开口较好');
+    expect(WATER_BITE_SCORE.黄绿.默认).toBe(6);
+    expect(WATER_BITE_SCORE.泥浆.视觉).toBe(-12);
+    expect(WATER_BITE_SCORE.泥浆.底栖).toBe(-6);
+    expect(WATER_BITE_SCORE.泥浆.鳜).toBe(-4);
+    expect(WATER_BITE_SCORE.瘦清.视觉).toBe(4);
   });
 
   it('瘦清对路亚视觉鱼略加分', () => {
@@ -90,6 +95,9 @@ describe('水色独立算法', () => {
     });
     expect(mudBass.score).toBe(base.score - 12);
     expect(mudCarp.score).toBe(base.score - 6);
+    expect(green.waterBite).toBe('开口较好');
+    expect(mudBass.waterBite).toBe('开口差');
+    expect(mudCarp.waterBite).toBe('开口尚可');
   });
 
   it('恶水档位不宜', () => {

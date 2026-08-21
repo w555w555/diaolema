@@ -60,7 +60,7 @@ export const WATER_KIND_CHIPS: { id: WaterKind; label: string }[] = [
 export const WATER_COLOR_CHIPS: { id: WaterColor; label: string }[] = [
   { id: '未知', label: '未知' },
   { id: '瘦清', label: '瘦清' },
-  { id: '黄绿', label: '黄绿' },
+  { id: '黄绿', label: '黄绿/茶褐' },
   { id: '肥浊', label: '肥水' },
   { id: '泥浆', label: '泥浆' },
   { id: '恶水', label: '恶水' },
@@ -100,49 +100,47 @@ export function normalizeWater(query: WaterQuery = {}): NormalizedWater {
   };
 }
 
+/** 水色开口加减：编译自何志辉藻相 + 浊度实验。运行时只查表，不编 NTU/溶氧。 */
+export const WATER_BITE_SCORE: Record<WaterColor, Record<WaterSense, number>> = {
+  未知: { 默认: 0, 视觉: 0, 底栖: 0, 鳜: 0 },
+  瘦清: { 默认: 0, 视觉: 4, 底栖: 0, 鳜: 0 },
+  黄绿: { 默认: 6, 视觉: 6, 底栖: 6, 鳜: 6 },
+  肥浊: { 默认: -6, 视觉: -6, 底栖: -6, 鳜: -6 },
+  泥浆: { 默认: -10, 视觉: -12, 底栖: -6, 鳜: -4 },
+  恶水: { 默认: -28, 视觉: -28, 底栖: -28, 鳜: -28 },
+};
+
+export const WATER_BITE_CAP: Partial<Record<WaterColor, number>> = { 恶水: 34 };
+
 export function waterColorDelta(
   color: WaterColor,
   extras: WaterColorExtras = {},
 ): { delta: number; reasons: string[]; cap?: number } {
   const reasons: string[] = [];
-  let delta = 0;
-  let cap: number | undefined;
   const sense = waterSense(extras.fish, extras.style);
+  let delta = WATER_BITE_SCORE[color][sense];
+  const cap = WATER_BITE_CAP[color];
 
   if (color === '黄绿') {
-    delta = 6;
-    reasons.push('水色黄绿，开口较好：中肥且鱼可消化浮游植物');
+    reasons.push('水色黄绿/茶褐，开口较好：中肥且鱼可消化浮游植物');
   } else if (color === '瘦清') {
-    delta = sense === '视觉' ? 4 : 0;
     reasons.push(
       sense === '视觉'
         ? '水色瘦清，开口一般，能见度高对路亚视觉鱼更有利'
         : '水色瘦清，开口一般：鱼稀、偏警惕，饵偏腥香',
     );
   } else if (color === '肥浊') {
-    delta = -6;
     reasons.push('水色肥浊，开口偏挑：天然饵多，宜本味清淡、细线');
     if (extras.summer && windScale(extras.windKmh ?? 10) <= 1) {
       delta -= 4;
       reasons.push('盛夏肥水又无风，更容易闷、口更差');
     }
   } else if (color === '泥浆') {
-    if (sense === '视觉') {
-      delta = -12;
-      reasons.push('水色泥浆，开口差：视觉猎手反应距离短，改高对比贴结构');
-    } else if (sense === '底栖') {
-      delta = -6;
-      reasons.push('水色泥浆，开口尚可：鲫鲤鲶靠拱食嗅味，改虫饵守底');
-    } else if (sense === '鳜') {
-      delta = -4;
-      reasons.push('水色泥浆，开口一般：鳜靠侧线仍可伏击，不必按鲈放弃');
-    } else {
-      delta = -10;
-      reasons.push('水色泥浆，开口差；路亚贴结构、高对比');
-    }
+    if (sense === '视觉') reasons.push('水色泥浆，开口差：视觉猎手反应距离短，改高对比贴结构');
+    else if (sense === '底栖') reasons.push('水色泥浆，开口尚可：鲫鲤鲶靠拱食嗅味，改虫饵守底');
+    else if (sense === '鳜') reasons.push('水色泥浆，开口一般：鳜靠侧线仍可伏击，不必按鲈放弃');
+    else reasons.push('水色泥浆，开口差；路亚贴结构、高对比');
   } else if (color === '恶水') {
-    delta = -28;
-    cap = 34;
     reasons.push('水色黑褐、水华或有异味，开口不宜强求');
   }
 
