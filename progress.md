@@ -97,6 +97,6 @@
 
 ## 2026-08-21 水色研究
 
-- 水色开口查表 `WATER_BITE_SCORE` 写进 `buildFishingIndex`（输出 `waterBite`），首页水色下显示开口程度；黄绿芯片含茶褐。不编造 NTU/溶氧。
+- 水色开口查表 `WATER_BITE_SCORE` 写进 `buildFishingIndex`（输出 `waterBite`），首页水色下显示开口程度；黄绿芯片含茶褐。不编造 NTU/溶氧。`npx vitest run` 306 passed；`npx tsc --noEmit` 通过。
 
 - 写入 FR-7 AI 识鱼 Spec / SDD，暂未实现代码。
