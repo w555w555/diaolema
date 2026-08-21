@@ -18,6 +18,7 @@ import {
   normalizeWater,
   waterFlavorOverride,
   waterLureColor,
+  waterSense,
   type NormalizedWater,
   type WaterQuery,
 } from './water';
@@ -312,7 +313,12 @@ export function planWindow(flags: ClimateFlags, waterQuery: WaterQuery = {}): st
   if (water.waterColor === '恶水') return '水色不宜';
   if (water.pondCare === '刚换水') return '刚换水口差';
   if (water.pondCare === '刚调水消毒') return '调水后口差';
-  if (water.waterColor === '泥浆') return '泥浆口差';
+  if (water.waterColor === '泥浆') {
+    const sense = waterSense(waterQuery.targetFish, waterQuery.style);
+    if (sense === '底栖') return '泥浆尚可虫饵';
+    if (sense === '鳜') return '泥浆仍可伏击';
+    return '泥浆口差';
+  }
   if (flags.hotNoon) return '避开正午';
   if (flags.falling || flags.lowPressure) return '气压走低口差';
   if (flags.rising) return '气压回升窗口';

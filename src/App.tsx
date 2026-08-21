@@ -160,8 +160,17 @@ export function App() {
     [weather, targetFish, style, waterKind, waterColor, pondCare],
   );
   const index = useMemo(
-    () => (weather ? buildFishingIndex(weather, new Date(), { waterKind, waterColor, pondCare }) : null),
-    [weather, waterKind, waterColor, pondCare],
+    () =>
+      weather
+        ? buildFishingIndex(weather, new Date(), {
+            waterKind,
+            waterColor,
+            pondCare,
+            targetFish: targetFish || undefined,
+            style,
+          })
+        : null,
+    [weather, targetFish, style, waterKind, waterColor, pondCare],
   );
 
   const locate = useCallback((from: 'weather' | 'map' = 'weather') => {

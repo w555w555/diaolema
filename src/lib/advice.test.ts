@@ -78,6 +78,30 @@ describe('buildAdvice', () => {
     expect(a.reasons.join('')).not.toMatch(/km\/h/);
   });
 
+  it('泥浆建议按鱼种改开口文案', () => {
+    const bass = buildAdvice(snap({ temperatureC: 24 }), dawn, {
+      targetFish: '鲈鱼',
+      style: '路亚',
+      waterColor: '泥浆',
+    });
+    expect(bass.window).toBe('泥浆口差');
+    expect(bass.reasons.join('')).toMatch(/开口差|反应距离/);
+    const carp = buildAdvice(snap({ temperatureC: 22 }), dawn, {
+      targetFish: '鲫鱼',
+      style: '台钓',
+      waterColor: '泥浆',
+    });
+    expect(carp.window).toBe('泥浆尚可虫饵');
+    expect(carp.reasons.join('')).toMatch(/尚可|虫饵/);
+    const mandarin = buildAdvice(snap({ temperatureC: 24 }), dawn, {
+      targetFish: '鳜鱼',
+      style: '路亚',
+      waterColor: '泥浆',
+    });
+    expect(mandarin.window).toBe('泥浆仍可伏击');
+    expect(mandarin.reasons.join('')).toMatch(/侧线/);
+  });
+
   it('路亚按对象鱼给出克数颜色与操法', () => {
     const a = buildAdvice(snap({ temperatureC: 26 }), noon, { targetFish: '翘嘴', style: '路亚' });
     expect(a.lure).toMatch(/5–7g/);

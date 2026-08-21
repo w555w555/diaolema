@@ -124,8 +124,8 @@ export function buildAdvice(
   const lureNote = style === '路亚' ? planLureNote(focus, flags, water) : '';
   const label = baitLabel(flavor, form, style, lure);
   const spot = planSpot(focus, flags, style, water);
-  const window = planWindow(flags, water);
-  const waterNotes = waterAdviceNotes(water);
+  const window = planWindow(flags, options);
+  const waterNotes = waterAdviceNotes(water, focus, style);
 
   if (style === '路亚') {
     method = `路亚 · ${lure}`;

@@ -1,23 +1,47 @@
 /**
- * 水域类型 + 水色 + 收费塘保养：编译自国内公开钓技，运行时不联网。
- * 水色：渔钓者《不同水质的钓鱼用饵技巧》、渔夫谷肥瘦用饵、钓鱼人必看观水色。
+ * 水域类型 + 水色 + 收费塘保养：编译自国内公开钓技与水色论文，运行时不联网。
+ * 水色开口：何志辉肥活嫩爽（黄绿/茶褐好、蓝绿黑褐不宜）；浊度实验分视觉/底栖/鳜。
  * 塘保养：钓鱼人网黑坑酱层/肥水、未侗钓鱼网换水调水开口区间。
  * 路亚色：渔钓者加州鲈、国内通例清水自然 / 浊水红头金。
- * 不编造溶氧 mg/L、透明度厘米、药残数字；不做斤塘放鱼时刻。
+ * 不编造溶氧 mg/L、透明度厘米、NTU、药残数字；不做斤塘放鱼时刻；不用养殖 LED 光色冒充塘水色。
  */
-import type { PondCare, WaterColor, WaterKind } from '../types';
+import type { FishStyle, PondCare, WaterColor, WaterKind } from '../types';
 import { windScale } from './windScale';
 
 export type WaterQuery = {
   waterKind?: WaterKind;
   waterColor?: WaterColor;
   pondCare?: PondCare;
+  targetFish?: string;
+  style?: FishStyle;
 };
 
 export type NormalizedWater = {
   waterKind: WaterKind;
   waterColor: WaterColor;
   pondCare: PondCare;
+};
+
+/** 水色开口用的觅食感官。论文：鲈视觉、鲫鲤嗅味拱食、鳜侧线。 */
+export type WaterSense = '视觉' | '底栖' | '鳜' | '默认';
+
+const VISUAL_FISH = new Set(['鲈鱼', '翘嘴', '白条', '红鳍鲌', '鳡', '黑鱼']);
+const BENTHIC_FISH = new Set(['鲫鱼', '鲤鱼', '鲶鱼', '黄颡鱼', '塘鲺', '青鱼']);
+
+export function waterSense(fish?: string, style?: FishStyle): WaterSense {
+  if (fish === '鳜鱼') return '鳜';
+  if (fish && VISUAL_FISH.has(fish)) return '视觉';
+  if (fish && BENTHIC_FISH.has(fish)) return '底栖';
+  if (style === '路亚') return '视觉';
+  if (style === '台钓') return '底栖';
+  return '默认';
+}
+
+export type WaterColorExtras = {
+  summer?: boolean;
+  windKmh?: number;
+  fish?: string;
+  style?: FishStyle;
 };
 
 export const WATER_KINDS: WaterKind[] = ['公园浅湖', '大水面', '收费塘', '路亚塘', '内河', '河口'];
@@ -78,35 +102,66 @@ export function normalizeWater(query: WaterQuery = {}): NormalizedWater {
 
 export function waterColorDelta(
   color: WaterColor,
-  extras: { summer?: boolean; windKmh?: number } = {},
+  extras: WaterColorExtras = {},
 ): { delta: number; reasons: string[]; cap?: number } {
   const reasons: string[] = [];
   let delta = 0;
   let cap: number | undefined;
+  const sense = waterSense(extras.fish, extras.style);
 
   if (color === '黄绿') {
     delta = 6;
-    reasons.push('水色黄绿较亮，中肥且鱼可消化浮游植物，按国内经验最好开口');
+    reasons.push('水色黄绿，开口较好：中肥且鱼可消化浮游植物');
   } else if (color === '瘦清') {
-    delta = 0;
-    reasons.push('水色瘦清，溶氧往往够但鱼稀、偏警惕，饵偏腥香');
+    delta = sense === '视觉' ? 4 : 0;
+    reasons.push(
+      sense === '视觉'
+        ? '水色瘦清，开口一般，能见度高对路亚视觉鱼更有利'
+        : '水色瘦清，开口一般：鱼稀、偏警惕，饵偏腥香',
+    );
   } else if (color === '肥浊') {
     delta = -6;
-    reasons.push('水色肥浊，食物多、口偏挑，宜本味清淡、细线');
+    reasons.push('水色肥浊，开口偏挑：天然饵多，宜本味清淡、细线');
     if (extras.summer && windScale(extras.windKmh ?? 10) <= 1) {
       delta -= 4;
       reasons.push('盛夏肥水又无风，更容易闷、口更差');
     }
   } else if (color === '泥浆') {
-    delta = -10;
-    reasons.push('水色泥浆，能见度极低，口差；路亚贴结构、高对比');
+    if (sense === '视觉') {
+      delta = -12;
+      reasons.push('水色泥浆，开口差：视觉猎手反应距离短，改高对比贴结构');
+    } else if (sense === '底栖') {
+      delta = -6;
+      reasons.push('水色泥浆，开口尚可：鲫鲤鲶靠拱食嗅味，改虫饵守底');
+    } else if (sense === '鳜') {
+      delta = -4;
+      reasons.push('水色泥浆，开口一般：鳜靠侧线仍可伏击，不必按鲈放弃');
+    } else {
+      delta = -10;
+      reasons.push('水色泥浆，开口差；路亚贴结构、高对比');
+    }
   } else if (color === '恶水') {
     delta = -28;
     cap = 34;
-    reasons.push('水色黑褐、水华或有异味，按国内经验不宜强求');
+    reasons.push('水色黑褐、水华或有异味，开口不宜强求');
   }
 
   return { delta, reasons, cap };
+}
+
+export function waterBiteLabel(color: WaterColor, extras: WaterColorExtras = {}): string {
+  if (color === '未知') return '开口未知';
+  if (color === '黄绿') return '开口较好';
+  if (color === '恶水') return '开口不宜';
+  if (color === '肥浊') return '开口偏挑';
+  const sense = waterSense(extras.fish, extras.style);
+  if (color === '瘦清') return sense === '视觉' ? '开口一般偏清' : '开口一般';
+  if (color === '泥浆') {
+    if (sense === '底栖') return '开口尚可';
+    if (sense === '鳜') return '开口一般';
+    return '开口差';
+  }
+  return '开口一般';
 }
 
 export function pondCareDelta(kind: WaterKind, care: PondCare): { delta: number; reasons: string[] } {
@@ -131,7 +186,11 @@ export function applyWaterIndex(
   extras: { summer?: boolean; windKmh?: number } = {},
 ): { score: number; reasons: string[] } {
   const water = normalizeWater(query);
-  const color = waterColorDelta(water.waterColor, extras);
+  const color = waterColorDelta(water.waterColor, {
+    ...extras,
+    fish: query.targetFish,
+    style: query.style,
+  });
   const care = pondCareDelta(water.waterKind, water.pondCare);
   let next = score + color.delta + care.delta;
   const extra = [...color.reasons, ...care.reasons];
@@ -161,8 +220,9 @@ export function waterLureColor(water: NormalizedWater, raining: boolean, night: 
   return null;
 }
 
-export function waterAdviceNotes(water: NormalizedWater): string[] {
+export function waterAdviceNotes(water: NormalizedWater, fish?: string, style?: FishStyle): string[] {
   const notes: string[] = [];
+  const sense = waterSense(fish, style);
   if (water.waterKind === '收费塘') {
     notes.push('收费塘不按野河硬套；看水色与塘保养，不编造放鱼时刻');
   } else if (water.waterKind === '路亚塘') {
@@ -173,11 +233,17 @@ export function waterAdviceNotes(water: NormalizedWater): string[] {
     notes.push('河口花鲈/鲻走潮沟闸口，塘鲈标点不要硬套过来');
   }
 
-  if (water.waterColor === '黄绿') notes.push('黄绿中肥口相对最好，台钓香或淡腥，路亚银白或略艳');
-  if (water.waterColor === '瘦清') notes.push('瘦清偏腥或腥香，路亚银白自然、近岸暗色');
-  if (water.waterColor === '肥浊') notes.push('肥浊用本味清淡或粮食香，细线，路亚红头金并贴结构');
-  if (water.waterColor === '泥浆') notes.push('泥浆口差，路亚高对比或加震、贴障碍多抛');
-  if (water.waterColor === '恶水') notes.push('恶水（黑褐、水华、异味）不宜强求');
+  if (water.waterColor === '黄绿') notes.push('黄绿开口较好，台钓香或淡腥，路亚银白或略艳');
+  if (water.waterColor === '瘦清') {
+    notes.push(sense === '视觉' ? '瘦清开口一般，能见度对路亚有利，银白近岸' : '瘦清开口一般，偏腥或腥香');
+  }
+  if (water.waterColor === '肥浊') notes.push('肥浊开口偏挑，本味清淡或粮食香，细线，路亚红头金并贴结构');
+  if (water.waterColor === '泥浆') {
+    if (sense === '鳜') notes.push('泥浆里鳜开口一般，侧线伏击跳底，不必按鲈放弃');
+    else if (sense === '底栖') notes.push('泥浆里鲫鲤鲶开口尚可，改虫饵守底拱食');
+    else notes.push('泥浆开口差，路亚高对比或加震、贴障碍多抛');
+  }
+  if (water.waterColor === '恶水') notes.push('恶水开口不宜（黑褐、水华、异味）');
 
   if (water.pondCare === '刚换水') notes.push('刚换水应激口差，软粘轻口，不要抽散炮');
   if (water.pondCare === '刚调水消毒') notes.push('刚调水消毒后口不稳，轻口软粘，等回稳再正常打');

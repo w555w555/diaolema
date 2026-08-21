@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { applyWaterIndex, normalizeWater, pondCareDelta, venueToWaterKind, waterColorDelta } from './water';
+import { applyWaterIndex, normalizeWater, pondCareDelta, venueToWaterKind, waterBiteLabel, waterColorDelta } from './water';
 import { buildFishingIndex } from './fishingIndex';
 import { buildAdvice } from './advice';
 import { climateFlags, planFlavor, planForm, planLure, planSpot, planWindow } from './plan';
@@ -50,6 +50,21 @@ describe('水色独立算法', () => {
     expect(waterColorDelta('瘦清').delta).toBe(0);
   });
 
+  it('泥浆开口按鱼种：视觉更差、底栖尚可、鳜一般', () => {
+    expect(waterColorDelta('泥浆', { fish: '鲈鱼', style: '路亚' }).delta).toBe(-12);
+    expect(waterColorDelta('泥浆', { fish: '鲫鱼', style: '台钓' }).delta).toBe(-6);
+    expect(waterColorDelta('泥浆', { fish: '鳜鱼', style: '路亚' }).delta).toBe(-4);
+    expect(waterBiteLabel('泥浆', { fish: '鲈鱼' })).toBe('开口差');
+    expect(waterBiteLabel('泥浆', { fish: '鲫鱼' })).toBe('开口尚可');
+    expect(waterBiteLabel('泥浆', { fish: '鳜鱼' })).toBe('开口一般');
+    expect(waterBiteLabel('黄绿')).toBe('开口较好');
+  });
+
+  it('瘦清对路亚视觉鱼略加分', () => {
+    expect(waterColorDelta('瘦清', { fish: '翘嘴', style: '路亚' }).delta).toBe(4);
+    expect(waterColorDelta('瘦清', { fish: '鲫鱼', style: '台钓' }).delta).toBe(0);
+  });
+
   it('肥浊无风盛夏再减', () => {
     expect(waterColorDelta('肥浊', { summer: true, windKmh: 3 }).delta).toBe(-10);
     expect(waterColorDelta('肥浊', { summer: true, windKmh: 7 }).delta).toBe(-6);
@@ -63,6 +78,18 @@ describe('水色独立算法', () => {
     expect(green.score).toBe(base.score + 6);
     expect(mud.score).toBe(base.score - 10);
     expect(green.reasons.some((r) => r.includes('黄绿'))).toBe(true);
+    const mudBass = buildFishingIndex(snap({ temperatureC: 22 }), dawn, {
+      waterColor: '泥浆',
+      targetFish: '鲈鱼',
+      style: '路亚',
+    });
+    const mudCarp = buildFishingIndex(snap({ temperatureC: 22 }), dawn, {
+      waterColor: '泥浆',
+      targetFish: '鲫鱼',
+      style: '台钓',
+    });
+    expect(mudBass.score).toBe(base.score - 12);
+    expect(mudCarp.score).toBe(base.score - 6);
   });
 
   it('恶水档位不宜', () => {
