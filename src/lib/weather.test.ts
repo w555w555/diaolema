@@ -6,6 +6,8 @@ describe('windScaleLabel', () => {
     expect(windScaleLabel(0)).toBe('0级');
     expect(windScaleLabel(8)).toBe('2级');
     expect(windScaleLabel(15)).toBe('3级');
+    expect(windScaleLabel(28)).toBe('4级');
+    expect(windScaleLabel(29)).toBe('5级');
   });
 });
 

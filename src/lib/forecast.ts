@@ -1,5 +1,6 @@
 import type { WeatherSnapshot } from '../types';
 import { buildFishingIndex } from './fishingIndex';
+import { parseShanghaiClock } from './shanghaiTime';
 
 export type HourlyForecast = {
   at: string;
@@ -77,8 +78,8 @@ export function mapDailyForecast(daily: OpenMeteoDaily): DailyForecast[] {
 }
 
 export function pickUpcomingHours(rows: HourlyForecast[], nowIso: string, count = 24): HourlyForecast[] {
-  const now = new Date(nowIso).getTime();
-  return rows.filter((row) => new Date(row.at).getTime() >= now - 30 * 60 * 1000).slice(0, count);
+  const now = parseShanghaiClock(nowIso);
+  return rows.filter((row) => parseShanghaiClock(row.at) >= now - 30 * 60 * 1000).slice(0, count);
 }
 
 export function hourLabel(at: string): string {

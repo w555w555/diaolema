@@ -39,7 +39,12 @@
 | 32. 登录拉回 + 评论上云 + 私聊 Realtime + 示例图 | complete | 点赞/关注/想买/评测/拉黑/私聊开关登录合并；share_comments；FanList 用 canOpenFanChat；DM Realtime；public/shares 与 spot-photos |
 | 33. 理由入口 + 选点天气 + 图上云 | complete | 方案「理由」；选点改天气；渔获/聊天图上传 Storage |
 | 34. 预报 + 头像语音上云 + 收藏 + 渔获改删 | complete | 天气 24h/7d；头像/语音 HTTPS；venue_favs；自己的渔获可改删；不做地图渔获钉 |
-| 35. OLED 仪器盘 UI | complete | 金青绿存档 `_archive/ui-gold-green/`；策略页指数环+气象短卡+今日怎么钓；今日渔获迁渔圈 |
+| 35. 建议引擎改国内淡水口径 | complete | 升压/稳压好钓、走低口差；塘鲈=加州鲈；东八区钟点；不用欧美降压抢食 |
+| 36. 上海二次检索编译进引擎 | complete | 浅湖翘嘴 5–7g；低压 ≤1005；花鲈潮沟；夜钓黄颡；指定钓点合规 |
+| 37. 自我检视修口径 | complete | 夜钓窗错开晨昏；草鱼颗粒；正午+低压改中下层 |
+| 38. 水域类型 + 水色算法 | complete | 收费塘入引擎；水色独立加减；塘换水保养 |
+| 39. OLED 仪器盘 UI | complete | 金青绿存档 `_archive/ui-gold-green/`；策略页指数环+气象短卡+今日怎么钓；今日渔获迁渔圈 |
+| 41. 水色开口按鱼种进指数 | complete | 黄绿较好；泥浆视觉/底栖/鳜分叉；瘦清路亚略加；不写 NTU |
 
 ## Decisions
 
@@ -51,4 +56,4 @@
 
 | Error | Attempt | Resolution |
 |-------|---------|------------|
-| | | |
+| vitest 在 UTC 环境把 `+08:00` 晨昏窗算成夜里 | 1 | 盛夏正午、窗口倒计时、预报小时一律按 Asia/Shanghai |

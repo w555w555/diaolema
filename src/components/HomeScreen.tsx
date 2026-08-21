@@ -16,7 +16,8 @@ import {
 } from '../lib/homeView';
 import { weatherLabel, windDirLabel, windScaleLabel } from '../lib/weather';
 import { windowCountdown } from '../lib/windowCountdown';
-import type { FishStyle, FishingAdvice, FishingIndex, WeatherSnapshot } from '../types';
+import type { FishStyle, FishingAdvice, FishingIndex, PondCare, WaterColor, WaterKind, WeatherSnapshot } from '../types';
+import { POND_CARE_CHIPS, WATER_COLOR_CHIPS, WATER_KIND_CHIPS, isPondWater, waterBiteLabel } from '../lib/water';
 
 export type HomeSheet = 'advice' | 'venues' | 'daily' | 'share' | 'weather' | 'target' | 'catch' | 'spot' | 'guide' | 'author';
 
@@ -32,6 +33,12 @@ type Props = {
   targetFish: string;
   style: FishStyle;
   onStyleChange: (style: FishStyle) => void;
+  waterKind: WaterKind;
+  waterColor: WaterColor;
+  pondCare: PondCare;
+  onWaterKindChange: (kind: WaterKind) => void;
+  onWaterColorChange: (color: WaterColor) => void;
+  onPondCareChange: (care: PondCare) => void;
   locating?: boolean;
 };
 
@@ -53,9 +60,16 @@ export function HomeScreen({
   targetFish,
   style,
   onStyleChange,
+  waterKind,
+  waterColor,
+  pondCare,
+  onWaterKindChange,
+  onWaterColorChange,
+  onPondCareChange,
   locating,
 }: Props) {
   const fish = coerceFishForStyle(targetFish || advice?.targetFish[0] || '', style);
+  const waterBite = index?.waterBite ?? waterBiteLabel(waterColor, { fish, style });
   const bait = advice ? (style === '路亚' ? advice.lure : advice.baitLabel) : '—';
   const spot = advice?.spot ?? '—';
   const outing = index ? outingLabel(index.label) : loading ? '读取中' : '—';
@@ -186,6 +200,50 @@ export function HomeScreen({
             <button type="button" className={style === '路亚' ? 'on' : undefined} onClick={() => onStyleChange('路亚')}>
               路亚
             </button>
+          </div>
+          <div className="water-rows">
+            <div className="water-row" role="toolbar" aria-label="水域类型">
+              <small>水域</small>
+              {WATER_KIND_CHIPS.map((chip) => (
+                <button
+                  key={chip.id}
+                  type="button"
+                  className={waterKind === chip.id ? 'on' : undefined}
+                  onClick={() => onWaterKindChange(chip.id)}
+                >
+                  {chip.label}
+                </button>
+              ))}
+            </div>
+            <div className="water-row" role="toolbar" aria-label="水色">
+              <small>水色</small>
+              {WATER_COLOR_CHIPS.map((chip) => (
+                <button
+                  key={chip.id}
+                  type="button"
+                  className={waterColor === chip.id ? 'on' : undefined}
+                  onClick={() => onWaterColorChange(chip.id)}
+                >
+                  {chip.label}
+                </button>
+              ))}
+            </div>
+            <p className="water-bite">{waterBite}</p>
+            {isPondWater(waterKind) ? (
+              <div className="water-row" role="toolbar" aria-label="塘保养">
+                <small>塘况</small>
+                {POND_CARE_CHIPS.map((chip) => (
+                  <button
+                    key={chip.id}
+                    type="button"
+                    className={pondCare === chip.id ? 'on' : undefined}
+                    onClick={() => onPondCareChange(chip.id)}
+                  >
+                    {chip.label}
+                  </button>
+                ))}
+              </div>
+            ) : null}
           </div>
           <div className="plan-core-head">
             <h2>

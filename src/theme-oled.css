@@ -408,6 +408,53 @@ button.splash::before,
   border-color: transparent;
 }
 
+.water-rows {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 12px;
+}
+
+.water-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.water-row > small {
+  flex: none;
+  width: 2.4em;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.water-row button {
+  margin: 0;
+  min-height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #121a26;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.water-row button.on {
+  background: var(--ok);
+  color: #052010;
+  border-color: transparent;
+}
+
+.water-bite {
+  margin: 0;
+  padding-left: 2.6em;
+  color: var(--ok);
+  font-size: 11px;
+  font-weight: 700;
+}
+
 .plan-core-head {
   display: flex;
   align-items: center;

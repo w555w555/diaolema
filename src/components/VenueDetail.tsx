@@ -18,6 +18,7 @@ type Props = {
   onReviewsChange: (next: SpotReview[]) => void;
   onPreviewRoute: () => void;
   onOpenVenue?: (venue: FishingVenue) => void;
+  onUseForAdvice?: (venue: FishingVenue) => void;
 };
 
 export function VenueDetail({
@@ -29,6 +30,7 @@ export function VenueDetail({
   onReviewsChange,
   onPreviewRoute,
   onOpenVenue,
+  onUseForAdvice,
 }: Props) {
   const items = reviewsForVenue(venue.id, reviews);
   const score = scoreForVenue(venue.id, reviews);
@@ -81,6 +83,11 @@ export function VenueDetail({
         <button type="button" className="ghost" onClick={onPreviewRoute}>
           看路线
         </button>
+        {onUseForAdvice ? (
+          <button type="button" className="ghost" onClick={() => onUseForAdvice(venue)}>
+            用于今日方案
+          </button>
+        ) : null}
         <button
           type="button"
           className={faved ? 'active' : 'ghost'}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { climateFlags, planFlavor, planForm, planLure, planLureNote, planSpot } from './plan';
+import { climateFlags, planFlavor, planForm, planLure, planLureNote, planSpot, planWindow } from './plan';
 import type { WeatherSnapshot } from '../types';
 
 function snap(partial: Partial<WeatherSnapshot> = {}): WeatherSnapshot {
@@ -41,6 +41,32 @@ describe('planFlavor / planForm', () => {
     expect(planForm('鲫鱼', flags, '台钓')).toBe('拉饵');
     expect(planForm('鲤鱼', flags, '台钓')).toBe('搓饵');
   });
+
+  it('草鱼夏天改颗粒，不被搓饵盖掉', () => {
+    const flags = climateFlags(snap({ temperatureC: 28 }), dawn);
+    expect(planForm('草鱼', flags, '台钓')).toBe('颗粒/玉米');
+    expect(planForm('鳊鱼', flags, '台钓')).toBe('颗粒/玉米');
+  });
+
+  it('低压或气压走低且本味清淡改果酸', () => {
+    const falling = climateFlags(snap({ temperatureC: 33, pressureDelta3h: -2 }), noon);
+    expect(planFlavor(falling)).toBe('清淡带果酸');
+    const low = climateFlags(snap({ temperatureC: 31, pressureHpa: 1005 }), noon);
+    expect(planFlavor(low)).toBe('清淡带果酸');
+  });
+
+  it('4级起才算大风战术，3级不算', () => {
+    expect(climateFlags(snap({ windKmh: 15 }), dawn).windy).toBe(false);
+    expect(climateFlags(snap({ windKmh: 25 }), dawn).windy).toBe(true);
+  });
+
+  it('窗口按国内气压口径', () => {
+    expect(planWindow(climateFlags(snap({ pressureDelta3h: -2 }), dawn))).toBe('气压走低口差');
+    expect(planWindow(climateFlags(snap({ pressureDelta3h: 2 }), dawn))).toBe('气压回升窗口');
+    expect(planWindow(climateFlags(snap({ pressureHpa: 1024, pressureDelta3h: 0.1 }), noon))).toBe(
+      '高压宜守底',
+    );
+  });
 });
 
 describe('planSpot', () => {
@@ -65,11 +91,13 @@ describe('planSpot', () => {
 });
 
 describe('planLurePick', () => {
-  it('翘嘴夏天白天用 7–12g 斜切亮片', () => {
+  it('翘嘴夏天白天用 5–7g 斜切亮片', () => {
     const flags = climateFlags(snap({ temperatureC: 26 }), noon);
-    expect(planLure('翘嘴', flags)).toMatch(/7–12g/);
+    expect(planLure('翘嘴', flags)).toMatch(/5–7g/);
     expect(planLure('翘嘴', flags)).toMatch(/斜切亮片/);
     expect(planLureNote('翘嘴', flags)).toMatch(/匀速/);
+    expect(planLureNote('翘嘴', flags)).toMatch(/7–12g/);
+    expect(planLure('翘嘴', flags, { waterKind: '大水面' })).toMatch(/7–12g/);
   });
 
   it('翘嘴冬春低温用 12–20g 远投', () => {
@@ -93,5 +121,19 @@ describe('planLurePick', () => {
     const night = climateFlags(snap({ temperatureC: 22 }), new Date('2026-08-17T21:00:00+08:00'));
     expect(planLure('翘嘴', night)).toMatch(/7–10g/);
     expect(planLure('翘嘴', night)).toMatch(/勺型亮片/);
+  });
+
+  it('凌晨五点与黄昏用波扒，20 点后才换勺型', () => {
+    const five = climateFlags(snap({ temperatureC: 24 }), new Date('2026-08-17T05:30:00+08:00'));
+    expect(five.prime).toBe(true);
+    expect(five.night).toBe(false);
+    expect(planLure('翘嘴', five)).toMatch(/波扒/);
+    const dusk = climateFlags(snap({ temperatureC: 24 }), new Date('2026-08-17T19:30:00+08:00'));
+    expect(dusk.prime).toBe(true);
+    expect(dusk.night).toBe(false);
+    expect(planLure('翘嘴', dusk)).toMatch(/波扒/);
+    const twenty = climateFlags(snap({ temperatureC: 24 }), new Date('2026-08-17T20:30:00+08:00'));
+    expect(twenty.night).toBe(true);
+    expect(planLure('翘嘴', twenty)).toMatch(/勺型亮片/);
   });
 });
