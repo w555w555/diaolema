@@ -55,6 +55,11 @@ describe('planFlavor / planForm', () => {
     expect(planFlavor(low)).toBe('清淡带果酸');
   });
 
+  it('4级起才算大风战术，3级不算', () => {
+    expect(climateFlags(snap({ windKmh: 15 }), dawn).windy).toBe(false);
+    expect(climateFlags(snap({ windKmh: 25 }), dawn).windy).toBe(true);
+  });
+
   it('窗口按国内气压口径', () => {
     expect(planWindow(climateFlags(snap({ pressureDelta3h: -2 }), dawn))).toBe('气压走低口差');
     expect(planWindow(climateFlags(snap({ pressureDelta3h: 2 }), dawn))).toBe('气压回升窗口');

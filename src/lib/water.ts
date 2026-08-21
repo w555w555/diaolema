@@ -6,6 +6,7 @@
  * 不编造溶氧 mg/L、透明度厘米、药残数字；不做斤塘放鱼时刻。
  */
 import type { PondCare, WaterColor, WaterKind } from '../types';
+import { windScale } from './windScale';
 
 export type WaterQuery = {
   waterKind?: WaterKind;
@@ -24,8 +25,8 @@ export const WATER_COLORS: WaterColor[] = ['未知', '瘦清', '黄绿', '肥浊
 export const POND_CARES: PondCare[] = ['未知', '刚换水', '换水回稳', '刚调水消毒', '老水'];
 
 export const WATER_KIND_CHIPS: { id: WaterKind; label: string }[] = [
-  { id: '公园浅湖', label: '浅湖' },
-  { id: '大水面', label: '大湖' },
+  { id: '公园浅湖', label: '公园湖' },
+  { id: '大水面', label: '大水面' },
   { id: '收费塘', label: '收费塘' },
   { id: '路亚塘', label: '路亚塘' },
   { id: '内河', label: '内河' },
@@ -33,10 +34,10 @@ export const WATER_KIND_CHIPS: { id: WaterKind; label: string }[] = [
 ];
 
 export const WATER_COLOR_CHIPS: { id: WaterColor; label: string }[] = [
-  { id: '未知', label: '水色未知' },
+  { id: '未知', label: '未知' },
   { id: '瘦清', label: '瘦清' },
   { id: '黄绿', label: '黄绿' },
-  { id: '肥浊', label: '肥浊' },
+  { id: '肥浊', label: '肥水' },
   { id: '泥浆', label: '泥浆' },
   { id: '恶水', label: '恶水' },
 ];
@@ -92,7 +93,7 @@ export function waterColorDelta(
   } else if (color === '肥浊') {
     delta = -6;
     reasons.push('水色肥浊，食物多、口偏挑，宜本味清淡、细线');
-    if (extras.summer && (extras.windKmh ?? 10) < 8) {
+    if (extras.summer && windScale(extras.windKmh ?? 10) <= 1) {
       delta -= 4;
       reasons.push('盛夏肥水又无风，更容易闷、口更差');
     }

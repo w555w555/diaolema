@@ -52,6 +52,7 @@ describe('水色独立算法', () => {
 
   it('肥浊无风盛夏再减', () => {
     expect(waterColorDelta('肥浊', { summer: true, windKmh: 3 }).delta).toBe(-10);
+    expect(waterColorDelta('肥浊', { summer: true, windKmh: 7 }).delta).toBe(-6);
     expect(waterColorDelta('肥浊', { summer: true, windKmh: 12 }).delta).toBe(-6);
   });
 

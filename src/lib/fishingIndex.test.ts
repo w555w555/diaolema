@@ -86,6 +86,38 @@ describe('buildFishingIndex', () => {
     expect(high.score).toBeGreaterThanOrEqual(0);
   });
 
+  it('4级风不减指数，5级才减', () => {
+    const four = buildFishingIndex(
+      snap({ temperatureC: 22, windKmh: 25, pressureHpa: 1007, pressureDelta3h: 0 }),
+      dawn,
+    );
+    const five = buildFishingIndex(
+      snap({ temperatureC: 22, windKmh: 30, pressureHpa: 1007, pressureDelta3h: 0 }),
+      dawn,
+    );
+    expect(four.score).toBe(78);
+    expect(four.reasons.some((r) => r.includes('抛投'))).toBe(false);
+    expect(five.score).toBe(66);
+    expect(five.reasons.some((r) => r.includes('5级'))).toBe(true);
+    expect(five.reasons.join('')).not.toMatch(/km\/h/);
+  });
+
+  it('盛夏无风与闷湿减分，不写溶氧数字', () => {
+    const calm = buildFishingIndex(
+      snap({ temperatureC: 22, windKmh: 3, humidityPct: 70, pressureHpa: 1007, pressureDelta3h: 0 }),
+      dawn,
+    );
+    expect(calm.score).toBe(74);
+    expect(calm.reasons.some((r) => r.includes('易闷'))).toBe(true);
+    const muggy = buildFishingIndex(
+      snap({ temperatureC: 22, windKmh: 8, humidityPct: 90, pressureHpa: 1007, pressureDelta3h: 0 }),
+      dawn,
+    );
+    expect(muggy.score).toBe(72);
+    expect(muggy.reasons.some((r) => r.includes('闷湿'))).toBe(true);
+    expect(muggy.reasons.join('')).not.toMatch(/溶氧\s*\d/);
+  });
+
   it('档位映射出钓文案', () => {
     expect(outingLabel('较高')).toBe('适宜出钓');
     expect(outingLabel('不宜')).toBe('不宜出钓');

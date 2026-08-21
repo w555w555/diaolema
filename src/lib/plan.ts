@@ -12,6 +12,7 @@
  */
 import type { FishStyle, WeatherSnapshot } from '../types';
 import { shanghaiHour, shanghaiMonth } from './shanghaiTime';
+import { windScale } from './windScale';
 import {
   isPondWater,
   normalizeWater,
@@ -56,7 +57,7 @@ export function climateFlags(weather: WeatherSnapshot, at: Date): ClimateFlags {
       (weather.weatherCode >= 51 && weather.weatherCode <= 67) ||
       (weather.weatherCode >= 80 && weather.weatherCode <= 82) ||
       weather.weatherCode >= 95,
-    windy: weather.windKmh >= 25,
+    windy: windScale(weather.windKmh) >= 4,
     prime: (hour >= 5 && hour <= 7) || (hour >= 17 && hour <= 19),
     night: hour < 5 || hour >= 20,
   };

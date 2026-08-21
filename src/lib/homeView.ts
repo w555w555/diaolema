@@ -1,3 +1,4 @@
+import { shanghaiParts } from './shanghaiTime';
 import type { WaterLayer } from '../types';
 
 const RING = 2 * Math.PI * 58;
@@ -54,7 +55,8 @@ export function hourBarHeights(temps: number[]): number[] {
 }
 
 export function windowNowPct(at: Date): number {
-  const minutes = at.getHours() * 60 + at.getMinutes();
+  const p = shanghaiParts(at);
+  const minutes = p.hour * 60 + p.minute;
   return (minutes / (24 * 60)) * 100;
 }
 

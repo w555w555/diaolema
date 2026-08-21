@@ -1,4 +1,5 @@
 import type { WeatherSnapshot } from '../types';
+import { windScale, windScaleLabel } from './windScale';
 import {
   enrichDailyFromHourly,
   mapDailyForecast,
@@ -9,6 +10,8 @@ import {
   type OpenMeteoDaily,
   type OpenMeteoHourly,
 } from './forecast';
+
+export { windScale, windScaleLabel };
 
 const OPEN_METEO = 'https://api.open-meteo.com/v1/forecast';
 
@@ -37,13 +40,6 @@ export function weatherLabel(code: number): string {
 export function windDirLabel(deg: number): string {
   const dirs = ['北', '东北', '东', '东南', '南', '西南', '西', '西北'];
   return dirs[Math.round(deg / 45) % 8] + '风';
-}
-
-/** 中国气象风力等级（按 10 米风速 km/h 近似）。 */
-export function windScaleLabel(kmh: number): string {
-  const n =
-    kmh < 1 ? 0 : kmh < 6 ? 1 : kmh < 12 ? 2 : kmh < 20 ? 3 : kmh < 29 ? 4 : kmh < 39 ? 5 : kmh < 50 ? 6 : 7;
-  return `${n}级`;
 }
 
 type OpenMeteoCurrent = {

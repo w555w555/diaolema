@@ -72,6 +72,12 @@ describe('buildAdvice', () => {
     expect(wet.layer).toBe('中上层');
   });
 
+  it('4级风理由写几级，不写 km/h', () => {
+    const a = buildAdvice(snap({ windKmh: 25 }), dawn);
+    expect(a.reasons.some((r) => r.includes('4级'))).toBe(true);
+    expect(a.reasons.join('')).not.toMatch(/km\/h/);
+  });
+
   it('路亚按对象鱼给出克数颜色与操法', () => {
     const a = buildAdvice(snap({ temperatureC: 26 }), noon, { targetFish: '翘嘴', style: '路亚' });
     expect(a.lure).toMatch(/5–7g/);

@@ -1,6 +1,7 @@
 import type { FishingIndex, FishingIndexLabel, WeatherSnapshot } from '../types';
 import { shanghaiHour, shanghaiMonth } from './shanghaiTime';
 import { applyWaterIndex, type WaterQuery } from './water';
+import { windScale, windScaleLabel } from './windScale';
 
 export function indexBand(score: number): FishingIndexLabel {
   if (score >= 80) return '很高';
@@ -33,7 +34,7 @@ export function buildFishingIndex(
   const rising = weather.pressureDelta3h >= 1.5;
   const highStable = weather.pressureHpa >= 1022 && Math.abs(weather.pressureDelta3h) < 1;
   const lowPressure = weather.pressureHpa <= 1005;
-  const windy = weather.windKmh >= 25;
+  const scale = windScale(weather.windKmh);
   const prime = (hour >= 5 && hour <= 7) || (hour >= 17 && hour <= 19);
   const storm = isStorm(weather.weatherCode, weather.precipitationMm);
   const lightRain = isLightRain(weather.weatherCode, weather.precipitationMm);
@@ -76,9 +77,17 @@ export function buildFishingIndex(
     reasons.push(`气温 ${weather.temperatureC.toFixed(0)}°C 过高`);
   }
 
-  if (windy) {
+  if (scale >= 5) {
     score -= 12;
-    reasons.push(`风速 ${weather.windKmh.toFixed(0)} km/h，抛投与找口变难`);
+    reasons.push(`${windScaleLabel(weather.windKmh)}风，抛投与找口变难`);
+  } else if (summer && scale <= 1) {
+    score -= 4;
+    reasons.push(`${windScaleLabel(weather.windKmh)}风盛夏水面易闷，优先进水口或下风`);
+  }
+
+  if (summer && weather.humidityPct >= 85 && scale <= 2 && !hotNoon) {
+    score -= 6;
+    reasons.push(`湿度 ${weather.humidityPct.toFixed(0)}%，闷湿口往往更差（不代表溶氧）`);
   }
 
   if (storm) {

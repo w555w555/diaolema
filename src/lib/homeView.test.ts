@@ -45,6 +45,6 @@ describe('homeView', () => {
   it('scales hourly bars and window needle', () => {
     const bars = hourBarHeights([24, 22, 20, 18, 16, 14]);
     expect(bars[0]).toBeGreaterThan(bars[5]);
-    expect(windowNowPct(new Date('2026-08-20T12:00:00'))).toBeCloseTo(50, 0);
+    expect(windowNowPct(new Date('2026-08-20T12:00:00+08:00'))).toBeCloseTo(50, 0);
   });
 });

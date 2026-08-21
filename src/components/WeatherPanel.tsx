@@ -56,7 +56,7 @@ export function WeatherPanel({ weather, hourly, daily, loading, error, onRetry, 
             </li>
             <li>
               <span>风</span>
-              <strong>{weather.windKmh.toFixed(0)} km/h</strong>
+              <strong>{windScaleLabel(weather.windKmh)}</strong>
               <small>{windDirLabel(weather.windDirDeg)}</small>
             </li>
             <li>

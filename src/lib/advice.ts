@@ -1,6 +1,7 @@
 import { coerceFishForStyle, fishFitsStyle, catalogForStyle } from './fishId/catalog';
 import { baitLabel, climateFlags, planFlavor, planForm, planLure, planLureNote, planSpot, planWindow } from './plan';
 import { isPondWater, normalizeWater, waterAdviceNotes, type WaterQuery } from './water';
+import { windScaleLabel } from './windScale';
 import type { FishStyle, FishingAdvice, WaterLayer, WeatherSnapshot } from '../types';
 
 const LAYER_ORDER: WaterLayer[] = ['底层', '中下层', '中上层', '上层'];
@@ -77,7 +78,7 @@ export function buildAdvice(
   }
 
   if (flags.windy) {
-    reasons.push(`风速 ${weather.windKmh.toFixed(0)} km/h，改抗风钓组、加重饵，路亚走侧风岸`);
+    reasons.push(`${windScaleLabel(weather.windKmh)}风，改抗风钓组、加重饵，路亚走侧风岸`);
     tip = `${tip} 风大时用吃铅更大的漂，或改岸边避风。`;
   }
 
