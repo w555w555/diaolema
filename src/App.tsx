@@ -35,6 +35,7 @@ import { venueToWaterKind } from './lib/water';
 import { SHANGHAI_CENTER, type CatchReport, type FishStyle, type FishingVenue, type HubChatMessage, type PondCare, type SpotReview, type WaterColor, type WaterKind, type WeatherSnapshot } from './types';
 import type { DailyForecast, HourlyForecast } from './lib/forecast';
 import './index.css';
+import './theme-oled.css';
 
 function hubUnreadSnapshot() {
   const seen = new Set<string>();
@@ -293,6 +294,7 @@ export function App() {
           {tab === 'home' && (
             <HomeScreen
               weather={weather}
+              hourly={hourly}
               loading={loading}
               error={error}
               index={index}
@@ -312,16 +314,6 @@ export function App() {
               onPondCareChange={(care) => persistWater({ pondCare: care })}
               onRefresh={() => void load()}
               onOpen={setSheet}
-              reports={reports}
-              onOpenInbox={() => {
-                setSheet(null);
-                setMeStart('catches');
-                setTab('me');
-              }}
-              onOpenShare={(report) => {
-                setShare(report);
-                setSheet('catch');
-              }}
             />
           )}
 
@@ -363,6 +355,11 @@ export function App() {
               onOpenShare={(report) => {
                 setShare(report);
                 setSheet('catch');
+              }}
+              onOpenInbox={() => {
+                setSheet(null);
+                setMeStart('catches');
+                setTab('me');
               }}
             />
           )}

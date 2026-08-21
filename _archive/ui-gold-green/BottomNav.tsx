@@ -8,39 +8,6 @@ const TABS: { id: TabId; label: string }[] = [
   { id: 'me', label: '我的' },
 ];
 
-function NavIcon({ id }: { id: TabId }) {
-  if (id === 'home') {
-    return (
-      <svg viewBox="0 0 24 24" fill="none" aria-hidden>
-        <path d="M4 11.2 12 4.5l8 6.7V20H4v-8.8Z" stroke="currentColor" strokeWidth="1.6" />
-      </svg>
-    );
-  }
-  if (id === 'spots') {
-    return (
-      <svg viewBox="0 0 24 24" fill="none" aria-hidden>
-        <path d="M12 21s7-6.3 7-11a7 7 0 1 0-14 0c0 4.7 7 11 7 11Z" stroke="currentColor" strokeWidth="1.6" />
-        <circle cx="12" cy="10" r="2.2" stroke="currentColor" strokeWidth="1.6" />
-      </svg>
-    );
-  }
-  if (id === 'hub') {
-    return (
-      <svg viewBox="0 0 24 24" fill="none" aria-hidden>
-        <circle cx="12" cy="8" r="3" stroke="currentColor" strokeWidth="1.6" />
-        <circle cx="6" cy="16" r="2.4" stroke="currentColor" strokeWidth="1.6" />
-        <circle cx="18" cy="16" r="2.4" stroke="currentColor" strokeWidth="1.6" />
-      </svg>
-    );
-  }
-  return (
-    <svg viewBox="0 0 24 24" fill="none" aria-hidden>
-      <circle cx="12" cy="8" r="3.1" stroke="currentColor" strokeWidth="1.6" />
-      <path d="M5 19c1.4-3.1 4-4.6 7-4.6s5.6 1.5 7 4.6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-    </svg>
-  );
-}
-
 export function BottomNav({
   tab,
   onChange,
@@ -75,7 +42,6 @@ export function BottomNav({
             data-active={tab === item.id ? 'true' : 'false'}
             onClick={() => onChange(item.id)}
           >
-            <NavIcon id={item.id} />
             {item.label}
             {item.id === 'hub' && hubUnread > 0 ? (
               <i className="nav-badge">{hubUnread > 99 ? '99+' : hubUnread}</i>

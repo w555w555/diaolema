@@ -83,10 +83,12 @@
 
 - 今日方案加「理由」打开已有 AdvicePanel。地图选点同时改天气坐标并重算方案。登录后渔获多图与聊天图片上传 `yj-media`，行只存 HTTPS。须再跑 `supabase/social.sql` 加上 `image_urls` 与图片 MIME。`npx vitest run` 253 passed。
 - 天气详情接 Open-Meteo 24 小时与 7 天；头像与聊天语音登录后上云；钓场可收藏；自己的渔获可改删。地图仍只画营地钉。须再跑 `supabase/social.sql`（`venue_favs`、渔获 DELETE、音频 MIME）。`npx vitest run` 264 passed；`npx tsc --noEmit` 通过。
+- 策略首页换成 OLED 仪器盘（绿指数 / 蓝气象 / 琥珀窗口）。今日渔获挪到渔圈；金青绿上一版存档在 `_archive/ui-gold-green/`。不编造溶氧水温。
 
 - 建议引擎改国内淡水口径：气压急降/低压改为口差找氧（指数 -16/-12），高压稳压宜守底（+8），升压回口（+10）；盛夏正午默认底层，台钓草/鳊改中上层；加州鲈/大口黑鲈归词表鲈鱼。晨昏窗口与预报小时按上海东八区，不跟运行环境本地时区。不用欧美降压抢食。不编造溶氧水温，不扩到斤塘或实时鱼情排行。`npx vitest run` 273 passed；`npx tsc --noEmit` 通过。
 - 按上一轮结论二次检索国内公开钓技并编译：上海低压 ≤1005 hPa；公园浅湖翘嘴白天 5–7g（大水面可 7–12g）；黑鱼中鱼后等两三秒再抽；花鲈潮沟/闸口看潮；盛夏夜黄颡走障碍；只提示指定钓点，不写论坛野岸 GPS。`npx vitest run` 274 passed；`npx tsc --noEmit` 通过。
 - 自我检视：修正凌晨五点与黄昏被当成夜钓勺型、草鱼夏天颗粒被搓饵盖掉、盛夏正午叠加低压仍死守亮水底；补鲻鱼落潮与花鲈半咸水生境。`npx vitest run` 278 passed；`npx tsc --noEmit` 通过。
 - 水域加入收费塘；水色独立算法（黄绿最好开口，泥浆/恶水口差）；收费塘刚换水/调水/老水酱层改指数与饵形。不编造溶氧水温，不做斤塘。`npx vitest run` 292 passed；`npx tsc --noEmit` 通过。
+- 把 OLED 仪器盘首页与水域/水色/塘保养合在一起：策略页保持指数环与气象短卡，方案卡内点选水域与水色。`npx vitest run` 298 passed；`npx tsc --noEmit` 通过。
 
 - 写入 FR-7 AI 识鱼 Spec / SDD，暂未实现代码。

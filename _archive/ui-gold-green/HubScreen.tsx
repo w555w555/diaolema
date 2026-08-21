@@ -53,7 +53,6 @@ import { getSafety, hideByAuthor, hideInboxFromBlocked, subscribeSafety } from '
 import { getSupabase, isSupabaseConfigured } from '../lib/supabase';
 import { reviewCountLabel } from '../lib/spotScore';
 import type { CatchReport, ChatQuote, GearReview, HubChatMessage, HubTip, HubView } from '../types';
-import { CatchShareFeed } from './CatchShareFeed';
 import { ChatComposer } from './ChatComposer';
 import { ChatLog } from './ChatLog';
 import { SafetyActions } from './SafetyActions';
@@ -66,9 +65,6 @@ const TILES: { view: Exclude<HubView, 'home' | 'chat'>; title: string; short: st
   { view: 'reviews', title: '装备评测', short: '评测' },
   { view: 'community', title: '钓鱼社区', short: '社区' },
 ];
-
-const DOCK = TILES.filter((tile) => tile.view !== 'events');
-const MALL_FROM = Math.min(...HUB_PRODUCTS.map((item) => item.priceYuan));
 
 function eventDate(when: string) {
   const hit = when.match(/(\d+)\s*月\s*(\d+)/);
@@ -84,13 +80,11 @@ export function HubScreen({
   onNeedLogin,
   onOpenAuthor,
   onOpenShare,
-  onOpenInbox,
 }: {
   reports?: CatchReport[];
   onNeedLogin?: () => void;
   onOpenAuthor?: (name: string) => void;
   onOpenShare?: (report: CatchReport) => void;
-  onOpenInbox?: () => void;
 }) {
   const cloud = isSupabaseConfigured();
   const [view, setView] = useState<HubView>('home');
@@ -213,7 +207,7 @@ export function HubScreen({
           <div className="hub-brand">
             <div>
               <h2>渔圈</h2>
-              <p>发现 · 今日渔获 · 主题群 · 赛事</p>
+              <p>装备 · 赛事 · 社区</p>
             </div>
             <em>{wish.length ? `想买 ${wish.length}` : '示例'}</em>
           </div>
@@ -230,14 +224,15 @@ export function HubScreen({
       {view === 'home' ? (
         <HubHome
           inbox={inbox}
-          reports={reports}
           onOpen={(next) => {
             setTipId(null);
             setView(next);
           }}
           onOpenThread={openThread}
-          onOpenShare={onOpenShare}
-          onOpenInbox={onOpenInbox}
+          onOpenTip={(id) => {
+            setTipId(id);
+            setView('tips');
+          }}
         />
       ) : null}
       {view === 'mall' ? (
@@ -338,55 +333,97 @@ function HubIcon({ kind }: { kind: (typeof TILES)[number]['view'] }) {
   );
 }
 
-function dockCaption(view: (typeof DOCK)[number]['view']): string {
-  if (view === 'mall') return `¥${MALL_FROM} 起`;
-  if (view === 'tips') return `${HUB_TIPS.length} 篇`;
-  if (view === 'reviews') return '★ 评测';
-  return '会话';
-}
-
 function HubHome({
   inbox,
-  reports,
   onOpen,
   onOpenThread,
-  onOpenShare,
-  onOpenInbox,
+  onOpenTip,
 }: {
   inbox: InboxItem[];
-  reports: CatchReport[];
   onOpen: (view: Exclude<HubView, 'home' | 'chat'>) => void;
   onOpenThread: (item: InboxItem) => void;
-  onOpenShare?: (report: CatchReport) => void;
-  onOpenInbox?: () => void;
+  onOpenTip: (id: string) => void;
 }) {
+  const feature = HUB_EVENTS[0];
+  const date = feature ? eventDate(feature.when) : null;
+
   return (
     <>
-      <section className="hub-block">
-        <header className="hub-sec">
-          <h3>发现</h3>
-        </header>
-        <nav className="hub-nav" aria-label="发现">
-          {DOCK.map((tile) => (
-            <button key={tile.view} type="button" data-kind={tile.view} onClick={() => onOpen(tile.view)}>
-              <i aria-hidden>
-                <HubIcon kind={tile.view} />
-              </i>
-              {tile.short}
-              <small>{dockCaption(tile.view)}</small>
-            </button>
-          ))}
-        </nav>
-      </section>
+      <nav className="hub-nav" aria-label="渔圈入口">
+        {TILES.map((tile) => (
+          <button key={tile.view} type="button" data-kind={tile.view} onClick={() => onOpen(tile.view)}>
+            <i aria-hidden>
+              <HubIcon kind={tile.view} />
+            </i>
+            {tile.short}
+          </button>
+        ))}
+      </nav>
 
-      {onOpenShare && onOpenInbox ? (
-        <CatchShareFeed reports={reports} onOpenAll={onOpenInbox} onOpenDetail={onOpenShare} />
+      {feature && date ? (
+        <section className="hub-block">
+          <header className="hub-sec">
+            <h3>
+              即将开赛<em>{HUB_EVENTS.length}</em>
+            </h3>
+            <button type="button" className="share-more" onClick={() => onOpen('events')}>
+              全部 ›
+            </button>
+          </header>
+          <button type="button" className="hub-feature" onClick={() => onOpen('events')}>
+            <time>
+              <b>{date.month}</b>
+              <strong>{date.day}</strong>
+            </time>
+            <div>
+              <p className="share-kicker">
+                {feature.kind} · {date.clock} · 示例
+              </p>
+              <strong>{feature.title}</strong>
+              <span>{feature.place}</span>
+            </div>
+          </button>
+          <ul className="hub-mini">
+            {HUB_EVENTS.slice(1, 3).map((item) => (
+              <li key={item.id}>
+                <button type="button" data-kind={item.kind} onClick={() => onOpen('events')}>
+                  <em>{item.kind}</em>
+                  <strong>{item.title}</strong>
+                  <span>{item.when}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
       ) : null}
 
       <section className="hub-block">
         <header className="hub-sec">
           <h3>
-            主题群<em>{inbox.reduce((sum, row) => sum + row.unread, 0)}</em>
+            热门装备<em>{HUB_PRODUCTS.length}</em>
+          </h3>
+          <button type="button" className="share-more" onClick={() => onOpen('mall')}>
+            商城 ›
+          </button>
+        </header>
+        <ul className="hub-shop">
+          {HUB_PRODUCTS.slice(0, 4).map((item) => (
+            <li key={item.id}>
+              <button type="button" data-tone={gearTone(item.kind)} onClick={() => onOpen('mall')}>
+                <span className="hub-swatch" aria-hidden />
+                <em>{item.kind}</em>
+                <strong>{item.name}</strong>
+                <b>¥{item.priceYuan}</b>
+              </button>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section className="hub-block">
+        <header className="hub-sec">
+          <h3>
+            消息<em>{inbox.reduce((sum, row) => sum + row.unread, 0)}</em>
           </h3>
           <button type="button" className="share-more" onClick={() => onOpen('community')}>
             全部 ›
@@ -397,36 +434,21 @@ function HubHome({
 
       <section className="hub-block">
         <header className="hub-sec">
-          <h3>
-            近期赛事<em>{HUB_EVENTS.length}</em>
-          </h3>
-          <button type="button" className="share-more" onClick={() => onOpen('events')}>
-            全部 ›
+          <h3>技巧精选</h3>
+          <button type="button" className="share-more" onClick={() => onOpen('tips')}>
+            更多 ›
           </button>
         </header>
-        <ul className="hub-cards is-events">
-          {HUB_EVENTS.slice(0, 2).map((item) => {
-            const date = eventDate(item.when);
-            return (
-              <li key={item.id}>
-                <button type="button" className="hub-card hub-event-row hub-open" onClick={() => onOpen('events')}>
-                  <time>
-                    <b>{date.month}</b>
-                    <strong>{date.day}</strong>
-                  </time>
-                  <div>
-                    <p className="share-kicker">
-                      {item.kind} · {date.clock} · 示例
-                    </p>
-                    <strong>{item.title}</strong>
-                    <span>
-                      {item.place} · {item.blurb}
-                    </span>
-                  </div>
-                </button>
-              </li>
-            );
-          })}
+        <ul className="hub-tips">
+          {HUB_TIPS.slice(0, 2).map((item) => (
+            <li key={item.id}>
+              <button type="button" data-method={item.method} onClick={() => onOpenTip(item.id)}>
+                <em>{item.method}</em>
+                <strong>{item.title}</strong>
+                <span>{item.summary}</span>
+              </button>
+            </li>
+          ))}
         </ul>
       </section>
 
